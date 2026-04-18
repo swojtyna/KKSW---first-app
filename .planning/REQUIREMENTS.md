@@ -100,38 +100,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ONB-01 | — | Pending |
-| ONB-02 | — | Pending |
-| ONB-03 | — | Pending |
-| SEL-01 | — | Pending |
-| SEL-02 | — | Pending |
-| SEL-03 | — | Pending |
-| SEL-04 | — | Pending |
-| SEL-05 | — | Pending |
-| QSN-01 | — | Pending |
-| QSN-02 | — | Pending |
-| QSN-03 | — | Pending |
-| QSN-04 | — | Pending |
-| QSN-05 | — | Pending |
-| QSN-06 | — | Pending |
-| SCH-01 | — | Pending |
-| SCH-02 | — | Pending |
-| SCH-03 | — | Pending |
-| SCH-04 | — | Pending |
-| SHL-01 | — | Pending |
-| SHL-02 | — | Pending |
-| SHL-03 | — | Pending |
-| SHL-04 | — | Pending |
-| GAM-01 | — | Pending |
-| GAM-02 | — | Pending |
-| NTF-01 | — | Pending |
-| NTF-02 | — | Pending |
+| ONB-01 | Phase 1 | Pending |
+| ONB-02 | Phase 1 | Pending |
+| ONB-03 | Phase 1 | Pending |
+| SEL-01 | Phase 2 | Pending |
+| SEL-02 | Phase 2 | Pending |
+| SEL-03 | Phase 2 | Pending |
+| SEL-04 | Phase 2 | Pending |
+| SEL-05 | Phase 2 | Pending |
+| QSN-01 | Phase 3 | Pending |
+| QSN-02 | Phase 3 | Pending |
+| QSN-03 | Phase 3 | Pending |
+| QSN-04 | Phase 3 | Pending |
+| QSN-05 | Phase 3 | Pending |
+| QSN-06 | Phase 3 | Pending |
+| SHL-01 | Phase 4 | Pending |
+| SHL-02 | Phase 4 | Pending |
+| SHL-03 | Phase 4 | Pending |
+| SHL-04 | Phase 4 | Pending |
+| SCH-01 | Phase 5 | Pending |
+| SCH-02 | Phase 5 | Pending |
+| SCH-03 | Phase 5 | Pending |
+| SCH-04 | Phase 5 | Pending |
+| GAM-01 | Phase 6 | Pending |
+| GAM-02 | Phase 6 | Pending |
+| NTF-01 | Phase 6 | Pending |
+| NTF-02 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-18*
-*Last updated: 2026-04-18 after initial definition*
+*Last updated: 2026-04-18 after roadmap creation*
