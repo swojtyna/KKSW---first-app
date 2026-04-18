@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. App Group container is configured and accessible from all targets
 **Plans:** 3 plans
 Plans:
-- [ ] 01-01-PLAN.md -- Scaffold multi-target XcodeGen project with extensions, App Group, SPM deps, design system, and domain layer
+- [x] 01-01-PLAN.md -- Scaffold multi-target XcodeGen project with extensions, App Group, SPM deps, design system, and domain layer
 - [ ] 01-02-PLAN.md -- Implement onboarding flow: ViewModels, Views, app entry point, and unit tests
 - [ ] 01-03-PLAN.md -- Human verification of onboarding screens and authorization flow
 
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Foundation & Onboarding | 0/3 | Planning complete | - |
+| 1. Foundation & Onboarding | 1/3 | Executing | - |
 | 2. App Selection | 0/? | Not started | - |
 | 3. Quick Sessions | 0/? | Not started | - |
 | 4. Shield Customization | 0/? | Not started | - |
