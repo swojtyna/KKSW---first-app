@@ -133,5 +133,6 @@ targets:
       groups: [shared-ios]
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kksw.DeluluDetox.Tests
+        GENERATE_INFOPLIST_FILE: true
     dependencies:
       - target: DeluluDetox
