@@ -8,6 +8,16 @@ options:
   defaultConfig: Debug
   developmentLanguage: en
 
+settingGroups:
+  shared-ios:
+    base:
+      SWIFT_VERSION: "6.2"
+
+packages:
+  swift-navigation:
+    url: https://github.com/pointfreeco/swift-navigation
+    from: "2.8.0"
+
 targets:
   DeluluDetox:
     type: application
@@ -17,8 +27,8 @@ targets:
     resources:
       - path: DeluluDetox/Resources
     settings:
+      groups: [shared-ios]
       base:
-        SWIFT_VERSION: "6.2"
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
@@ -29,3 +39,99 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         PRODUCT_BUNDLE_IDENTIFIER: com.kksw.DeluluDetox
         SWIFT_EMIT_LOC_STRINGS: true
+    dependencies:
+      - target: DeviceActivityMonitorExtension
+        embed: true
+      - target: ShieldConfigurationExtension
+        embed: true
+      - target: ShieldActionExtension
+        embed: true
+      - package: swift-navigation
+        product: SwiftUINavigation
+    entitlements:
+      path: DeluluDetox/DeluluDetox.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.kksw.DeluluDetox
+        com.apple.developer.family-controls: true
+
+  DeviceActivityMonitorExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Extensions/DeviceActivityMonitorExtension
+    settings:
+      groups: [shared-ios]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kksw.DeluluDetox.DeviceActivityMonitorExtension
+        GENERATE_INFOPLIST_FILE: true
+    info:
+      path: Extensions/DeviceActivityMonitorExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).DeviceActivityMonitorExtension
+    entitlements:
+      path: Extensions/DeviceActivityMonitorExtension/DeviceActivityMonitorExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.kksw.DeluluDetox
+        com.apple.developer.family-controls: true
+
+  ShieldConfigurationExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Extensions/ShieldConfigurationExtension
+    settings:
+      groups: [shared-ios]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kksw.DeluluDetox.ShieldConfigurationExtension
+        GENERATE_INFOPLIST_FILE: true
+    info:
+      path: Extensions/ShieldConfigurationExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-configuration-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+    entitlements:
+      path: Extensions/ShieldConfigurationExtension/ShieldConfigurationExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.kksw.DeluluDetox
+        com.apple.developer.family-controls: true
+
+  ShieldActionExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Extensions/ShieldActionExtension
+    settings:
+      groups: [shared-ios]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kksw.DeluluDetox.ShieldActionExtension
+        GENERATE_INFOPLIST_FILE: true
+    info:
+      path: Extensions/ShieldActionExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
+    entitlements:
+      path: Extensions/ShieldActionExtension/ShieldActionExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.kksw.DeluluDetox
+        com.apple.developer.family-controls: true
+
+  DeluluDetoxTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: DeluluDetoxTests
+    settings:
+      groups: [shared-ios]
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kksw.DeluluDetox.Tests
+    dependencies:
+      - target: DeluluDetox
