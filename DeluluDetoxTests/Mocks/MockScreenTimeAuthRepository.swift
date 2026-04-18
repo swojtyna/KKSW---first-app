@@ -1,7 +1,7 @@
 import FamilyControls
 @testable import DeluluDetox
 
-final class MockScreenTimeAuthRepository: ScreenTimeAuthRepository {
+final class MockScreenTimeAuthRepository: ScreenTimeAuthRepository, @unchecked Sendable {
     var stubbedStatus: AuthorizationStatus = .notDetermined
     var requestAuthorizationError: Error?
     var requestAuthorizationCallCount = 0

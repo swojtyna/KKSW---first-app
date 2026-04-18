@@ -1,7 +1,11 @@
 import Observation
 
 struct DependencyContainer {
-    let screenTimeAuthRepository: ScreenTimeAuthRepository = ScreenTimeAuthRepositoryImpl()
+    let screenTimeAuthRepository: ScreenTimeAuthRepository
+
+    init(screenTimeAuthRepository: ScreenTimeAuthRepository = ScreenTimeAuthRepositoryImpl()) {
+        self.screenTimeAuthRepository = screenTimeAuthRepository
+    }
 
     func makeRequestScreenTimeAuthUseCase() -> RequestScreenTimeAuthUseCase {
         RequestScreenTimeAuthUseCaseImpl(repository: screenTimeAuthRepository)

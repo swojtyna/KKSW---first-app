@@ -1,6 +1,7 @@
 import XCTest
 @testable import DeluluDetox
 
+@MainActor
 final class OnboardingViewModelTests: XCTestCase {
     func testGrantAccessSuccess() async {
         let mockRepo = MockScreenTimeAuthRepository()
