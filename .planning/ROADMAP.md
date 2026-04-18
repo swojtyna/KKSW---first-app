@@ -42,21 +42,29 @@ Plans:
 
 **Goal**: Przestawić projekt na układ feature-first z `DIContainer` i jasnymi regułami zależności (Repo ↛ Repo, UseCase → UseCase/Repo, VM → tylko UseCase) zanim dołożymy kolejne feature'y.
 **Depends on**: Phase 1
-**Requirements**: TBD (architectural — no user-facing REQ-IDs)
+**Requirements**: TBD (architectural — no user-facing REQ-IDs; decisions D-01..D-31 in 01.1-CONTEXT.md are the coverage axis)
 **Scope**:
   - aktualizacja guide'ów architektury i dependency-injection
   - integracja `DIContainer` + property wrappers z `to_integrate/`
   - refaktor istniejących feature'ów (Onboarding, Home, Denial, Root) do feature-first
-  - migracja współdzielonych komponentów do `FeatureCommons`
+  - migracja współdzielonego `ScreenTimeAuthRepository` + UC'ów pod feature-ownera (Onboarding)
   - usunięcie `to_integrate/` i starej ręcznej `DependencyContainer`
 **Success Criteria** (what must be TRUE):
   1. `.claude/guides/architecture/GUIDE.md` reflects feature-first layout + DI rules
   2. `DIContainer` + property wrappers from `to_integrate/` are integrated and tested
   3. Onboarding, Home, Denial, Root features are reorganized under a feature-first directory layout
-  4. Shared components live in `FeatureCommons`
+  4. Shared components live under their feature-owner's directory (`Features/Onboarding/Repository/` owns `ScreenTimeAuth*` per D-17; no global `FeatureCommons/` — feature-structure/GUIDE.md rejects it)
   5. `to_integrate/` directory and the old manual `DependencyContainer` are removed from the repo
   6. App still builds and Phase 1 onboarding flow still works end-to-end on simulator
-**Plans**: TBD (run `/gsd-plan-phase 01.1` to break down)
+**Plans:** 7 plans
+Plans:
+- [ ] 01.1-01-PLAN.md — DI core migration (`DeluluDetox/Sources/Core/DependencyInjection/`) + extension baseline snapshot (D-18, D-19, D-30 part a)
+- [ ] 01.1-02-PLAN.md — Onboarding feature-owner: Repo+UC feature-first migration, Combine `statusPublisher`, `refreshStatus()`, `OnboardingInjection.register` (D-07..D-13, D-17, D-20, D-22)
+- [ ] 01.1-03-PLAN.md — Onboarding/Denial/Home VM → `@LazyInjected` + feature-first move + DenialInjection/HomeInjection no-op (D-03, D-10, D-15, D-16 transitional)
+- [ ] 01.1-04-PLAN.md — AppRoot Destination enum + Combine subscription + scenePhase hook; DeluluDetoxApp bootstrap; delete `DependencyContainer.swift` + onAuthorized (D-01, D-02, D-04, D-05, D-11, D-14, D-16 final, D-20, D-23)
+- [ ] 01.1-05-PLAN.md — Test migration to mirror layout + DIContainer.reset() + 4 mocks in feature-owner (D-27, D-28, D-29)
+- [ ] 01.1-06-PLAN.md — Navigation guide Wzorzec B section + DI guide Combine publisher example (D-24, D-25)
+- [ ] 01.1-07-PLAN.md — Cleanup `to_integrate/` + extension regression check (D-30 part b) + human-verify checkpoint (D-23 final)
 
 ### Phase 2: App Selection
 **Goal**: User can choose which apps, categories, and websites to block, and those selections survive app restarts
@@ -128,6 +136,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
 | 1. Foundation & Onboarding | 2/3 | Executing | - |
+| 01.1. Architecture Foundation & DI Migration | 0/7 | Ready to execute | - |
 | 2. App Selection | 0/? | Not started | - |
 | 3. Quick Sessions | 0/? | Not started | - |
 | 4. Shield Customization | 0/? | Not started | - |
