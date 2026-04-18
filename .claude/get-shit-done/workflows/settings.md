@@ -12,19 +12,17 @@ Read all files referenced by the invoking prompt's execution_context before star
 Ensure config exists and load current state:
 
 ```bash
-gsd-sdk query config-ensure-section
-GSD_CONFIG_PATH=$(node "/Users/swojtyna/Documents/code/swojtyna/KKSW---first-app/.claude/get-shit-done/bin/gsd-tools.cjs" config-path)
-INIT=$(gsd-sdk query state.load)
+node "/Users/swojtyna/Documents/code/swojtyna/KKSW---first-app/.claude/get-shit-done/bin/gsd-tools.cjs" config-ensure-section
+INIT=$(node "/Users/swojtyna/Documents/code/swojtyna/KKSW---first-app/.claude/get-shit-done/bin/gsd-tools.cjs" state load)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
-Creates config.json (at the workstream-aware path) with defaults if missing and loads current config values.
-Store `$GSD_CONFIG_PATH` — all subsequent reads and writes use this path, not the hardcoded `.planning/config.json`, so active-workstream installs write to the correct location (#2282).
+Creates `.planning/config.json` with defaults if missing and loads current config values.
 </step>
 
 <step name="read_current">
 ```bash
-cat "$GSD_CONFIG_PATH"
+cat .planning/config.json
 ```
 
 Parse current values (default to `true` if not present):
@@ -34,15 +32,12 @@ Parse current values (default to `true` if not present):
 - `workflow.nyquist_validation` — validation architecture research during plan-phase (default: true if absent)
 - `workflow.ui_phase` — generate UI-SPEC.md design contracts for frontend phases (default: true if absent)
 - `workflow.ui_safety_gate` — prompt to run /gsd-ui-phase before planning frontend phases (default: true if absent)
-- `workflow.ai_integration_phase` — framework selection + eval strategy for AI phases (default: true if absent)
 - `model_profile` — which model each agent uses (default: `balanced`)
 - `git.branching_strategy` — branching approach (default: `"none"`)
 - `workflow.use_worktrees` — whether parallel executor agents run in worktree isolation (default: `true`)
 </step>
 
 <step name="present_settings">
-
-**Text mode (`workflow.text_mode: true` in config or `--text` flag):** Set `TEXT_MODE=true` if `--text` is present in `$ARGUMENTS` OR `text_mode` from init JSON is `true`. When TEXT_MODE is active, replace every `AskUserQuestion` call with a plain-text numbered list and ask the user to type their choice number. This is required for non-Claude runtimes (OpenAI Codex, Gemini CLI, etc.) where `AskUserQuestion` is not available.
 Use AskUserQuestion with current values pre-selected:
 
 ```
@@ -124,15 +119,6 @@ AskUserQuestion([
     ]
   },
   {
-    question: "Enable AI Phase? (framework selection + eval strategy for AI phases)",
-    header: "AI Phase",
-    multiSelect: false,
-    options: [
-      { label: "Yes (Recommended)", description: "Run /gsd-ai-phase before planning AI system phases. Surfaces the right framework, researches its docs, and designs the evaluation strategy." },
-      { label: "No", description: "Skip AI design contract. Good for non-AI phases or when framework is already decided." }
-    ]
-  },
-  {
     question: "Git branching strategy?",
     header: "Branching",
     multiSelect: false,
@@ -175,7 +161,7 @@ AskUserQuestion([
     multiSelect: false,
     options: [
       { label: "Yes (Recommended)", description: "Each parallel executor runs in its own worktree branch — no conflicts between agents." },
-      { label: "No", description: "Disable worktree isolation. Agents run sequentially on the main working tree. Use if EnterWorktree creates branches from wrong base (known cross-platform issue)." }
+      { label: "No", description: "Disable worktree isolation. Use on platforms where EnterWorktree is broken (e.g. Windows with feature branches). Agents run sequentially on the main working tree." }
     ]
   }
 ])
@@ -197,7 +183,6 @@ Merge new settings into existing config.json:
     "nyquist_validation": true/false,
     "ui_phase": true/false,
     "ui_safety_gate": true/false,
-    "ai_integration_phase": true/false,
     "text_mode": true/false,
     "research_before_questions": true/false,
     "discuss_mode": "discuss" | "assumptions",
@@ -215,7 +200,7 @@ Merge new settings into existing config.json:
 }
 ```
 
-Write updated config to `$GSD_CONFIG_PATH` (the workstream-aware path resolved in `ensure_and_load_config`). Never hardcode `.planning/config.json` — workstream installs route to `.planning/workstreams/<slug>/config.json`.
+Write updated config to `.planning/config.json`.
 </step>
 
 <step name="save_as_defaults">
@@ -259,7 +244,6 @@ Write `~/.gsd/defaults.json` with:
     "nyquist_validation": <current>,
     "ui_phase": <current>,
     "ui_safety_gate": <current>,
-    "ai_integration_phase": <current>,
     "skip_discuss": <current>
   }
 }
@@ -284,7 +268,6 @@ Display:
 | Nyquist Validation   | {On/Off} |
 | UI Phase             | {On/Off} |
 | UI Safety Gate       | {On/Off} |
-| AI Integration Phase | {On/Off} |
 | Git Branching        | {None/Per Phase/Per Milestone} |
 | Skip Discuss         | {On/Off} |
 | Context Warnings     | {On/Off} |
@@ -304,7 +287,7 @@ Quick commands:
 
 <success_criteria>
 - [ ] Current config read
-- [ ] User presented with 14 settings (profile + 11 workflow toggles + git branching + ctx warnings)
+- [ ] User presented with 10 settings (profile + 8 workflow toggles + git branching)
 - [ ] Config updated with model_profile, workflow, and git sections
 - [ ] User offered to save as global defaults (~/.gsd/defaults.json)
 - [ ] Changes confirmed to user

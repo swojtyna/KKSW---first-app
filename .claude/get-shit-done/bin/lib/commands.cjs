@@ -313,19 +313,11 @@ function cmdCommit(cwd, message, files, raw, amend, noVerify) {
   }
 
   // Stage files
-  const explicitFiles = files && files.length > 0;
-  const filesToStage = explicitFiles ? files : ['.planning/'];
+  const filesToStage = files && files.length > 0 ? files : ['.planning/'];
   for (const file of filesToStage) {
     const fullPath = path.join(cwd, file);
     if (!fs.existsSync(fullPath)) {
-      if (explicitFiles) {
-        // Caller passed an explicit --files list: missing files are skipped.
-        // Staging a deletion here would silently remove tracked planning files
-        // (e.g. STATE.md, ROADMAP.md) when they are temporarily absent (#2014).
-        continue;
-      }
-      // Default mode (staging all of .planning/): stage the deletion so
-      // removed planning files are not left dangling in the index.
+      // File was deleted/moved — stage the deletion
       execGit(cwd, ['rm', '--cached', '--ignore-unmatch', file]);
     } else {
       execGit(cwd, ['add', file]);
@@ -831,9 +823,8 @@ function cmdStats(cwd, format, raw) {
     const headingPattern = /#{2,4}\s*Phase\s+(\d+[A-Z]?(?:\.\d+)*)\s*:\s*([^\n]+)/gi;
     let match;
     while ((match = headingPattern.exec(roadmapContent)) !== null) {
-      const key = normalizePhaseName(match[1]);
-      phasesByNumber.set(key, {
-        number: key,
+      phasesByNumber.set(match[1], {
+        number: match[1],
         name: match[2].replace(/\(INSERTED\)/i, '').trim(),
         plans: 0,
         summaries: 0,
@@ -863,10 +854,9 @@ function cmdStats(cwd, format, raw) {
 
       const status = determinePhaseStatus(plans, summaries, path.join(phasesDir, dir), 'Not Started');
 
-      const normalizedNum = normalizePhaseName(phaseNum);
-      const existing = phasesByNumber.get(normalizedNum);
-      phasesByNumber.set(normalizedNum, {
-        number: normalizedNum,
+      const existing = phasesByNumber.get(phaseNum);
+      phasesByNumber.set(phaseNum, {
+        number: phaseNum,
         name: existing?.name || phaseName,
         plans: (existing?.plans || 0) + plans,
         summaries: (existing?.summaries || 0) + summaries,
