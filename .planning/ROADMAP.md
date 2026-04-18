@@ -12,7 +12,7 @@ DeluluDetox ships in six phases that build vertically from project scaffold to e
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Onboarding** - Scaffold multi-target Xcode project and deliver Screen Time authorization flow
+- [x] **Phase 1: Foundation & Onboarding** - Scaffold multi-target Xcode project and deliver Screen Time authorization flow (completed 2026-04-18)
 - [ ] **Phase 2: App Selection** - User can pick apps, categories, and websites to block with persistent token storage
 - [ ] **Phase 3: Quick Sessions** - User can start an instant block that holds until the timer expires (core value)
 - [ ] **Phase 4: Shield Customization** - Blocked apps show branded shield with deep link back to main app
@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md -- Scaffold multi-target XcodeGen project with extensions, App Group, SPM deps, design system, and domain layer
 - [x] 01-02-PLAN.md -- Implement onboarding flow: ViewModels, Views, app entry point, and unit tests
-- [ ] 01-03-PLAN.md -- Human verification of onboarding screens and authorization flow
+- [x] 01-03-PLAN.md -- Human verification of onboarding screens and authorization flow
 
 ### Phase 2: App Selection
 **Goal**: User can choose which apps, categories, and websites to block, and those selections survive app restarts
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Foundation & Onboarding | 2/3 | Executing | - |
+| 1. Foundation & Onboarding | 3/3 | Complete | 2026-04-18 |
 | 2. App Selection | 0/? | Not started | - |
 | 3. Quick Sessions | 0/? | Not started | - |
 | 4. Shield Customization | 0/? | Not started | - |
