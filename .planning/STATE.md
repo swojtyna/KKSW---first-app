@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-04-18T18:33:45.761Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-04-18T18:49:28.861Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -26,30 +26,31 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 ## Current Position
 
 Phase: 01 (foundation-onboarding) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-18
 
-Progress: [███░░░░░░░] 33%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
-- Average duration: 4 minutes
-- Total execution time: 4 minutes
+- Total plans completed: 2
+- Average duration: 7 minutes
+- Total execution time: 14 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | Phase 01 P01 | 2 tasks | 4 minutes | 4 min |
+| Phase 01 P02 | 2 tasks | 10 minutes | 5 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 4 min
-- Trend: -
+- Last 5 plans: 4 min, 10 min
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -66,6 +67,9 @@ Recent decisions affecting current work:
 - No backend in MVP
 - [Phase 01]: Electric violet (#7C3AED) chosen as accent color -- bold, works on white, matches playful brand tone
 - [Phase 01]: DependencyContainer defines ViewModel factory contracts for Plan 02 -- intentional compile errors until ViewModels exist
+- [Phase 01]: DependencyContainer changed to init-based injection for testability
+- [Phase 01]: AppRootViewModel.Screen is plain enum (not @CasePathable) -- full-screen routing, not modal
+- [Phase 01]: MARKETING_VERSION and CURRENT_PROJECT_VERSION added to shared settings for extension simulator install
 
 ### Pending Todos
 
@@ -79,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T18:33:45.758Z
-Stopped at: Completed 01-01-PLAN.md
-Resume file: .planning/phases/01-foundation-onboarding/01-02-PLAN.md
+Last session: 2026-04-18T18:49:28.859Z
+Stopped at: Completed 01-02-PLAN.md
+Resume file: .planning/phases/01-foundation-onboarding/01-03-PLAN.md

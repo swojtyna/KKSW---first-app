@@ -9,9 +9,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Onboarding
 
-- [ ] **ONB-01**: User sees explanation screen describing why Screen Time permission is needed before the request
-- [ ] **ONB-02**: User can grant Screen Time permission (individual) via system prompt
-- [ ] **ONB-03**: User sees graceful fallback with retry option if permission is denied
+- [x] **ONB-01**: User sees explanation screen describing why Screen Time permission is needed before the request
+- [x] **ONB-02**: User can grant Screen Time permission (individual) via system prompt
+- [x] **ONB-03**: User sees graceful fallback with retry option if permission is denied
 
 ### App Selection
 
@@ -100,9 +100,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ONB-01 | Phase 1 | Pending |
-| ONB-02 | Phase 1 | Pending |
-| ONB-03 | Phase 1 | Pending |
+| ONB-01 | Phase 1 | Complete |
+| ONB-02 | Phase 1 | Complete |
+| ONB-03 | Phase 1 | Complete |
 | SEL-01 | Phase 2 | Pending |
 | SEL-02 | Phase 2 | Pending |
 | SEL-03 | Phase 2 | Pending |
