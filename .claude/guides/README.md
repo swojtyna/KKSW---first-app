@@ -8,6 +8,8 @@
 
 | Guide | Read When | Complexity |
 |-------|-----------|------------|
+| [architecture](architecture/GUIDE.md) | Designing features, wiring data flow, picking a layer | Medium |
+| [navigation](navigation/GUIDE.md) | Adding sheets, alerts, push navigation, or deep links | Medium |
 | [xcodegen](xcodegen/GUIDE.md) | Modifying project structure | Medium |
 | [xcodebuild-mcp](xcodebuild-mcp/GUIDE.md) | Building and testing | Medium |
 | [create-new-guide](create-new-guide/GUIDE.md) | Creating / refactoring guides | Simple |
