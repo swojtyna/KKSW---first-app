@@ -1,5 +1,5 @@
 ---
-summary: Clean Architecture (MVVM + UseCase + Repository) with SOLID / KISS / DRY
+summary: Clean Architecture (MVVM + UseCase + Repository) — warstwy i reguły zależności
 read_when: Designing a new feature, adding a screen, or wiring data flow
 complexity: medium
 status: active
@@ -8,7 +8,12 @@ last_updated: 2026-04-18
 
 # Architecture
 
-This app follows **Clean Architecture** with **MVVM** in the presentation layer, **UseCases** in the domain layer, and **Repositories** in the data layer. Apply **SOLID, KISS, DRY** — no layer or abstraction without a concrete reason.
+Projekt stosuje **Clean Architecture** z **MVVM** w prezentacji, **UseCase'ami** w domenie i **Repozytoriami** w danych. **SOLID, KISS, DRY** — żadna warstwa ani abstrakcja bez konkretnego powodu.
+
+Ten guide opisuje **warstwy i reguły zależności** — co może o czym wiedzieć.
+
+- Fizyczny układ plików per feature → `.claude/guides/feature-structure/GUIDE.md`
+- Wstrzykiwanie zależności → `.claude/guides/dependency-injection/GUIDE.md`
 
 ---
 
@@ -18,248 +23,250 @@ This app follows **Clean Architecture** with **MVVM** in the presentation layer,
 ┌─────────────────────────────────────────┐
 │ Presentation    View + ViewModel        │  SwiftUI, @Observable
 ├─────────────────────────────────────────┤
-│ Domain          UseCase + Entity        │  Pure Swift, no frameworks
+│ Domain          UseCase + Entity        │  Pure Swift, brak frameworków
 ├─────────────────────────────────────────┤
-│ Data            Repository + DataSource │  Network, persistence, system APIs
+│ Data            Repository + Source     │  Systemowe API, persistencja, App Group
 └─────────────────────────────────────────┘
-         ▲ dependencies point inward
+         ▲ zależności kierują się w górę
 ```
 
-**Rules:**
-- Domain knows nothing about Presentation or Data.
-- Data implements Domain protocols (dependency inversion).
-- View imports SwiftUI; ViewModel does **not** (keeps it testable, reusable).
-- Pass data as plain Swift types (struct, enum) — never SwiftUI types.
+**Reguły kierunku:**
+- Domain nie wie o Presentation ani Data.
+- Data implementuje protokoły z Domain (dependency inversion).
+- View importuje SwiftUI; ViewModel **nie** (poza `Observation`).
+- Dane przekazujemy jako plain Swift types (`struct`, `enum`) — nigdy typy SwiftUI.
 
 ---
 
-## File layout
+## Dependency rules
 
-```
-App/
-├── Features/
-│   └── <FeatureName>/
-│       ├── <FeatureName>View.swift        // SwiftUI view
-│       └── <FeatureName>ViewModel.swift   // @Observable model
-├── Domain/
-│   ├── UseCases/
-│   │   └── <Action>UseCase.swift          // Protocol + impl
-│   ├── Entities/
-│   │   └── <Entity>.swift                 // Plain struct
-│   └── Repositories/
-│       └── <Entity>Repository.swift       // Protocol only
-└── Data/
-    ├── Repositories/
-    │   └── <Entity>RepositoryImpl.swift   // Impl of domain protocol
-    └── Sources/
-        ├── Remote/                        // Network clients
-        └── Local/                         // Persistence, Keychain, UserDefaults
-```
+Cztery twarde reguły, egzekwowane w code review:
 
-Domain protocols live in `Domain/`. Data implements them — never the other way around.
+1. **Repository ↛ Repository.** Żadne repo nie wie o innym repo. Jeśli potrzebujesz łączyć dane z dwóch źródeł — to jest rola UseCase'a (bierze 2 repozytoria i łączy).
+2. **UseCase → UseCase / Repository.** UC może zależeć od innych UC'ów i od Repozytoriów. Od niczego więcej — szczególnie nie od systemowych API bezpośrednio (te siedzą w Repository lub źródle pod Repository).
+3. **ViewModel → tylko UseCase.** VM nie importuje Repository, nie sięga do `UserDefaults` / `FileManager` / `ManagedSettingsStore` bezpośrednio, nie importuje SwiftUI poza `Observation`.
+4. **View → tylko ViewModel.** View nie widzi UseCase'ów ani Repozytoriów. Renderuje stan z VM, forwarduje intent.
+
+**Dlaczego tak twardo:**
+- Repo ↛ Repo zapobiega implicitnym cyklom i utrzymuje SRP repozytorium (1 agregat = 1 repo).
+- VM bez Repository wymusza bycie UC'a jako jawnego kontraktu domenowego — testy VM nie wymagają stubowania systemowych API.
+- View bez UC trzyma VM jako jedyny punkt synchronizacji stanu ekranu.
+
+---
+
+## Shared code between features
+
+Gdy dwa feature'y potrzebują tej samej funkcjonalności:
+
+- **Repository** żyje w **feature-ownerze** (tam, gdzie pojawiło się pierwsze). Inne feature'y **nie sięgają po nie bezpośrednio**.
+- **UseCase** jest jedynym kontraktem, który przekracza granicę feature'ów. Siedzi w `Common/UseCase/` feature-ownera.
+- Nie istnieje globalny katalog `FeatureCommons/`. Wspólny kod jest lokalny dla feature-ownera.
+
+**Przykład.** `ScreenTimeAuthRepository` używany przez Onboarding i Denial:
+
+- Onboarding jest feature-ownerem (pierwsze użycie).
+- Repo żyje w `Features/Onboarding/Common/Repository/`.
+- `RequestScreenTimeAuthUseCase` żyje w `Features/Onboarding/Common/UseCase/`.
+- Denial wstrzykuje **UseCase**, nie repo.
+
+Detale i kiedy wydzielać `Common/` → `.claude/guides/feature-structure/GUIDE.md`.
 
 ---
 
 ## MVVM (Presentation)
 
-ViewModel holds state, exposes actions, calls UseCases. Use `@Observable` (Swift Observation, iOS 17+).
+ViewModel trzyma stan, eksponuje akcje, woła UseCase'y. Używaj `@Observable` (Swift Observation, iOS 17+).
 
 ```swift
+@MainActor
 @Observable
-final class HomeViewModel {
-    private(set) var items: [Item] = []
-    private(set) var isLoading = false
-    var destination: Destination?   // see navigation guide
+final class OnboardingViewModel: @unchecked Sendable {
+    @ObservationIgnored
+    @LazyInjected private var requestAuth: RequestScreenTimeAuthUseCase
 
-    private let fetchItems: FetchItemsUseCase
+    private(set) var status: ScreenTimeAuthStatus?
+    private(set) var isRequesting = false
+    var destination: Destination?   // patrz navigation/GUIDE.md
 
-    init(fetchItems: FetchItemsUseCase) {
-        self.fetchItems = fetchItems
-    }
-
-    func onAppear() async {
-        isLoading = true
-        defer { isLoading = false }
-        items = (try? await fetchItems()) ?? []
+    func onAuthorizeTapped() async {
+        isRequesting = true
+        defer { isRequesting = false }
+        status = try? await requestAuth()
     }
 }
 ```
 
-View is dumb: bind to the ViewModel, render state, forward intent.
+View jest cienka — bind do VM, render stanu, forward intentu:
 
 ```swift
-struct HomeView: View {
-    @Bindable var model: HomeViewModel
+struct OnboardingView: View {
+    @Bindable var model: OnboardingViewModel
 
     var body: some View {
-        List(model.items) { Text($0.title) }
-            .task { await model.onAppear() }
+        Button("Autoryzuj") {
+            Task { await model.onAuthorizeTapped() }
+        }
+        .disabled(model.isRequesting)
     }
 }
 ```
 
-**Rules:**
-- No business logic in views.
-- ViewModels never import SwiftUI (only `Observation`).
-- ViewModels never touch URLSession / Keychain / FileManager directly — always through a UseCase or Repository.
+**Reguły:**
+- Brak logiki biznesowej w View.
+- VM nie importuje SwiftUI (`View`, `Color`, `Binding`) — wyłącznie `Observation`.
+- VM nie dotyka `URLSession` / Keychain / FileManager / ManagedSettings bezpośrednio — zawsze przez UC.
 
 ---
 
 ## UseCase (Domain)
 
-Each UseCase represents **one business operation**. Callable as a function via `callAsFunction`.
+Każdy UseCase reprezentuje **jedną operację biznesową**. Wywoływalny jak funkcja przez `callAsFunction`.
 
 ```swift
-protocol FetchItemsUseCase {
-    func callAsFunction() async throws -> [Item]
+protocol RequestScreenTimeAuthUseCase: Sendable {
+    func callAsFunction() async throws -> ScreenTimeAuthStatus
 }
 
-final class FetchItemsUseCaseImpl: FetchItemsUseCase {
-    private let repository: ItemRepository
-    init(repository: ItemRepository) { self.repository = repository }
+final class RequestScreenTimeAuthUseCaseImpl: RequestScreenTimeAuthUseCase {
+    private let repository: ScreenTimeAuthRepository
 
-    func callAsFunction() async throws -> [Item] {
-        try await repository.allItems()
+    init(repository: ScreenTimeAuthRepository) {
+        self.repository = repository
+    }
+
+    func callAsFunction() async throws -> ScreenTimeAuthStatus {
+        try await repository.requestAuthorization()
+        return await repository.status
     }
 }
 ```
 
-**When to add a UseCase vs call the Repository directly:**
+**Kiedy dodać UseCase, a kiedy wołać Repository bezpośrednio:**
 
 ```
-Plain read-through (one fetch, no rules)?
-    └─ UseCase is overkill — ViewModel calls Repository.
+Plain read-through (jedno fetch, bez reguł)?
+    └─ UC to overkill — ale i tak VM musi iść przez UC (reguła "VM → tylko UC").
+       Trywialny passthrough UC to koszt akceptowalny dla spójności kontraktu.
 
-Business rule, validation, or combining multiple sources?
-    └─ Add UseCase. Rules belong in Domain, not ViewModel.
+Reguła biznesowa, walidacja, łączenie źródeł?
+    └─ UseCase obowiązkowy. Reguły należą do Domain, nie VM.
 ```
 
-Start without UseCases. Extract when the ViewModel starts orchestrating.
+Reguła "VM → tylko UC" jest twarda — nawet trywialny passthrough wymaga UC. To cena za jednolity kontrakt i testowalność.
 
 ---
 
 ## Repository (Data)
 
-Protocol in Domain; implementation in Data. Repository hides **where** data comes from.
+Protokół i implementacja **w tym samym pliku**. Repository ukrywa, **skąd** pochodzą dane.
 
 ```swift
-// Domain/Repositories/ItemRepository.swift
-protocol ItemRepository {
-    func allItems() async throws -> [Item]
-    func save(_ item: Item) async throws
+// Features/Onboarding/Common/Repository/ScreenTimeAuthRepository.swift
+
+protocol ScreenTimeAuthRepository: Sendable {
+    var status: ScreenTimeAuthStatus { get async }
+    func requestAuthorization() async throws
 }
 
-// Data/Repositories/ItemRepositoryImpl.swift
-final class ItemRepositoryImpl: ItemRepository {
-    private let remote: ItemRemoteSource
-    private let local: ItemLocalStore
+final class ScreenTimeAuthRepositoryImpl: ScreenTimeAuthRepository {
+    var status: ScreenTimeAuthStatus {
+        get async {
+            // wywołanie AuthorizationCenter itd.
+        }
+    }
 
-    func allItems() async throws -> [Item] {
-        if let cached = try? await local.loadAll(), !cached.isEmpty { return cached }
-        let fresh = try await remote.fetchAll()
-        try? await local.saveAll(fresh)
-        return fresh
+    func requestAuthorization() async throws {
+        // systemowy API call
     }
 }
 ```
 
-One Repository per **aggregate** — not per endpoint, not per table.
+Jedno Repository na **agregat** — nie na endpoint, nie na tabelę, nie na systemowy API.
 
 ---
 
 ## Dependency Injection
 
-**No container framework, no service locator.** Constructor injection via protocols. Compose at the app entry point.
+Projekt używa `DIContainer` (singleton z scope'ami `.application` i `.unique`) + property wrapperów:
 
-```swift
-@main
-struct KKSWApp: App {
-    private let container = DependencyContainer()
-    var body: some Scene {
-        WindowGroup { HomeView(model: container.makeHomeViewModel()) }
-    }
-}
+- **Init Injection** dla Repository / UseCase / źródeł danych.
+- **`@LazyInjected`** dla ViewModeli.
 
-struct DependencyContainer {
-    let itemRepository: ItemRepository = ItemRepositoryImpl(...)
+Każdy feature rejestruje swoje zależności w `<Feature>Injection.swift` (distributed registration).
 
-    func makeHomeViewModel() -> HomeViewModel {
-        HomeViewModel(
-            fetchItems: FetchItemsUseCaseImpl(repository: itemRepository)
-        )
-    }
-}
-```
-
-Factory methods on the container, nothing global. Tests pass fakes by constructing their own container or ViewModel directly.
+Pełne API, wzorce testowania i anty-wzorce → `.claude/guides/dependency-injection/GUIDE.md`.
 
 ---
 
 ## SOLID applied
 
-- **S**ingle Responsibility — one UseCase = one operation; one Repository = one aggregate.
-- **O**pen/Closed — add new UseCases; don't modify an existing one to cover a new case.
-- **L**iskov — swapping a real impl for a fake must not break callers.
-- **I**nterface Segregation — ViewModels depend on narrow protocols (per UseCase), not a fat `DataManager`.
-- **D**ependency Inversion — Presentation and Domain depend on abstractions; Data implements them.
+- **S**ingle Responsibility — jeden UC = jedna operacja; jedno Repo = jeden agregat.
+- **O**pen/Closed — dodawaj nowe UC'y; nie modyfikuj istniejącego żeby obsłużyć nowy case.
+- **L**iskov — podmiana prawdziwej impl na fake'a nie może psuć callerów.
+- **I**nterface Segregation — VM zależy od wąskich protokołów (per UC), nie od fat'owego `DataManagera`.
+- **D**ependency Inversion — Presentation i Domain zależą od abstrakcji; Data je implementuje.
 
 ---
 
 ## KISS & DRY
 
-- **KISS.** No UseCase if the ViewModel simply returns `repository.allItems()`. No Repository if there's only one local source and no reason to abstract yet.
-- **DRY.** Extract when the same logic appears 3× across features — not earlier. Two similar blocks beat a premature abstraction.
-- **YAGNI.** Add layers when a concrete need appears, not "just in case".
+- **KISS.** Nie dodawaj warstwy "na wszelki wypadek". Jeśli UC jest trywialnym passthrough'em, to **jeszcze** nie powód, żeby łamać regułę VM→UC — ale to też znaczy, że nie potrzebujesz tam repo, jeśli dane pochodzą z pamięci procesu.
+- **DRY.** Wydzielaj, kiedy ta sama logika pojawia się 3× między feature'ami / ekranami — nie wcześniej. Dwa podobne bloki biją premature abstraction.
+- **YAGNI.** Warstwy dodajemy, kiedy pojawia się konkretna potrzeba, nie "może się przyda".
 
 ---
 
 ## iOS design patterns used
 
 - **Observer** — `@Observable` / `@Bindable` (Swift Observation).
-- **Factory** — `DependencyContainer.makeXxx()` builds ViewModels.
-- **Decorator** — wrap a Repository for caching or logging without changing callers.
-- **Strategy** — swap a UseCase impl for A/B tests or feature flags.
-- **State-driven navigation** — Destination enum on the ViewModel; see `.claude/guides/navigation/GUIDE.md`.
-- **Avoid:** singletons outside `DependencyContainer`, God objects, service locators.
+- **Factory** — `container.register(...) { ... }` w `<Feature>Injection.swift`.
+- **Decorator** — wrap Repository dla cache'owania / loggingu bez zmiany callerów.
+- **Strategy** — wymiana impl UC'a dla A/B testów / feature flags.
+- **State-driven navigation** — `Destination?` enum na VM; patrz `.claude/guides/navigation/GUIDE.md`.
+- **Unikaj:** globalnych singletonów poza `DIContainer` (który jest jawnym, kontrolowanym wyjątkiem), god objects, service locatorów rozsianych po kodzie.
 
 ---
 
-## Decision tree: where does new code go?
+## Decision tree: gdzie idzie nowy kod?
 
 ```
-New screen?
-    └─ Features/<Name>/<Name>View.swift + <Name>ViewModel.swift
+Nowy ekran?
+    └─ Features/<Feature>/<Screen>/ (w Split) lub Features/<Feature>/ (w Simple)
+       — patrz feature-structure/GUIDE.md
 
-Business rule or multi-step operation?
-    └─ Domain/UseCases/<Action>UseCase.swift
+Reguła biznesowa lub operacja wieloetapowa?
+    └─ UseCase w Features/<Feature>/UseCase/ lub .../Common/UseCase/ (jeśli współdzielone)
 
-New data source (API, cache, DB)?
-    └─ Data/Sources/<Remote|Local>/<Thing>Source.swift
-       + Domain/Repositories/<Entity>Repository.swift (protocol)
-       + Data/Repositories/<Entity>RepositoryImpl.swift (impl)
+Nowe źródło danych (systemowe API, cache, App Group, Keychain)?
+    └─ Repository w Features/<Feature>/Repository/ lub .../Common/Repository/
+       — protokół i impl w tym samym pliku
 
-Plain data shape shared across layers?
-    └─ Domain/Entities/<Entity>.swift
+Model danych współdzielony między warstwami?
+    └─ plain struct w Repository/Models/ obok repo, które go produkuje
 ```
 
 ---
 
 ## Common pitfalls
 
-- **ViewModel importing SwiftUI.** Only `Observation` is OK — never `View`, `Color`, `Binding`, etc.
-- **UseCase that just forwards one Repository call.** Delete it, call the Repository from the ViewModel.
-- **Repository returning `Result<T, Error>`.** Use `async throws` — idiomatic Swift.
-- **Shared mutable state across ViewModels.** Put it in a Repository; consume via `AsyncStream` or async reads.
-- **Mocking via subclassing.** Use protocols, not class inheritance.
-- **Passing Entities straight into Views.** Usually fine — but if the View needs formatted strings or UI-only fields, map to a display struct in the ViewModel.
+- **ViewModel importujący SwiftUI.** Tylko `Observation` jest OK — nigdy `View`, `Color`, `Binding`, `Image`.
+- **ViewModel importujący Repository.** Łamie regułę "VM → tylko UC". Trywialny passthrough UC to koszt spójności, nie overhead.
+- **Repository importujące inne Repository.** Łamie regułę Repo ↛ Repo. Potrzebujesz łączyć dwa źródła? To UseCase.
+- **UseCase, który tylko forwarduje jeden call repo.** Zostaw. Spójność kontraktu VM→UC warta jest tego jednego pliku.
+- **Repository zwracające `Result<T, Error>`.** Używaj `async throws` — idiomatyczny Swift.
+- **Shared mutable state między ViewModelami.** Przenieś do Repozytorium; konsumuj przez `AsyncStream` albo async read.
+- **Mock przez subclassing.** Używaj protokołów, nie dziedziczenia po klasach.
+- **Entity lecące prosto do View.** Zwykle OK — ale jeśli View potrzebuje formatowanych stringów albo pól UI-only, mapuj do display structa w ViewModelu.
 
 ---
 
 ## Related
 
-- Navigation: `.claude/guides/navigation/GUIDE.md`
-- Swift concurrency — invoke the `swift-concurrency:swift-concurrency` skill when touching async/await, actors, or Sendable.
-- SwiftUI patterns — invoke the `swiftui-expert:swiftui-expert-skill` skill when designing views.
+- Layout plików per feature: `.claude/guides/feature-structure/GUIDE.md`
+- Dependency Injection: `.claude/guides/dependency-injection/GUIDE.md`
+- Nawigacja: `.claude/guides/navigation/GUIDE.md`
+- Swift concurrency — wywołaj skill `swift-concurrency:swift-concurrency` przy pracy z async/await, aktorami, Sendable.
+- SwiftUI patterns — wywołaj skill `swiftui-expert:swiftui-expert-skill` przy projektowaniu widoków.
 
 ---
 

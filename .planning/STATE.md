@@ -71,6 +71,10 @@ Recent decisions affecting current work:
 - [Phase 01]: AppRootViewModel.Screen is plain enum (not @CasePathable) -- full-screen routing, not modal
 - [Phase 01]: MARKETING_VERSION and CURRENT_PROJECT_VERSION added to shared settings for extension simulator install
 
+### Roadmap Evolution
+
+- Phase 01.1 inserted after Phase 1: Architecture Foundation & DI Migration (INSERTED / URGENT) — feature-first refactor + `DIContainer` integration from `to_integrate/` before more features land
+
 ### Pending Todos
 
 None yet.

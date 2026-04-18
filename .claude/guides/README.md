@@ -9,6 +9,8 @@
 | Guide | Read When | Complexity |
 |-------|-----------|------------|
 | [architecture](architecture/GUIDE.md) | Designing features, wiring data flow, picking a layer | Medium |
+| [feature-structure](feature-structure/GUIDE.md) | Creating a new feature, splitting to `Common/`, deciding where a file goes | Medium |
+| [dependency-injection](dependency-injection/GUIDE.md) | Injecting dependencies, registering a new service, testing with DI | Medium |
 | [navigation](navigation/GUIDE.md) | Adding sheets, alerts, push navigation, or deep links | Medium |
 | [xcodegen](xcodegen/GUIDE.md) | Modifying project structure | Medium |
 | [xcodebuild-mcp](xcodebuild-mcp/GUIDE.md) | Building and testing | Medium |

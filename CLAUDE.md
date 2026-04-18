@@ -22,9 +22,16 @@ Greenfield. No Xcode project, `Package.swift`, or source files have been created
 
 **Architecture:**
 - Clean Architecture: MVVM (Presentation) + UseCase (Domain) + Repository (Data).
+- **Dependency rules (hard):** Repository ↛ Repository · UseCase → UseCase/Repository · ViewModel → tylko UseCase · View → tylko ViewModel.
+- **Feature-first layout:** Repository + UseCase + ViewModel + View żyją w katalogu feature'a. Kod współdzielony przez 2+ feature'y siedzi w `Common/` feature-ownera; sięgany z innych tylko przez UseCase. Brak globalnego `FeatureCommons/`.
 - Apply SOLID, KISS, DRY — no layer or abstraction without a concrete reason; prefer iOS-native design patterns (Observer, Factory, Decorator, Strategy) over bespoke ones.
-- ViewModels use `@Observable` and never import SwiftUI.
-- Details: `.claude/guides/architecture/GUIDE.md`
+- ViewModels use `@Observable` and never import SwiftUI (poza `Observation`).
+- Details: `.claude/guides/architecture/GUIDE.md` · layout per feature: `.claude/guides/feature-structure/GUIDE.md`
+
+**Dependency Injection:**
+- `DIContainer` (singleton z scope'ami `.application` / `.unique`) + `@LazyInjected` dla ViewModeli, init injection dla Repository / UseCase / źródeł systemowych.
+- Każda feature rejestruje własne zależności w `Features/<Feature>/Injection/<Feature>Injection.swift` (distributed registration). Brak centralnej rejestracji na poziomie App.
+- Details: `.claude/guides/dependency-injection/GUIDE.md`
 
 **Navigation:**
 - State-driven navigation via [pointfreeco/swift-navigation](https://github.com/pointfreeco/swift-navigation) (`SwiftUINavigation`). Single `Destination?` enum on the ViewModel, `@CasePathable`, case-path bindings for sheets / alerts / stack paths.
@@ -64,6 +71,8 @@ Greenfield. No Xcode project, `Package.swift`, or source files have been created
 | Need | Location |
 |------|----------|
 | Architecture (MVVM / UseCase / Repository) | `.claude/guides/architecture/GUIDE.md` |
+| Feature layout + shared code | `.claude/guides/feature-structure/GUIDE.md` |
+| Dependency Injection (DIContainer) | `.claude/guides/dependency-injection/GUIDE.md` |
 | Navigation (swift-navigation) | `.claude/guides/navigation/GUIDE.md` |
 | XcodeGen setup | `.claude/guides/xcodegen/GUIDE.md` |
 | Build & test with XcodeBuildMCP | `.claude/guides/xcodebuild-mcp/GUIDE.md` |

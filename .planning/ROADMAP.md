@@ -13,6 +13,7 @@ DeluluDetox ships in six phases that build vertically from project scaffold to e
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation & Onboarding** - Scaffold multi-target Xcode project and deliver Screen Time authorization flow
+- [ ] **Phase 01.1: Architecture Foundation & DI Migration** (INSERTED) - Feature-first layout + DIContainer before new features land
 - [ ] **Phase 2: App Selection** - User can pick apps, categories, and websites to block with persistent token storage
 - [ ] **Phase 3: Quick Sessions** - User can start an instant block that holds until the timer expires (core value)
 - [ ] **Phase 4: Shield Customization** - Blocked apps show branded shield with deep link back to main app
@@ -36,6 +37,26 @@ Plans:
 - [x] 01-01-PLAN.md -- Scaffold multi-target XcodeGen project with extensions, App Group, SPM deps, design system, and domain layer
 - [x] 01-02-PLAN.md -- Implement onboarding flow: ViewModels, Views, app entry point, and unit tests
 - [ ] 01-03-PLAN.md -- Human verification of onboarding screens and authorization flow
+
+### Phase 01.1: Architecture Foundation & DI Migration (INSERTED)
+
+**Goal**: Przestawić projekt na układ feature-first z `DIContainer` i jasnymi regułami zależności (Repo ↛ Repo, UseCase → UseCase/Repo, VM → tylko UseCase) zanim dołożymy kolejne feature'y.
+**Depends on**: Phase 1
+**Requirements**: TBD (architectural — no user-facing REQ-IDs)
+**Scope**:
+  - aktualizacja guide'ów architektury i dependency-injection
+  - integracja `DIContainer` + property wrappers z `to_integrate/`
+  - refaktor istniejących feature'ów (Onboarding, Home, Denial, Root) do feature-first
+  - migracja współdzielonych komponentów do `FeatureCommons`
+  - usunięcie `to_integrate/` i starej ręcznej `DependencyContainer`
+**Success Criteria** (what must be TRUE):
+  1. `.claude/guides/architecture/GUIDE.md` reflects feature-first layout + DI rules
+  2. `DIContainer` + property wrappers from `to_integrate/` are integrated and tested
+  3. Onboarding, Home, Denial, Root features are reorganized under a feature-first directory layout
+  4. Shared components live in `FeatureCommons`
+  5. `to_integrate/` directory and the old manual `DependencyContainer` are removed from the repo
+  6. App still builds and Phase 1 onboarding flow still works end-to-end on simulator
+**Plans**: TBD (run `/gsd-plan-phase 01.1` to break down)
 
 ### Phase 2: App Selection
 **Goal**: User can choose which apps, categories, and websites to block, and those selections survive app restarts
