@@ -1,6 +1,7 @@
 import XCTest
 @testable import DeluluDetox
 
+@MainActor
 final class AppRootViewModelTests: XCTestCase {
     func testInitialRouteWhenNotDetermined() {
         let mockRepo = MockScreenTimeAuthRepository()

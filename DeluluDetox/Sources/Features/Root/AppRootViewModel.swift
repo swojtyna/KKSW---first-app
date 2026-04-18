@@ -2,6 +2,7 @@ import Observation
 import FamilyControls
 
 @Observable
+@MainActor
 final class AppRootViewModel {
     enum Screen {
         case onboarding(OnboardingViewModel)
