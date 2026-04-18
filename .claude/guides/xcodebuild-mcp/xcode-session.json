@@ -1,0 +1,13 @@
+{
+  "_comment": "Agent memory - speeds up XcodeBuildMCP setup. Auto-updated by agents.",
+  "simulator": {
+    "id": "",
+    "name": "",
+    "platform": "iOS Simulator",
+    "lastUsed": ""
+  },
+  "project": {
+    "path": "ios-template-app.xcodeproj",
+    "scheme": "ios-template-app"
+  }
+}
