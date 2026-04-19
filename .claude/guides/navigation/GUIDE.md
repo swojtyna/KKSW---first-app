@@ -41,7 +41,9 @@ Link the **`SwiftUINavigation`** product to the app target.
 
 ---
 
-## Pattern: `Destination` enum on the ViewModel
+## Wzorzec A — Modal presentation (VM w enum payload)
+
+Dla prezentacji modalnych (sheet, alert, confirmation dialog, fullScreenCover dla side-task) — child VM żyje **w** enum case. Parent VM tworzy child VM, enum trzyma referencję, system resetuje enum do nil po zamknięciu modala → child VM umiera.
 
 ```swift
 import SwiftUINavigation
@@ -114,6 +116,114 @@ Same pattern for `.fullScreenCover(item:)` and `.popover(item:)`.
 
 ---
 
+## Wzorzec B — Root-level state switching (VM w child view, nie w enum)
+
+Dla app-level flow gdzie child ZASTĘPUJE ekran (onboarding vs main, paywall vs app, logged-out vs logged-in) — enum **bez payloadu VM**. Parent trzyma tylko `Destination?`, child view tworzy własny VM przez `@State private var model` lub rodzic trzyma każdego child VM jako `@State`.
+
+### Decyzja: A czy B?
+
+| Child ekran | Wzorzec |
+|-------------|---------|
+| Otwiera się **nad** aktualnym ekranem (sheet, alert, popover) | A |
+| **Zastępuje** aktualny ekran (root switch: onboarding ↔ main; paywall przekrywa app) | B |
+
+### Przykład (DeluluDetox AppRoot):
+
+```swift
+import Observation
+import Combine
+import FamilyControls
+import SwiftUINavigation
+
+@MainActor
+@Observable
+final class AppRootViewModel: @unchecked Sendable {
+
+    @CasePathable
+    enum Destination: Equatable {
+        case onboarding
+        case denial
+        case home
+    }
+
+    var destination: Destination?  // NIE private(set) — case-path bindings potrzebują setteru
+
+    @ObservationIgnored
+    @LazyInjected private var observeStatus: ObserveScreenTimeAuthStatusUseCase
+
+    @ObservationIgnored
+    private var cancellables: Set<AnyCancellable> = []
+
+    init() {
+        observeStatus()
+            .sink { [weak self] status in
+                self?.destination = Self.map(status)
+            }
+            .store(in: &cancellables)
+    }
+
+    private static func map(_ status: AuthorizationStatus) -> Destination { ... }
+}
+```
+
+View-side (Wzorzec B):
+
+```swift
+struct AppRootView: View {
+    @Bindable var model: AppRootViewModel
+
+    @State private var onboardingModel = OnboardingViewModel()
+    @State private var denialModel = DenialViewModel()
+    @State private var homeModel = HomeViewModel()
+
+    var body: some View {
+        Group {
+            switch model.destination {
+            case .onboarding: OnboardingView(model: onboardingModel)
+            case .denial:     DenialView(model: denialModel)
+            case .home:       NavigationStack { HomeView(model: homeModel) }
+            case .none:       Color(Theme.background)
+            }
+        }
+        .animation(.easeInOut(duration: 0.35), value: model.destination)
+    }
+}
+```
+
+### Reguły Wzorca B
+
+- Enum case'y **nie trzymają** VM: `case home` a NIE `case home(HomeViewModel)`.
+- Parent posiada tylko `Destination?` — decyduje **którą** gałąź pokazać.
+- Child VM żyje po stronie View (lub jako `@State` u rodzica jeśli lifetime VM ma przekraczać pojedynczy cykl body — jak w AppRootView powyżej).
+- Child VM rezolwuje zależności przez `@LazyInjected` (nie przyjmuje ich w init) — dzięki temu `@State private var model = ChildViewModel()` działa bez fabryki w rodzicu.
+- Event flow child → parent idzie przez **dzielony publisher** (Combine `CurrentValueSubject` w Repository), NIE przez callbacki `onX` na VM. Rodzic subskrybuje publisher i reaguje na zmiany. Child tylko wywołuje UC (Repository wysyła do subject).
+
+### Antywzorzec — Wzorzec B z payloadem VM
+
+```swift
+// ❌ ŹLE
+enum Destination {
+    case home(HomeViewModel)
+}
+```
+
+To łamie regułę "parent nie trzyma referencji do child VM w root-level switchu". Konsekwencja: przy zmianie destination stary VM nie jest zwalniany momentalnie (trzymany w Combine pipeline referencji). Sheety radzą sobie z tym bo system sam resetuje; root switch wymaga jawnego lifecycle.
+
+### Kiedy Wzorzec B?
+
+- Onboarding vs main app flow (DeluluDetox AppRoot).
+- Paywall blokujący całe API (przed subskrypcją).
+- Logged-out vs logged-in root.
+- Kill switch / server-forced update screen.
+
+### Kiedy NIE Wzorzec B?
+
+- Nawigacja drill-down → **NavigationStack + path** (nie root switch).
+- Otwarcie edycji elementu listy → **Wzorzec A, sheet/push**.
+- Confirmation modal → **Wzorzec A, alert/confirmationDialog**.
+
+---
+
 ## NavigationStack with a path
 
 For drill-down flows, hold the path on a model:
@@ -162,20 +272,23 @@ Deep linking = assigning to `model.path`:
 ## Decision tree: which presentation?
 
 ```
+Child ekran **ZASTĘPUJE** parent (onboarding vs main, paywall, logged-in/out)?
+    └─ Wzorzec B — root-level state switch (enum bez VM payload)
+
 Short side-task with a "done" moment (add, edit, confirm)?
-    └─ .sheet(item:)
+    └─ Wzorzec A — .sheet(item:)
 
 Drill-down within the same flow?
     └─ NavigationStack + path
 
 Blocking, must-complete flow (onboarding, paywall)?
-    └─ .fullScreenCover(item:)
+    └─ Jeśli zastępuje ekran: Wzorzec B. Jeśli nad ekranem: .fullScreenCover(item:) (Wzorzec A)
 
 Tiny contextual UI tied to a specific control?
-    └─ .popover(item:)
+    └─ .popover(item:) (Wzorzec A)
 
 Y/N decision (destructive option)?
-    └─ .confirmationDialog(item:) / .alert(item:)
+    └─ .confirmationDialog(item:) / .alert(item:) (Wzorzec A)
 ```
 
 ---
@@ -194,7 +307,9 @@ Y/N decision (destructive option)?
 ## Integration with architecture
 
 - `Destination` lives on the Presentation layer (ViewModel). Domain and Data know nothing about it.
-- Child ViewModels are constructed by the parent ViewModel or by `DependencyContainer`. See `.claude/guides/architecture/GUIDE.md`.
+- **Wzorzec A:** parent ViewModel constructs child ViewModels and places them in enum cases.
+- **Wzorzec B:** child View konstruuje child ViewModel przez `@State private var model = ChildViewModel()`; child VM rezolwuje dependencies przez `@LazyInjected` against `DIContainer.shared` (patrz `.claude/guides/dependency-injection/GUIDE.md`).
+- Event flow in Wzorzec B: child writes → Repository (via UseCase) → Repository's CurrentValueSubject emits → parent's Combine `.sink` updates destination.
 
 ---
 
