@@ -18,15 +18,13 @@ final class OnboardingViewModelTests: XCTestCase {
     }
 
     func testGrantAccessSuccess() async {
-        var authorizedCalled = false
         let vm = OnboardingViewModel()
-        vm.onAuthorized = { authorizedCalled = true }
-
         await vm.grantAccessTapped()
 
-        XCTAssertTrue(authorizedCalled)
+        XCTAssertEqual(mockRepo.requestAuthorizationCallCount, 1)
         XCTAssertNil(vm.error)
         XCTAssertFalse(vm.isRequesting)
+        // Event authorized — pełny test przez statusPublisher w Wave 5 (01.1-05).
     }
 
     func testGrantAccessFailure() async {
@@ -34,21 +32,15 @@ final class OnboardingViewModelTests: XCTestCase {
             domain: "FamilyControls", code: 2,
             userInfo: [NSLocalizedDescriptionKey: "Invalid account type"]
         )
-        var authorizedCalled = false
         let vm = OnboardingViewModel()
-        vm.onAuthorized = { authorizedCalled = true }
-
         await vm.grantAccessTapped()
 
-        XCTAssertFalse(authorizedCalled)
         XCTAssertNotNil(vm.error)
         XCTAssertFalse(vm.isRequesting)
     }
 
-    func testIsRequestingDuringRequest() async {
+    func testIsRequestingStartsFalse() async {
         let vm = OnboardingViewModel()
-
-        // isRequesting starts false
         XCTAssertFalse(vm.isRequesting)
     }
 }
