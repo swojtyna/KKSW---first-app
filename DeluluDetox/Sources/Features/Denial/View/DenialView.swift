@@ -53,6 +53,15 @@ struct DenialView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .disabled(model.isRequesting)
                 .padding(.horizontal, 24)
+
+                if let errorMessage = model.error {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 12)
+                }
             }
 
             Spacer()
