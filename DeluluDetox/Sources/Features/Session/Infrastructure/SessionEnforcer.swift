@@ -167,14 +167,14 @@ final class SessionEnforcerImpl: SessionEnforcer, @unchecked Sendable {
     // MARK: startActivityMonitoring
 
     func startActivityMonitoring(for session: SessionRecord) async throws {
-        let startComponents = Calendar.current.dateComponents(
-            [.hour, .minute, .second],
-            from: session.startedAt
-        )
-        let endComponents = Calendar.current.dateComponents(
-            [.hour, .minute, .second],
-            from: session.plannedEndAt
-        )
+        // Include date components — without .year/.month/.day, sessions that cross
+        // midnight produce endComponents.hour < startComponents.hour, which makes
+        // DeviceActivitySchedule either reject the registration or fire
+        // intervalDidEnd immediately. The same silent-failure shape as a sub-15-min
+        // schedule. Always carry the absolute start/end calendar instants.
+        let components: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second]
+        let startComponents = Calendar.current.dateComponents(components, from: session.startedAt)
+        let endComponents = Calendar.current.dateComponents(components, from: session.plannedEndAt)
         // One-shot schedule: repeats=false fires intervalDidEnd exactly once (CONTEXT §D-01).
         let schedule = DeviceActivitySchedule(
             intervalStart: startComponents,

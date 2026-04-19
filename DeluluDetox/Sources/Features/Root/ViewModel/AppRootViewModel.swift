@@ -40,12 +40,29 @@ final class AppRootViewModel: @unchecked Sendable {
     @ObservationIgnored
     private let logger = Logger(subsystem: "com.kksw.DeluluDetox", category: "AppRoot")
 
+    /// Darwin notification name posted by the DAM extension on `intervalDidEnd`.
+    /// MUST match `DeviceActivityMonitorExtension.darwinSessionFinalizedName`.
+    /// Without this subscriber the countdown screen freezes at 00:00 when the
+    /// timer expires while the app is foregrounded — the shield clears (DAM did
+    /// it) but `activeSubject` never updates, so HomeViewModel never drops the
+    /// `.countdown` destination. CR-02 from 03-REVIEW.md.
+    @ObservationIgnored
+    private static let darwinSessionFinalizedName = "com.kksw.DeluluDetox.sessionFinalized"
+
     init() {
         observeStatus()
             .sink { [weak self] status in
                 self?.destination = Self.map(status)
             }
             .store(in: &cancellables)
+
+        registerDarwinFinalizeObserver()
+    }
+
+    deinit {
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        let observer = Unmanaged.passUnretained(self).toOpaque()
+        CFNotificationCenterRemoveEveryObserver(center, observer)
     }
 
     /// Wywoływane przez AppRootView na `scenePhase == .active` (D-14 + SEL-05).
@@ -95,6 +112,31 @@ final class AppRootViewModel: @unchecked Sendable {
                 log.error("detectRevocation failed: \(String(describing: error), privacy: .public)")
             }
         }
+    }
+
+    /// Subscribe to the Darwin notification posted by the DAM extension's
+    /// `intervalDidEnd` so a foregrounded main app reacts immediately instead
+    /// of waiting for the next scenePhase transition. Bridges a CoreFoundation
+    /// callback to `refreshStatus()` on `@MainActor`.
+    private func registerDarwinFinalizeObserver() {
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        let observer = Unmanaged.passUnretained(self).toOpaque()
+        let name = CFNotificationName(Self.darwinSessionFinalizedName as CFString)
+        CFNotificationCenterAddObserver(
+            center,
+            observer,
+            { _, observer, _, _, _ in
+                guard let observer else { return }
+                let vm = Unmanaged<AppRootViewModel>.fromOpaque(observer).takeUnretainedValue()
+                Task { @MainActor in
+                    vm.refreshStatus()
+                }
+            },
+            name.rawValue,
+            nil,
+            .deliverImmediately
+        )
+        logger.info("darwin observer registered: \(Self.darwinSessionFinalizedName, privacy: .public)")
     }
 
     private static func map(_ status: AuthorizationStatus) -> Destination {
