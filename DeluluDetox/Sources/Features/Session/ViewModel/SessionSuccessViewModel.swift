@@ -3,7 +3,10 @@ import Observation
 
 @MainActor
 @Observable
-final class SessionSuccessViewModel: @unchecked Sendable {
+final class SessionSuccessViewModel: Identifiable, @unchecked Sendable {
+    /// `nonisolated` so `Identifiable` conformance (used by `.sheet(item:)`) can
+    /// be satisfied without a MainActor hop. Same value as `sessionId`.
+    nonisolated let id: UUID
     let sessionId: UUID
     let durationMinutes: Int
     let caption: String
@@ -18,6 +21,7 @@ final class SessionSuccessViewModel: @unchecked Sendable {
     ]
 
     init(session: SessionRecord) {
+        self.id = session.id
         self.sessionId = session.id
         self.durationMinutes = session.plannedDurationSeconds / 60
         let idx = abs(session.id.uuidString.hashValue) % Self.captions.count

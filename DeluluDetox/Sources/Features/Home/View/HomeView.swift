@@ -7,6 +7,51 @@ struct HomeView: View {
     @State private var blockedModel = BlockedViewModel()
 
     var body: some View {
+        contentLayer
+            .sheet(item: $model.destination.picker) { session in
+                PickerHostView(
+                    initialSession: session,
+                    onDismiss: { finalSelection in
+                        Task { await model.pickerDismissed(committed: finalSelection) }
+                    }
+                )
+            }
+            .sheet(item: $model.destination.sessionSuccess) { successModel in
+                SessionSuccessView(
+                    model: successModel,
+                    onDismiss: { model.destination = nil }
+                )
+            }
+            .navigationDestination(item: $model.destination.sessionStart) { startModel in
+                sessionStartDestination(startModel: startModel)
+            }
+            .navigationDestination(item: $model.destination.countdown) { countdownModel in
+                CountdownView(model: countdownModel)
+            }
+            .alert(
+                "Coś się popsuło",
+                isPresented: Binding(
+                    get: {
+                        if case .errorAlert = model.destination { return true }
+                        return false
+                    },
+                    set: { if !$0 { model.destination = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) { model.destination = nil }
+            } message: {
+                if case .errorAlert(let message) = model.destination {
+                    Text(message)
+                } else {
+                    EmptyView()
+                }
+            }
+    }
+
+    // MARK: - Sub-expressions (help the Swift type-checker)
+
+    @ViewBuilder
+    private var contentLayer: some View {
         Group {
             if model.snapshot.records.isEmpty {
                 emptyHero
@@ -17,6 +62,18 @@ struct HomeView: View {
         .background(Theme.background)
         .navigationTitle("DeluluDetox")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    model.startSessionTapped()
+                } label: {
+                    Image(systemName: "play.circle.fill")
+                        .foregroundStyle(Theme.accent)
+                }
+                .accessibilityLabel("Uruchom sesję")
+                .disabled(model.snapshot.records.isEmpty)
+            }
+        }
         .onAppear {
             // Wire BlockedView's "Zmień wybór" up to the VM that owns the picker Destination.
             // Captured weakly so BlockedView's closure lifetime does not retain HomeViewModel.
@@ -24,32 +81,27 @@ struct HomeView: View {
                 model?.chooseAppsTapped()
             }
         }
-        .sheet(item: $model.destination.picker) { session in
-            PickerHostView(
-                initialSession: session,
-                onDismiss: { finalSelection in
-                    Task { await model.pickerDismissed(committed: finalSelection) }
+    }
+
+    /// Blocker 1 (revision 1) — explicit cross-VM bridge.
+    ///
+    /// SessionStartViewModel signals a successful start by setting its OWN
+    /// destination to .countdownHandoff(SessionRecord). The child VM cannot
+    /// navigate the parent HomeViewModel; this .onChange observer bridges
+    /// the child's state into the parent's destination routing via
+    /// HomeViewModel.gotoCountdown(_:). Canonical pattern from Plan 02-06.
+    ///
+    /// After firing the bridge we clear the child's destination so the
+    /// observer is edge-triggered (fires once per handoff).
+    @ViewBuilder
+    private func sessionStartDestination(startModel: SessionStartViewModel) -> some View {
+        SessionStartView(model: startModel)
+            .onChange(of: startModel.destination) { _, newValue in
+                if case .countdownHandoff(let record) = newValue {
+                    model.gotoCountdown(record)
+                    startModel.destination = nil
                 }
-            )
-        }
-        .alert(
-            "Coś się popsuło",
-            isPresented: Binding(
-                get: {
-                    if case .errorAlert = model.destination { return true }
-                    return false
-                },
-                set: { if !$0 { model.destination = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) { model.destination = nil }
-        } message: {
-            if case .errorAlert(let message) = model.destination {
-                Text(message)
-            } else {
-                EmptyView()
             }
-        }
     }
 
     @ViewBuilder
@@ -141,6 +193,7 @@ private struct PickerHostView: View {
     container.reset()
     OnboardingInjection.register(in: container)
     AppSelectionInjection.register(in: container)
+    SessionInjection.register(in: container)
     return NavigationStack {
         HomeView(model: HomeViewModel())
     }
