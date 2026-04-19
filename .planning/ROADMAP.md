@@ -96,7 +96,15 @@ Plans:
   3. User sees a live countdown timer in the main app showing remaining block time
   4. User cannot trivially cancel the session before the timer expires
   5. Session ends automatically when the timer reaches zero and blocked apps become accessible again
-**Plans**: TBD
+**Plans:** 7 plans
+Plans:
+- [ ] 03-01-PLAN.md — Session domain models (Outcome, Duration, Record, FinalizeMarker, Paths) + SessionRepository with two-file atomic persistence
+- [ ] 03-02-PLAN.md — SessionEnforcer wrapping ManagedSettings + DeviceActivityCenter (QSN-03 shield + QSN-05 system restrictions + QSN-06 DAS)
+- [ ] 03-03-PLAN.md — 7 Session UseCases + SessionInjection + DeluluDetoxApp bootstrap + 8 test mocks (atomic Start rollback, compose End/Finalize/SelfHeal/DetectRevocation)
+- [ ] 03-04-PLAN.md — DAM extension intervalDidEnd: clear shared ManagedSettingsStore + write finalize marker + post Darwin notification; project.yml source-share
+- [ ] 03-05-PLAN.md — SessionStartViewModel + SessionStartView (preset chips QSN-01 + custom wheel QSN-02 + empty-blocklist gate)
+- [ ] 03-06-PLAN.md — CountdownViewModel + TickClock + SessionSuccessViewModel + HomeView destinations + AppRootViewModel foreground self-heal hook
+- [ ] 03-07-PLAN.md — Human-verify on physical iOS 26+ device (full QSN-01..QSN-06 walkthrough)
 **UI hint**: yes
 
 ### Phase 4: Shield Customization
@@ -146,7 +154,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Foundation & Onboarding | 3/3 | Complete | 2026-04-18 |
 | 01.1. Architecture Foundation & DI Migration | 7/7 | Complete | 2026-04-19 |
 | 2. App Selection | 0/? | Not started | - |
-| 3. Quick Sessions | 0/? | Not started | - |
+| 3. Quick Sessions | 0/7 | Not started | - |
 | 4. Shield Customization | 0/? | Not started | - |
 | 5. Scheduled Blocking | 0/? | Not started | - |
 | 6. Engagement Layer | 0/? | Not started | - |
