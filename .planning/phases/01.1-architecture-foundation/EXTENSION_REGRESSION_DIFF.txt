@@ -1,0 +1,43 @@
+# Extension Regression Check — Phase 01.1 (D-30 part b)
+# Baseline: .planning/phases/01.1-architecture-foundation/BASELINE_EXTENSION_IMPORTS.txt (captured Wave 1, canonical format with ---EVIDENCE--- markers)
+# Current: identical canonical format, captured Wave 6 (2026-04-19T00:59:15Z)
+# Method: awk-extracted evidence blocks (between ---EVIDENCE--- and ---END-EVIDENCE---), diff'd directly.
+# Result: IDENTICAL (zero changes in Extensions/ imports) — PASS
+#
+# Extension builds (xcodebuild via Debug / iPhone 17 / iOS 26.2, captured Wave 6):
+# - DeviceActivityMonitorExtension: PASS (embedded + validated)
+# - ShieldActionExtension: PASS (embedded + validated)
+# - ShieldConfigurationExtension: PASS (embedded + validated)
+# - Main target DeluluDetox: ** BUILD SUCCEEDED **
+#
+# Full test run (scheme=DeluluDetox, iPhone 17 / iOS 26.2):
+# - Total: 14/14 tests passed, 0 failures (0.012s)
+# - AppRootViewModelTests: 6/6
+# - DenialViewModelTests: 3/3
+# - OnboardingViewModelTests: 3/3
+# - HomeViewModelTests: 1/1
+# - DeluluDetoxTests (placeholder): 1/1
+# - Result: ** TEST SUCCEEDED **
+#
+# D-26 / W11 CLAUDE.md no-op check:
+# - Command: git diff 4645f70 -- CLAUDE.md
+# - Result: EMPTY (0 lines; PASS)
+# - Commit 4645f70 = "docs(01.1): add feature-structure + DI guides, rewrite architecture" (pre-01.1 cutoff)
+#
+# D-23 to_integrate/ cleanup:
+# - `test ! -d to_integrate` → exit 0 (directory not present in this branch's tree; never tracked by git)
+# - `grep -rn to_integrate .claude/ DeluluDetox/ DeluluDetoxTests/` → 0 hits (zero dead references in active code)
+# - References to "to_integrate" remain only in .planning/ (historical context per D-23 expectation)
+#
+# project.yml stability:
+# - `git diff project.yml` → 0 lines (stable from Wave 1 through Wave 6)
+#
+# Extensions/ stability:
+# - `git diff Extensions/` → 0 lines (Phase 01.1 did not touch Extensions/)
+#
+# DIContainer files in Core/ (not accidentally wiped by to_integrate cleanup):
+# - DeluluDetox/Sources/Core/DependencyInjection/DIContainer.swift: present
+# - DeluluDetox/Sources/Core/DependencyInjection/PropertyWrappers/Injected.swift: present
+# - DeluluDetox/Sources/Core/DependencyInjection/PropertyWrappers/LazyInjected.swift: present
+#
+# Conclusion: D-23 + D-26 + D-30 + D-31 closure checks ALL PASSED. Phase 01.1 did not touch Extensions/ or CLAUDE.md.
