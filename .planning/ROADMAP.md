@@ -13,7 +13,7 @@ DeluluDetox ships in six phases that build vertically from project scaffold to e
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation & Onboarding** - Scaffold multi-target Xcode project and deliver Screen Time authorization flow
-- [ ] **Phase 01.1: Architecture Foundation & DI Migration** (INSERTED) - Feature-first layout + DIContainer before new features land
+- [x] **Phase 01.1: Architecture Foundation & DI Migration** (INSERTED) - Feature-first layout + DIContainer before new features land (completed 2026-04-19)
 - [ ] **Phase 2: App Selection** - User can pick apps, categories, and websites to block with persistent token storage
 - [ ] **Phase 3: Quick Sessions** - User can start an instant block that holds until the timer expires (core value)
 - [ ] **Phase 4: Shield Customization** - Blocked apps show branded shield with deep link back to main app
@@ -56,15 +56,15 @@ Plans:
   4. Shared components live under their feature-owner's directory (`Features/Onboarding/Repository/` owns `ScreenTimeAuth*` per D-17; no global `FeatureCommons/` — feature-structure/GUIDE.md rejects it)
   5. `to_integrate/` directory and the old manual `DependencyContainer` are removed from the repo
   6. App still builds and Phase 1 onboarding flow still works end-to-end on simulator
-**Plans:** 7 plans
+**Plans:** 7/7 plans complete
 Plans:
-- [ ] 01.1-01-PLAN.md — DI core migration (`DeluluDetox/Sources/Core/DependencyInjection/`) + extension baseline snapshot (D-18, D-19, D-30 part a)
-- [ ] 01.1-02-PLAN.md — Onboarding feature-owner: Repo+UC feature-first migration, Combine `statusPublisher`, `refreshStatus()`, `OnboardingInjection.register` (D-07..D-13, D-17, D-20, D-22)
-- [ ] 01.1-03-PLAN.md — Onboarding/Denial/Home VM → `@LazyInjected` + feature-first move + DenialInjection/HomeInjection no-op (D-03, D-10, D-15, D-16 transitional)
-- [ ] 01.1-04-PLAN.md — AppRoot Destination enum + Combine subscription + scenePhase hook; DeluluDetoxApp bootstrap; delete `DependencyContainer.swift` + onAuthorized (D-01, D-02, D-04, D-05, D-11, D-14, D-16 final, D-20, D-23)
-- [ ] 01.1-05-PLAN.md — Test migration to mirror layout + DIContainer.reset() + 4 mocks in feature-owner (D-27, D-28, D-29)
-- [ ] 01.1-06-PLAN.md — Navigation guide Wzorzec B section + DI guide Combine publisher example (D-24, D-25)
-- [ ] 01.1-07-PLAN.md — Cleanup `to_integrate/` + extension regression check (D-30 part b) + human-verify checkpoint (D-23 final)
+- [x] 01.1-01-PLAN.md — DI core migration (`DeluluDetox/Sources/Core/DependencyInjection/`) + extension baseline snapshot (D-18, D-19, D-30 part a)
+- [x] 01.1-02-PLAN.md — Onboarding feature-owner: Repo+UC feature-first migration, Combine `statusPublisher`, `refreshStatus()`, `OnboardingInjection.register` (D-07..D-13, D-17, D-20, D-22)
+- [x] 01.1-03-PLAN.md — Onboarding/Denial/Home VM → `@LazyInjected` + feature-first move + DenialInjection/HomeInjection no-op (D-03, D-10, D-15, D-16 transitional)
+- [x] 01.1-04-PLAN.md — AppRoot Destination enum + Combine subscription + scenePhase hook; DeluluDetoxApp bootstrap; delete `DependencyContainer.swift` + onAuthorized (D-01, D-02, D-04, D-05, D-11, D-14, D-16 final, D-20, D-23)
+- [x] 01.1-05-PLAN.md — Test migration to mirror layout + DIContainer.reset() + 4 mocks in feature-owner (D-27, D-28, D-29)
+- [x] 01.1-06-PLAN.md — Navigation guide Wzorzec B section + DI guide Combine publisher example (D-24, D-25)
+- [x] 01.1-07-PLAN.md — Cleanup `to_integrate/` + extension regression check (D-30 part b) + human-verify checkpoint (D-23 final)
 
 ### Phase 2: App Selection
 **Goal**: User can choose which apps, categories, and websites to block, and those selections survive app restarts
@@ -136,7 +136,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
 | 1. Foundation & Onboarding | 2/3 | Executing | - |
-| 01.1. Architecture Foundation & DI Migration | 0/7 | Ready to execute | - |
+| 01.1. Architecture Foundation & DI Migration | 7/7 | Complete    | 2026-04-19 |
 | 2. App Selection | 0/? | Not started | - |
 | 3. Quick Sessions | 0/? | Not started | - |
 | 4. Shield Customization | 0/? | Not started | - |
