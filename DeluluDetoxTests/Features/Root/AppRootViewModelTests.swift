@@ -100,19 +100,22 @@ final class AppRootViewModelTests: XCTestCase {
 
     // MARK: - Phase 02 additions (SEL-05)
 
-    func testRefreshStatusAlsoCallsReconcileBlocklist() async {
+    func testRefreshStatusAlsoCallsReconcileBlocklist() async throws {
         let vm = AppRootViewModel()
         XCTAssertEqual(mockReconcile.callCount, 0)
 
         vm.refreshStatus()
-        // Two yields: first to let the outer Task start, second to run the await.
-        await Task.yield()
-        await Task.yield()
+        // Sleep yields the MainActor long enough for the fire-and-forget Task
+        // to be scheduled and for the async `reconcileBlocklist()` body to run.
+        // Plain `Task.yield()` is insufficient here because the detached Task
+        // is MainActor-bound and won't run until the caller suspends with a
+        // non-trivial wait.
+        try await Task.sleep(nanoseconds: 50_000_000) // 50 ms
 
         XCTAssertEqual(mockReconcile.callCount, 1)
     }
 
-    func testRefreshStatusReconcileFailureDoesNotCrashOrChangeDestination() async {
+    func testRefreshStatusReconcileFailureDoesNotCrashOrChangeDestination() async throws {
         enum TestError: Error { case boom }
         mockReconcile.stubbedError = TestError.boom
 
@@ -125,8 +128,7 @@ final class AppRootViewModelTests: XCTestCase {
         XCTAssertEqual(vm.destination, .home)
 
         vm.refreshStatus()
-        await Task.yield()
-        await Task.yield()
+        try await Task.sleep(nanoseconds: 50_000_000) // 50 ms — see note above.
 
         // Reconcile threw, but destination is unchanged and refreshStatus still counted.
         XCTAssertEqual(mockReconcile.callCount, 1)
