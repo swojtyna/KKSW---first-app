@@ -1,5 +1,6 @@
 import Observation
 
+@MainActor
 struct DependencyContainer {
     let screenTimeAuthRepository: ScreenTimeAuthRepository
 
