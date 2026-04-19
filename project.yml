@@ -7,6 +7,25 @@ options:
   createIntermediateGroups: true
   defaultConfig: Debug
   developmentLanguage: en
+  schemePathPrefix: ""
+
+schemes:
+  DeluluDetox:
+    build:
+      targets:
+        DeluluDetox: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - DeluluDetoxTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
 
 settingGroups:
   shared-ios:
