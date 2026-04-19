@@ -11,46 +11,44 @@ struct HomeView: View {
                 Image(systemName: "apps.iphone")
                     .font(.system(size: 56))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Theme.tertiaryText)
+                    .foregroundStyle(Color.textTertiary)
                     .accessibilityLabel("Phone with apps")
 
-                Spacer().frame(height: 16)
+                Spacer().frame(height: Theme.Spacing.lg)
 
                 Text("No Apps Blocked Yet")
-                    .font(.title2)
-                    .bold()
-                    .foregroundStyle(Theme.primaryText)
+                    .font(.dduTitle2)
+                    .foregroundStyle(Color.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Spacer().frame(height: 8)
+                Spacer().frame(height: Theme.Spacing.sm)
 
                 Text("Pick the apps that steal your time. We\u{2019}ll do the rest.")
-                    .font(.body)
-                    .foregroundStyle(Theme.secondaryText)
+                    .font(.dduBody)
+                    .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, Theme.Spacing.xxl)
 
-                Spacer().frame(height: 32)
+                Spacer().frame(height: Theme.Spacing.xxxl)
 
                 Button {
                     model.chooseAppsTapped()
                 } label: {
                     Text("Choose Apps to Block")
-                        .font(.body)
-                        .bold()
+                        .font(.dduHeadline)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 24)
+                .tint(Color.brandViolet)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+                .padding(.horizontal, Theme.Spacing.xxl)
             }
 
             Spacer()
         }
-        .background(Theme.background)
+        .background(Color.surfaceBg)
         .navigationTitle("DeluluDetox")
         .navigationBarTitleDisplayMode(.large)
     }

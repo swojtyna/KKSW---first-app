@@ -10,26 +10,25 @@ struct DenialView: View {
             VStack(spacing: 0) {
                 Image(systemName: "hand.raised.fill")
                     .font(.system(size: 72))
-                    .foregroundStyle(Theme.accent)
+                    .foregroundStyle(Color.brandViolet)
                     .accessibilityLabel("Raised hand")
 
-                Spacer().frame(height: 16)
+                Spacer().frame(height: Theme.Spacing.lg)
 
                 Text("Nice Try")
-                    .font(.largeTitle)
-                    .bold()
-                    .foregroundStyle(Theme.primaryText)
+                    .font(.dduLargeTitle)
+                    .foregroundStyle(Color.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Spacer().frame(height: 8)
+                Spacer().frame(height: Theme.Spacing.sm)
 
                 Text("DeluluDetox literally cannot work without Screen Time access. That\u{2019}s like hiring a bouncer and not letting them in the club.")
-                    .font(.body)
-                    .foregroundStyle(Theme.secondaryText)
+                    .font(.dduBody)
+                    .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, Theme.Spacing.xxl)
 
-                Spacer().frame(height: 32)
+                Spacer().frame(height: Theme.Spacing.xxxl)
 
                 Button {
                     Task { await model.retryTapped() }
@@ -40,8 +39,7 @@ struct DenialView: View {
                                 .tint(.white)
                         } else {
                             Text("Let\u{2019}s Try Again")
-                                .font(.body)
-                                .bold()
+                                .font(.dduHeadline)
                         }
                     }
                     .foregroundStyle(.white)
@@ -49,24 +47,24 @@ struct DenialView: View {
                     .frame(height: 50)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .tint(Color.brandViolet)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
                 .disabled(model.isRequesting)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, Theme.Spacing.xxl)
 
                 if let errorMessage = model.error {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(.dduFootnote)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 12)
+                        .padding(.horizontal, Theme.Spacing.xxl)
+                        .padding(.top, Theme.Spacing.md)
                 }
             }
 
             Spacer()
         }
-        .background(Theme.background)
+        .background(Color.surfaceBg)
     }
 }
 

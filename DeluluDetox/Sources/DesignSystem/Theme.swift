@@ -41,13 +41,6 @@ enum Theme {
         static let sheet = Shadow(color: .black.opacity(0.14), radius: 40, x: 0, y: 20)
     }
 
-    // MARK: - Legacy aliases (TODO: migrate callers to Color.* / Font.ddu* direct)
-    // OnboardingView, DenialView, HomeView still reference these. Remove after migration.
-    static var accent: Color { .brandViolet }
-    static var background: Color { .surfaceBg }
-    static var primaryText: Color { .textPrimary }
-    static var secondaryText: Color { .textSecondary }
-    static var tertiaryText: Color { .textTertiary }
 }
 
 // MARK: - Color tokens
