@@ -19,9 +19,45 @@ requirements:
 
 ## Human Verification Outcome
 
-Status: **gaps_found** — on-device walkthrough surfaced one persistence bug before the user reached the end of the 32-step script.
+Status: **gaps_found** — on-device walkthrough surfaced two bugs: a Phase 1 / Phase 01.1 crash on authorization grant (blocks reaching Phase 02 at all on device), and a Phase 02 persistence bug where swipe-to-delete does not prune `lastSelection`.
 
 ## Issues
+
+### Issue 2 — `EXC_BREAKPOINT` crash on granting Screen Time authorization (on device)
+
+- **step**: Prerequisite 3 / Phase 1 onboarding re-entry if auth was not yet granted
+- **observed**: When user grants Screen Time permission on a physical device, the app crashes with `EXC_BREAKPOINT (code=1, subcode=0x1035678e4)` inside `ScreenTimeAuthRepositoryImpl.requestAuthorization()` at `DeluluDetox/Sources/Features/Onboarding/Repository/ScreenTimeAuthRepository.swift:27` — the line `statusSubject.send(AuthorizationCenter.shared.authorizationStatus)`.
+- **expected**: Authorization grant completes cleanly, status emits `.approved`, onboarding routes to Home.
+- **requirements affected**: Upstream — blocks Phase 1 AUTH-01 on device, which gates every Phase 02 SEL-XX.
+
+### Root cause (pre-diagnosed by Claude)
+
+`EXC_BREAKPOINT` from a Swift runtime is almost always a concurrency isolation trap (`swift_task_reportUnexpectedExecutor`). `AuthorizationCenter` and its `authorizationStatus` accessor are `@MainActor`-isolated in iOS 16+ SDKs. The repo method:
+
+```swift
+// not @MainActor
+func requestAuthorization() async throws {
+    try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+    statusSubject.send(AuthorizationCenter.shared.authorizationStatus)  // line 27 — crash here
+}
+```
+
+After the `await`, the continuation may resume on a non-main executor (depends on caller's actor). Accessing a `@MainActor` property from off-main triggers the runtime trap. The simulator's enforcement is lenient, so this only reproduces on device.
+
+### Suggested fix direction (for gap-closure planner)
+
+Two options, both small:
+
+1. **Annotate `requestAuthorization` and `refreshStatus` with `@MainActor`** — matches the `AuthorizationCenter` isolation, forces callers onto MainActor. Cleanest.
+2. **Hop explicitly:** `let status = await MainActor.run { AuthorizationCenter.shared.authorizationStatus }; statusSubject.send(status)` — local fix, but leaves the implicit-isolation bug pattern in place.
+
+Prefer option 1. Verify `OnboardingViewModel` (the caller) is already `@MainActor` — it should be — so no caller-site changes needed.
+
+Test coverage to add:
+- A test that constructs `ScreenTimeAuthRepositoryImpl` and calls `refreshStatus()` from a non-main context (e.g., `Task.detached`) should pass without crashing once the annotation is in place.
+- Fatal isolation violations are hard to regression-test reliably in XCTest — the primary validation is re-running UAT on device.
+
+---
 
 ### Issue 1 — Swipe-to-delete does not prune `lastSelection`; deleted app reappears checked in picker
 
