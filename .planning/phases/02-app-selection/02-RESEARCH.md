@@ -900,27 +900,27 @@ final class BlockedViewModel: @unchecked Sendable {
 
 **If user confirms A1 (round-trip works) and A2 (NavigationStack wrapper OK), all other assumptions are low-risk and can be validated during Wave 0.** Planner should ask the user to confirm A1 + A2 or escalate to a spike task.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `HomeViewModel` own the picker Destination, or should a new `AppSelectionViewModel` sit between?**
    - What we know: UI-SPEC §"Navigation & State Contract" allows either — "MVP-minimum is to extend `HomeViewModel` and switch the sub-view inside `HomeView`". Recommendation path: extend HomeViewModel (fewer files, same ownership).
    - What's unclear: If Phase 3 adds a "Start session" flow that wants its own Destination on HomeViewModel (e.g., `.sessionSheet`), HomeViewModel grows to 2 destinations. Still fine with `@CasePathable`.
-   - Recommendation: **Extend HomeViewModel, do NOT introduce AppSelectionViewModel.** BlockedViewModel stays narrow (list + delete).
+   - RESOLVED: **Extend HomeViewModel, do NOT introduce AppSelectionViewModel.** BlockedViewModel stays narrow (list + delete).
 
 2. **Where does `ReconcileBlocklistUseCase` get invoked from?**
    - What we know: `AppRootView.onChange(of: scenePhase) { ... }` already calls `model.refreshStatus()` for Onboarding. We can add a parallel `model.reconcileBlocklist()` on `AppRootViewModel`, or handle it in `HomeViewModel` when `destination` is nil (on appearance).
    - What's unclear: AppRoot-level call means we resolve AppSelection UC in Root feature → slight cross-feature coupling in `AppRootViewModel` (which already couples to Onboarding).
-   - Recommendation: **Add `reconcileBlocklist()` as a second `@LazyInjected` on `AppRootViewModel` + call in the existing `scenePhase == .active` handler.** Symmetry with refreshStatus; single scenePhase hook.
+   - RESOLVED: **Add `reconcileBlocklist()` as a second `@LazyInjected` on `AppRootViewModel` + call in the existing `scenePhase == .active` handler.** Symmetry with refreshStatus; single scenePhase hook.
 
 3. **Should `Blocklist.needsRepair` be a field from day 1 even though Phase 02 never sets it true?**
    - What we know: Phase 3/4 shield extension will set this when it hits unknown tokens (compass §F recommended pattern).
    - What's unclear: Schema evolution policy. Adding a field later requires existing `blocklists.json` parses with new decoder.
-   - Recommendation: **Yes, include `needsRepair: Bool = false` in the Codable schema from day 1.** JSONDecoder tolerates missing fields if `Codable` default is provided via custom `init(from:)`. Better to ship with the schema hole pre-dug.
+   - RESOLVED: **Yes, include `needsRepair: Bool = false` in the Codable schema from day 1.** JSONDecoder tolerates missing fields if `Codable` default is provided via custom `init(from:)`. Better to ship with the schema hole pre-dug.
 
 4. **Do we need a migration strategy for `blocklists.json` schema changes?**
    - What we know: No production data yet, v1.0 not shipped.
    - What's unclear: Internal builds may have schema churn during development.
-   - Recommendation: **No migration framework in Phase 02.** Delete-on-decode-failure is acceptable for MVP. Add `schemaVersion: Int` field in the Codable struct so Phase 5+ can migrate.
+   - RESOLVED: **No migration framework in Phase 02.** Delete-on-decode-failure is acceptable for MVP. Add `schemaVersion: Int` field in the Codable struct so Phase 5+ can migrate.
 
 ## Environment Availability
 
