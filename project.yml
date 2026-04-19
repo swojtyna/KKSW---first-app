@@ -26,8 +26,7 @@ targets:
     platform: iOS
     sources:
       - path: DeluluDetox/Sources
-    resources:
-      - path: DeluluDetox/Resources
+      - path: DeluluDetox/Resources/Assets.xcassets
     settings:
       groups: [shared-ios]
       base:
