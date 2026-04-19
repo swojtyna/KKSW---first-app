@@ -12,13 +12,12 @@ A native iOS self-control app that blocks distracting apps, categories, and webs
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Onboarding + Screen Time authorization (individual) — Phase 01 / 01.1
+- [x] App/category/website selection via FamilyActivityPicker — Phase 02
+- [x] Quick session — instant block for chosen duration (15/30/60/90 min, custom 15 min – 8 h) — Phase 03
 
 ### Active
 
-- [ ] Onboarding + Screen Time authorization (individual)
-- [ ] App/category/website selection via FamilyActivityPicker
-- [ ] Quick session — instant block for chosen duration (15/30/60/90 min)
 - [ ] Schedules — recurring blocks (e.g. weekdays 9–17)
 - [ ] Custom shield with branding and basic buttons
 - [ ] Minimal gamification — completed sessions count + streak (consecutive days)
@@ -109,4 +108,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-19 after Phase 01.1 (architecture-foundation) completion*
+*Last updated: 2026-04-19 after Phase 03 (quick-sessions) completion*
