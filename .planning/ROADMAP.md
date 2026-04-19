@@ -104,7 +104,7 @@ Plans:
 - [x] 03-04-PLAN.md — DAM extension intervalDidEnd: clear shared ManagedSettingsStore + write finalize marker + post Darwin notification; project.yml source-share
 - [x] 03-05-PLAN.md — SessionStartViewModel + SessionStartView (preset chips QSN-01 + custom wheel QSN-02 + empty-blocklist gate)
 - [x] 03-06-PLAN.md — CountdownViewModel + TickClock + SessionSuccessViewModel + HomeView destinations + AppRootViewModel foreground self-heal hook
-- [ ] 03-07-PLAN.md — Human-verify on physical iOS 26+ device (full QSN-01..QSN-06 walkthrough)
+- [x] 03-07-PLAN.md — Human-verify on physical iOS 26+ device (full QSN-01..QSN-06 walkthrough)
 **UI hint**: yes
 
 ### Phase 4: Shield Customization
