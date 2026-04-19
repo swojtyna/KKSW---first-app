@@ -77,12 +77,12 @@ Plans:
   4. Records are keyed by app-generated UUID with token as best-effort pointer, surviving token rotation
 **Plans:** 7 plans
 Plans:
-- [ ] 02-01-PLAN.md — Wave 0 spikes: validate A1 (token JSON round-trip) + A2 (FamilyActivityPicker in NavigationStack sheet)
-- [ ] 02-02-PLAN.md — Domain models (Blocklist, TokenRecord, TokenKind) + BlocklistRepository with atomic App Group persistence
-- [ ] 02-03-PLAN.md — 4 UseCases + AppSelectionInjection + DeluluDetoxApp bootstrap edit + 5 test mocks
-- [ ] 02-04-PLAN.md — BlockedViewModel + BlockedView (list + swipe + Zmień wybór footer)
-- [ ] 02-05-PLAN.md — AppRootViewModel reconcile hook on scenePhase .active (SEL-05)
-- [ ] 02-06-PLAN.md — HomeViewModel Destination enum + HomeView branch + PickerHostView sheet + Polish empty-state copy
+- [x] 02-01-PLAN.md — Wave 0 spikes: validate A1 (token JSON round-trip) + A2 (FamilyActivityPicker in NavigationStack sheet)
+- [x] 02-02-PLAN.md — Domain models (Blocklist, TokenRecord, TokenKind) + BlocklistRepository with atomic App Group persistence
+- [x] 02-03-PLAN.md — 4 UseCases + AppSelectionInjection + DeluluDetoxApp bootstrap edit + 5 test mocks
+- [x] 02-04-PLAN.md — BlockedViewModel + BlockedView (list + swipe + Zmień wybór footer)
+- [x] 02-05-PLAN.md — AppRootViewModel reconcile hook on scenePhase .active (SEL-05)
+- [x] 02-06-PLAN.md — HomeViewModel Destination enum + HomeView branch + PickerHostView sheet + Polish empty-state copy
 - [ ] 02-07-PLAN.md — Human-verify on physical iOS 26+ device (full SEL-01..SEL-05 walkthrough)
 **UI hint**: yes
 
