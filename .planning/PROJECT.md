@@ -85,8 +85,8 @@ Full research index: `.claude/research/README.md` (R1–R10 + extras). MUST be c
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | iOS 26.0 deployment target | User choice despite R1 recommending iOS 18 for stability/reach | — Pending |
-| Clean Architecture MVVM | Testability, separation of concerns, scalable for extensions | — Pending |
-| swift-navigation for routing | State-driven navigation, Destination enum pattern, composable | — Pending |
+| Clean Architecture MVVM | Testability, separation of concerns, scalable for extensions | Shipped in Phase 01.1 (feature-first layout + DIContainer + hard dep rules) |
+| swift-navigation for routing | State-driven navigation, Destination enum pattern, composable | Shipped in Phase 01.1 (Wzorzec A modal + Wzorzec B root-switch documented; AppRoot uses B) |
 | XcodeGen for project management | Eliminates .xcodeproj merge conflicts, human-readable YAML | — Pending |
 | Minimal gamification in MVP | Streak + session count only; deeper gamification post-MVP | — Pending |
 | No backend in MVP | Simplicity, faster shipping, on-device = privacy story | — Pending |
@@ -109,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-18 after initialization*
+*Last updated: 2026-04-19 after Phase 01.1 (architecture-foundation) completion*
