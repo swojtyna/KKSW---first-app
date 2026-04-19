@@ -62,6 +62,9 @@ targets:
     platform: iOS
     sources:
       - path: Extensions/DeviceActivityMonitorExtension
+      - path: DeluluDetox/Sources/Features/Session/Repository/Models/SessionPaths.swift
+      - path: DeluluDetox/Sources/Features/Session/Repository/Models/SessionFinalizeMarker.swift
+      - path: DeluluDetox/Sources/Features/Session/Infrastructure/SessionActivityNames.swift
     settings:
       groups: [shared-ios]
       base:
