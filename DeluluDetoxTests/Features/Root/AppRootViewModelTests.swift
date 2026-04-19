@@ -15,6 +15,9 @@ final class AppRootViewModelTests: XCTestCase {
     var mockObserve: MockObserveScreenTimeAuthStatusUseCase!
     var mockRefresh: MockRefreshScreenTimeAuthStatusUseCase!
     var mockReconcile: MockReconcileBlocklistUseCase!
+    var mockFinalizeFromMarker: MockFinalizeSessionFromMarkerUseCase!
+    var mockSelfHeal: MockSelfHealExpiredSessionUseCase!
+    var mockDetectRevocation: MockDetectRevocationUseCase!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -22,6 +25,9 @@ final class AppRootViewModelTests: XCTestCase {
         mockObserve = MockObserveScreenTimeAuthStatusUseCase(initialStatus: .notDetermined)
         mockRefresh = MockRefreshScreenTimeAuthStatusUseCase()
         mockReconcile = MockReconcileBlocklistUseCase()
+        mockFinalizeFromMarker = MockFinalizeSessionFromMarkerUseCase()
+        mockSelfHeal = MockSelfHealExpiredSessionUseCase()
+        mockDetectRevocation = MockDetectRevocationUseCase()
         DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
             mockObserve!
         }
@@ -31,7 +37,17 @@ final class AppRootViewModelTests: XCTestCase {
         DIContainer.shared.register(ReconcileBlocklistUseCase.self, scope: .unique) { [mockReconcile] _ in
             mockReconcile!
         }
+        DIContainer.shared.register(FinalizeSessionFromMarkerUseCase.self, scope: .unique) { [mockFinalizeFromMarker] _ in mockFinalizeFromMarker! }
+        DIContainer.shared.register(SelfHealExpiredSessionUseCase.self, scope: .unique) { [mockSelfHeal] _ in mockSelfHeal! }
+        DIContainer.shared.register(DetectRevocationUseCase.self, scope: .unique) { [mockDetectRevocation] _ in mockDetectRevocation! }
     }
+
+    override func tearDown() async throws {
+        DIContainer.shared.reset()
+        try await super.tearDown()
+    }
+
+    // MARK: - Existing tests (preserved)
 
     func testInitialDestinationForNotDetermined() async {
         let vm = AppRootViewModel()
@@ -107,9 +123,6 @@ final class AppRootViewModelTests: XCTestCase {
         vm.refreshStatus()
         // Sleep yields the MainActor long enough for the fire-and-forget Task
         // to be scheduled and for the async `reconcileBlocklist()` body to run.
-        // Plain `Task.yield()` is insufficient here because the detached Task
-        // is MainActor-bound and won't run until the caller suspends with a
-        // non-trivial wait.
         try await Task.sleep(nanoseconds: 50_000_000) // 50 ms
 
         XCTAssertEqual(mockReconcile.callCount, 1)
@@ -135,4 +148,31 @@ final class AppRootViewModelTests: XCTestCase {
         XCTAssertEqual(mockRefresh.callCount, 1)
         XCTAssertEqual(vm.destination, .home)
     }
+
+    // MARK: - Phase 03 additions
+
+    func testRefreshStatusCallsAllFiveUseCases() async throws {
+        let vm = AppRootViewModel()
+        vm.refreshStatus()
+
+        // Spawned Task runs async — sleep until all call counts settle.
+        try await Task.sleep(nanoseconds: 50_000_000) // 50 ms
+
+        XCTAssertEqual(mockRefresh.callCount, 1)
+        XCTAssertEqual(mockReconcile.callCount, 1)
+        XCTAssertEqual(mockFinalizeFromMarker.callCount, 1)
+        XCTAssertEqual(mockSelfHeal.callCount, 1)
+        XCTAssertEqual(mockDetectRevocation.callCount, 1)
+    }
+
+    func testRefreshStatusLogsButDoesNotPropagateSelfHealError() async throws {
+        mockSelfHeal.stubbedError = MockSelfHealError()
+        let vm = AppRootViewModel()
+        vm.refreshStatus()
+        try await Task.sleep(nanoseconds: 50_000_000) // 50 ms
+        // Detect revocation still fired, confirming the UC chain did not abort.
+        XCTAssertEqual(mockDetectRevocation.callCount, 1)
+    }
 }
+
+private struct MockSelfHealError: Error {}

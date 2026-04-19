@@ -13,6 +13,24 @@ final class HomeViewModel: @unchecked Sendable {
     enum Destination: Equatable {
         case picker(PickerSession)
         case errorAlert(String)
+        case sessionStart(SessionStartViewModel)
+        case countdown(CountdownViewModel)
+        case sessionSuccess(SessionSuccessViewModel)
+
+        // HomeViewModel.Destination cases containing non-Equatable payloads
+        // (SessionStartViewModel / CountdownViewModel / SessionSuccessViewModel)
+        // use identity equality here — rare in SwiftUINavigation usage; most
+        // comparisons are case-path pattern matches, not Equatable ==.
+        static func == (lhs: Destination, rhs: Destination) -> Bool {
+            switch (lhs, rhs) {
+            case (.picker(let a), .picker(let b)): return a == b
+            case (.errorAlert(let a), .errorAlert(let b)): return a == b
+            case (.sessionStart(let a), .sessionStart(let b)): return a === b
+            case (.countdown(let a), .countdown(let b)): return a === b
+            case (.sessionSuccess(let a), .sessionSuccess(let b)): return a === b
+            default: return false
+            }
+        }
     }
 
     /// Payload used by `.sheet(item:)` — Identifiable so each presentation gets
@@ -37,6 +55,19 @@ final class HomeViewModel: @unchecked Sendable {
     @LazyInjected private var updateBlocklist: UpdateBlocklistUseCase
 
     @ObservationIgnored
+    @LazyInjected private var observeActive: ObserveActiveSessionUseCase
+
+    @ObservationIgnored
+    @LazyInjected private var observeHistory: ObserveSessionHistoryUseCase
+
+    // Blocker 2 Option A — VM→UserDefaults boundary moved behind UCs (see Plan 03-03).
+    @ObservationIgnored
+    @LazyInjected private var markSuccessShown: MarkSuccessShownUseCase
+
+    @ObservationIgnored
+    @LazyInjected private var checkSuccessShown: CheckSuccessShownUseCase
+
+    @ObservationIgnored
     private var cancellables: Set<AnyCancellable> = []
 
     @ObservationIgnored
@@ -45,12 +76,27 @@ final class HomeViewModel: @unchecked Sendable {
         category: "Home"
     )
 
+    @ObservationIgnored
+    private var activeSessionId: UUID?
+
     init() {
         observeBlocklist()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] next in self?.snapshot = next }
             .store(in: &cancellables)
+
+        observeActive()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] active in self?.handleActive(active) }
+            .store(in: &cancellables)
+
+        observeHistory()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] history in self?.handleHistory(history) }
+            .store(in: &cancellables)
     }
+
+    // MARK: - Existing intents (preserved)
 
     /// Triggered by HomeView "Wybierz aplikacje do blokady" CTA and by
     /// BlockedView's onChangeSelection callback (wired up in HomeView).
@@ -71,5 +117,69 @@ final class HomeViewModel: @unchecked Sendable {
             logger.error("update failed: \(String(describing: error), privacy: .public)")
             destination = .errorAlert("Nie udało się zapisać wyboru. Spróbuj ponownie.")
         }
+    }
+
+    // MARK: - Session intents (new)
+
+    func startSessionTapped() {
+        destination = .sessionStart(SessionStartViewModel())
+    }
+
+    // MARK: - Cross-VM bridge — SessionStartViewModel countdownHandoff → parent countdown
+    //
+    // Blocker 1 (revision 1): SessionStartViewModel signals a successful start by
+    // setting its OWN destination = .countdownHandoff(record). The child VM cannot
+    // navigate its parent. SessionStartView observes its own VM's destination and
+    // calls this method on the parent HomeViewModel, which then replaces the
+    // current .sessionStart destination with .countdown(CountdownViewModel(session: record)).
+    // This is the canonical parent-owns-child-navigation pattern established in
+    // Plan 02-06 (HomeView → BlockedView picker handoff).
+    func gotoCountdown(_ record: SessionRecord) {
+        destination = .countdown(CountdownViewModel(session: record))
+        logger.info("gotoCountdown bridge fired id=\(record.id.uuidString, privacy: .public)")
+    }
+
+    // MARK: - Active session routing
+
+    private func handleActive(_ active: SessionRecord?) {
+        activeSessionId = active?.id
+
+        if let active {
+            // Only switch to countdown if we're not already inside .countdown for this id.
+            if case .countdown(let cvm) = destination, cvm.session.id == active.id {
+                return
+            }
+            destination = .countdown(CountdownViewModel(session: active))
+            return
+        }
+
+        // Active just went nil — clear countdown destination (keep other destinations).
+        if case .countdown = destination {
+            destination = nil
+        }
+    }
+
+    // MARK: - History routing (success screen)
+
+    private func handleHistory(_ history: [SessionRecord]) {
+        // Only consider completed outcomes — cancelled / broken do not celebrate.
+        guard let mostRecentCompleted = history
+            .filter({ $0.outcome == .completed })
+            .sorted(by: { ($0.actualEndAt ?? .distantPast) > ($1.actualEndAt ?? .distantPast) })
+            .first
+        else { return }
+
+        // Never override countdown (active session trumps success screen).
+        if activeSessionId != nil { return }
+
+        // Already shown for this id — skip (UC boundary, not direct UserDefaults).
+        if checkSuccessShown(sessionId: mostRecentCompleted.id) { return }
+
+        // Only display if no other destination is currently active (don't override picker/alert).
+        guard destination == nil else { return }
+
+        // Mark shown FIRST so quick publisher re-emissions don't double-show the sheet.
+        markSuccessShown(sessionId: mostRecentCompleted.id)
+        destination = .sessionSuccess(SessionSuccessViewModel(session: mostRecentCompleted))
     }
 }
