@@ -68,10 +68,6 @@ Details: `.claude/guides/xcodebuild-mcp/GUIDE.md` · `.claude/guides/xcodegen/GU
 **Adding new guides:**
 - Follow `.claude/guides/create-new-guide/GUIDE.md`
 
-**Research context:**
-- Curated product research lives in `.claude/research/` — Screen Time API / klon Opala, AI on-device, rynek. Index: `.claude/research/README.md`.
-- Read relevant raport before proposing architecture or API decisions on touched topics.
-
 ---
 
 ## Token Efficiency
@@ -94,7 +90,6 @@ Details: `.claude/guides/xcodebuild-mcp/GUIDE.md` · `.claude/guides/xcodegen/GU
 | XcodeGen setup | `.claude/guides/xcodegen/GUIDE.md` |
 | Build & test with XcodeBuildMCP | `.claude/guides/xcodebuild-mcp/GUIDE.md` |
 | Authoring new guides | `.claude/guides/create-new-guide/GUIDE.md` |
-| Product / API research index | `.claude/research/README.md` |
 
 ---
 

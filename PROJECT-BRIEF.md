@@ -13,9 +13,9 @@ dziecięcego konta.
 ## Stack techniczny
 - Swift 6.2
 - SwiftUI
-- Minimum iOS: 26.0 *(do rewizji — research R1 rekomenduje iOS 18 
-  ze względu na ~90% reach vs ~66% na iOS 26 i nienaprawione 
-  regresje Screen Time API; decyzja produktowa otwarta)*
+- Minimum iOS: 26.0 *(do rewizji — ~90% reach vs ~66% na iOS 26 
+  i nienaprawione regresje Screen Time API mogą uzasadniać iOS 18; 
+  decyzja produktowa otwarta)*
 - Xcode 26+
 - Native Apple frameworks (FamilyControls, ManagedSettings, 
   DeviceActivity, ManagedSettingsUI, ActivityKit, StoreKit 2).
@@ -25,7 +25,7 @@ dziecięcego konta.
     `@CasePathable`, case-path bindings). Szczegóły: 
     `.claude/guides/navigation/GUIDE.md`.
 - Inne third-party dependencies podejmujemy ad-hoc przy 
-  konkretnych featureach, na bazie researchy, jawnie jako ADR.
+  konkretnych featureach, jawnie jako ADR.
 - Brak backendu w MVP (wszystko on-device + App Group).
 
 ## Architektura kodu
@@ -129,30 +129,6 @@ Obecnie:
 - `swiftui-expert:swiftui-expert-skill` — best practices 
   SwiftUI, state management, iOS 26 Liquid Glass
 
-### `.claude/research/` — researche R1–R10 (+ dodatkowe)
-Głębokie researche pokrywające kluczowe obszary. Autorytatywny 
-indeks z TL;DR każdego: `.claude/research/README.md`.
-
-Mapowanie R1–R10:
-- R1: Stan Screen Time API w iOS 26 (+ min. target)
-- R2: FamilyControls entitlement w 2026
-- R3: Open-source klony i repo referencyjne (Foqos i reszta)
-- R4: DeviceActivityReport — statystyki, ograniczenia
-- R5: Shield UI — customizacja, deep linki, rich UX
-- R6: Anti-bypass / Deep Focus techniques
-- R7: App Groups, komunikacja main ↔ extensions, persystencja
-- R8: Znane bugi Screen Time API i workaroundy (2026)
-- R9: Live Activities i powiadomienia dla sesji focus
-- R10: Monetyzacja (StoreKit 2, paywall, tiery)
-
-Dodatkowe (poza R1–R10): modele AI z HuggingFace pod iOS, 
-apki 2025 / rynek — pełne TL;DR w `.claude/research/README.md`.
-
-Gdy pracujesz nad czymś co pokrywa research, przeczytaj 
-odpowiedni plik ZANIM zaczniesz pisać kod. Nie zgaduj API 
-Screen Time i nie wymyślaj rozwiązań które badania już 
-wyjaśniły.
-
 ## Jak pracujemy (kolejność)
 1. Setup projektu Xcode z targetami + App Group.
 2. Autoryzacja Screen Time + FamilyActivityPicker.
@@ -162,7 +138,7 @@ wyjaśniły.
 6. MVP done → iteracje post-MVP.
 
 ## Zasady dla Claude
-- **Zawsze konsultuj `.claude/guides/` i `.claude/research/`** 
+- **Zawsze konsultuj `.claude/guides/`** 
   przed pisaniem kodu. To nie jest opcjonalne.
 - Pisz Swift 6.2 idiomatycznie, SwiftUI first, async/await 
   i actors jako domyślny model współbieżności.
@@ -174,7 +150,7 @@ wyjaśniły.
   zwłaszcza decyzje architektoniczne (persystencja, struktura 
   modeli, nazewnictwo App Group, min. target).
 - Nie zgaduj API Screen Time. Jeśli nie jesteś pewien szczegółu 
-  (np. cykl życia DeviceActivityMonitor), poproś o odpowiedni 
-  fragment researchu zamiast zmyślać.
+  (np. cykl życia DeviceActivityMonitor), poproś o doprecyzowanie 
+  zamiast zmyślać.
 - Decyzje o third-party dependencies podejmuj jawnie — zapisz 
   jako decision/ADR z uzasadnieniem, nie dorzucaj ich po cichu.

@@ -55,7 +55,7 @@ A native iOS self-control app that blocks distracting apps, categories, and webs
 
 All targets share `group.com.kksw.DeluluDetox` App Group.
 
-### Hard Constraints from Research
+### Hard Constraints
 
 1. **Opaque tokens** — `ApplicationToken`, `WebDomainToken`, `ActivityCategoryToken` are opaque. Apple does NOT expose app names/icons. Display via SwiftUI `Label(token)`. Never deserialize or map to strings.
 2. **Entitlement required** — `com.apple.developer.family-controls` must be requested per bundle ID and approved by Apple. Frame as `.individual`, not `.child`. All logic on-device or rejection.
@@ -66,10 +66,6 @@ All targets share `group.com.kksw.DeluluDetox` App Group.
 7. **Token instability** — Token rotation bug acknowledged by DTS from iOS 17.5 to 26.3.1. Store records under own UUID, token alongside as best-effort pointer.
 8. **DeviceActivityMonitor RAM limit** — 6 MB, zero third-party SDKs allowed.
 9. **Max 20 activities** — total across app + extensions for DeviceActivityMonitor schedules.
-
-### Research References
-
-Full research index: `.claude/research/README.md` (R1–R10 + extras). MUST be consulted before writing code touching Screen Time API.
 
 ## Constraints
 

@@ -72,8 +72,7 @@ fastlane/test_output
 # Contains absolute paths to each developer's working directory, so it
 # must NOT be shared. Each dev regenerates on first clone.
 #
-# Kept in git: .claude/settings.json (team config), .claude/guides/,
-# .claude/research/ (team knowledge).
+# Kept in git: .claude/settings.json (team config), .claude/guides/.
 #
 # Pinned GSD version: 1.34.2 (see prior commit: "chore: downgrade
 # get-shit-done 1.37.1 → 1.34.2"). Bumping requires team coordination.
