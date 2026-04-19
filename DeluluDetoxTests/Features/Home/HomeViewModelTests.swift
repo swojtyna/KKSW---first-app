@@ -7,19 +7,58 @@ import FamilyControls
 final class HomeViewModelTests: XCTestCase {
     var mockObserve: MockObserveBlocklistUseCase!
     var mockUpdate: MockUpdateBlocklistUseCase!
+    var mockObserveActive: MockObserveActiveSessionUseCase!
+    var mockObserveHistory: MockObserveSessionHistoryUseCase!
+    var mockMarkSuccessShown: MockMarkSuccessShownUseCase!
+    var mockCheckSuccessShown: MockCheckSuccessShownUseCase!
 
     override func setUp() async throws {
         try await super.setUp()
         DIContainer.shared.reset()
         mockObserve = MockObserveBlocklistUseCase(initial: .empty())
         mockUpdate = MockUpdateBlocklistUseCase()
+        mockObserveActive = MockObserveActiveSessionUseCase()
+        mockObserveHistory = MockObserveSessionHistoryUseCase()
+        mockMarkSuccessShown = MockMarkSuccessShownUseCase()
+        mockCheckSuccessShown = MockCheckSuccessShownUseCase()
         DIContainer.shared.register(ObserveBlocklistUseCase.self, scope: .unique) { [mockObserve] _ in
             mockObserve!
         }
         DIContainer.shared.register(UpdateBlocklistUseCase.self, scope: .unique) { [mockUpdate] _ in
             mockUpdate!
         }
+        DIContainer.shared.register(ObserveActiveSessionUseCase.self, scope: .application) { [mockObserveActive] _ in mockObserveActive! }
+        DIContainer.shared.register(ObserveSessionHistoryUseCase.self, scope: .application) { [mockObserveHistory] _ in mockObserveHistory! }
+        DIContainer.shared.register(MarkSuccessShownUseCase.self, scope: .application) { [mockMarkSuccessShown] _ in mockMarkSuccessShown! }
+        DIContainer.shared.register(CheckSuccessShownUseCase.self, scope: .application) { [mockCheckSuccessShown] _ in mockCheckSuccessShown! }
     }
+
+    // MARK: - Helpers
+
+    private func yield() async {
+        await Task.yield()
+        await Task.yield()
+    }
+
+    private func makeSession(
+        id: UUID = UUID(),
+        outcome: SessionOutcome? = nil,
+        actualEndAt: Date? = nil
+    ) -> SessionRecord {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        return SessionRecord(
+            id: id,
+            blocklistId: UUID(),
+            startedAt: now,
+            plannedEndAt: now.addingTimeInterval(1800),
+            plannedDurationSeconds: 1800,
+            actualEndAt: actualEndAt,
+            outcome: outcome,
+            appVersion: "test"
+        )
+    }
+
+    // MARK: - Existing tests (preserved unchanged)
 
     func testInitSubscribesToBlocklistPublisher() async {
         let vm = HomeViewModel()
@@ -102,5 +141,122 @@ final class HomeViewModelTests: XCTestCase {
             return
         }
         XCTAssertEqual(message, "Nie udało się zapisać wyboru. Spróbuj ponownie.")
+    }
+
+    // MARK: - New tests (Task 2 additions)
+
+    func testStartSessionTappedRoutesToSessionStartDestination() {
+        let vm = HomeViewModel()
+        vm.startSessionTapped()
+        if case .sessionStart = vm.destination {
+            // pass
+        } else {
+            XCTFail("expected .sessionStart destination, got \(String(describing: vm.destination))")
+        }
+    }
+
+    func testGotoCountdownBridgeSetsCountdownDestinationWithProvidedRecord() {
+        let vm = HomeViewModel()
+        let record = makeSession()
+        vm.gotoCountdown(record)
+        if case .countdown(let cvm) = vm.destination {
+            XCTAssertEqual(cvm.session.id, record.id)
+        } else {
+            XCTFail("expected .countdown destination after gotoCountdown")
+        }
+    }
+
+    func testActiveSessionEmissionRoutesToCountdown() async {
+        let vm = HomeViewModel()
+        let session = makeSession()
+        mockObserveActive.subject.send(session)
+        await yield()
+
+        if case .countdown(let cvm) = vm.destination {
+            XCTAssertEqual(cvm.session.id, session.id)
+        } else {
+            XCTFail("expected .countdown destination")
+        }
+    }
+
+    func testActiveSessionBecomingNilClearsCountdownDestination() async {
+        let vm = HomeViewModel()
+        let session = makeSession()
+        mockObserveActive.subject.send(session)
+        await yield()
+        mockObserveActive.subject.send(nil)
+        await yield()
+
+        XCTAssertNil(vm.destination)
+    }
+
+    func testCompletedSessionInHistoryShowsSuccessDestinationOnceWhenNoActive() async {
+        let vm = HomeViewModel()
+        let now = Date()
+        let record = SessionRecord(
+            blocklistId: UUID(),
+            startedAt: now.addingTimeInterval(-1800),
+            plannedEndAt: now,
+            plannedDurationSeconds: 1800,
+            actualEndAt: now,
+            outcome: .completed,
+            appVersion: "test"
+        )
+        // mockCheckSuccessShown.stubbedShownIds empty (default) — record NOT yet shown.
+        mockObserveActive.subject.send(nil)
+        mockObserveHistory.subject.send([record])
+        await yield()
+
+        if case .sessionSuccess(let svm) = vm.destination {
+            XCTAssertEqual(svm.sessionId, record.id)
+        } else {
+            XCTFail("expected .sessionSuccess destination, got \(String(describing: vm.destination))")
+        }
+        XCTAssertEqual(mockMarkSuccessShown.callCount, 1)
+        XCTAssertEqual(mockMarkSuccessShown.lastSessionId, record.id)
+        XCTAssertTrue(mockMarkSuccessShown.allMarked.contains(record.id))
+    }
+
+    func testCompletedSessionAlreadyMarkedShownDoesNotReshow() async {
+        let recordId = UUID()
+        // Pre-mark via mock: CheckSuccessShownUseCase returns true for this id.
+        mockCheckSuccessShown.stubbedShownIds = [recordId]
+
+        let vm = HomeViewModel()
+        let record = SessionRecord(
+            id: recordId,
+            blocklistId: UUID(),
+            startedAt: Date(),
+            plannedEndAt: Date(),
+            plannedDurationSeconds: 1800,
+            actualEndAt: Date(),
+            outcome: .completed,
+            appVersion: "test"
+        )
+        mockObserveActive.subject.send(nil)
+        mockObserveHistory.subject.send([record])
+        await yield()
+
+        XCTAssertNil(vm.destination)
+        XCTAssertEqual(mockMarkSuccessShown.callCount, 0)
+    }
+
+    func testCancelledByUserOrBrokenByRevokeDoesNotShowSuccess() async {
+        let vm = HomeViewModel()
+        let r1 = SessionRecord(
+            blocklistId: UUID(), startedAt: Date(),
+            plannedEndAt: Date(), plannedDurationSeconds: 1800,
+            actualEndAt: Date(), outcome: .cancelledByUser, appVersion: "test"
+        )
+        let r2 = SessionRecord(
+            blocklistId: UUID(), startedAt: Date(),
+            plannedEndAt: Date(), plannedDurationSeconds: 1800,
+            actualEndAt: Date(), outcome: .brokenByRevoke, appVersion: "test"
+        )
+        mockObserveActive.subject.send(nil)
+        mockObserveHistory.subject.send([r1, r2])
+        await yield()
+
+        XCTAssertNil(vm.destination)
     }
 }
