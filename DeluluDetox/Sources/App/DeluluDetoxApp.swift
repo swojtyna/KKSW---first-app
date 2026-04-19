@@ -4,11 +4,14 @@ import SwiftUI
 struct DeluluDetoxApp: App {
     init() {
         let container = DIContainer.shared
-        // Kolejność: feature-ownerzy najpierw. Onboarding owns ScreenTimeAuth* (D-17, Phase 01.1),
-        // AppSelection owns Blocklist + TokenRecord (Phase 02). Home/Denial/Root consume
-        // cross-feature UseCases registered above.
+        // Kolejność: feature-ownerzy najpierw.
+        // Onboarding owns ScreenTimeAuth* (D-17, Phase 01.1).
+        // AppSelection owns Blocklist + TokenRecord (Phase 02).
+        // Session owns SessionRecord + SessionEnforcer + Session UCs (Phase 03).
+        // Home/Denial/Root consume cross-feature UseCases registered above.
         OnboardingInjection.register(in: container)
         AppSelectionInjection.register(in: container)
+        SessionInjection.register(in: container)
         DenialInjection.register(in: container)
         HomeInjection.register(in: container)
         RootInjection.register(in: container)
