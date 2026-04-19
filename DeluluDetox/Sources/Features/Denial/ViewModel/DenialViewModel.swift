@@ -9,9 +9,6 @@ final class DenialViewModel: @unchecked Sendable {
     @ObservationIgnored
     @LazyInjected private var requestAuth: RequestScreenTimeAuthUseCase
 
-    // TRANSITIONAL -- replaced by Combine publisher subscription in 01.1-04.
-    var onAuthorized: (() -> Void)?
-
     @ObservationIgnored
     private let logger = Logger(subsystem: "com.kksw.DeluluDetox", category: "Denial")
 
@@ -22,7 +19,7 @@ final class DenialViewModel: @unchecked Sendable {
         do {
             try await requestAuth()
             logger.info("Screen Time authorization granted on retry")
-            onAuthorized?()
+            // Event flow przez Combine publisher na repo.statusSubject — AppRootVM aktualizuje destination (D-11).
         } catch {
             logger.error("Retry authorization failed: \(error.localizedDescription, privacy: .public)")
         }

@@ -5,11 +5,6 @@ import FamilyControls
 
 protocol ScreenTimeAuthRepository: Sendable {
     var statusPublisher: AnyPublisher<AuthorizationStatus, Never> { get }
-
-    // Transitional: kept for DependencyContainer synchronous wiring in Phase 1 VMs.
-    // Removed in 01.1-04 when AppRootViewModel switches to ObserveScreenTimeAuthStatusUseCase.
-    var authorizationStatus: AuthorizationStatus { get }
-
     func requestAuthorization() async throws
     func refreshStatus()
 }
@@ -21,10 +16,6 @@ final class ScreenTimeAuthRepositoryImpl: ScreenTimeAuthRepository, @unchecked S
 
     var statusPublisher: AnyPublisher<AuthorizationStatus, Never> {
         statusSubject.eraseToAnyPublisher()
-    }
-
-    var authorizationStatus: AuthorizationStatus {
-        AuthorizationCenter.shared.authorizationStatus
     }
 
     init() {
