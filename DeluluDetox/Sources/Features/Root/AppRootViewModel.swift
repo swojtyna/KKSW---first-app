@@ -21,6 +21,10 @@ final class AppRootViewModel {
 
     private let container: DependencyContainer
 
+    // Spot-fix (01.1-03 Wave 3): @MainActor added because OnboardingVM/DenialVM factories
+    // became @MainActor (VMs are now @MainActor @Observable). Full AppRootVM MainActor adoption
+    // happens in 01.1-04 when the Root switches to ObserveScreenTimeAuthStatusUseCase + @State.
+    @MainActor
     init(container: DependencyContainer) {
         self.container = container
         let status = container.screenTimeAuthRepository.authorizationStatus
@@ -38,6 +42,7 @@ final class AppRootViewModel {
         }
     }
 
+    @MainActor
     func checkAuthorization() {
         let status = container.screenTimeAuthRepository.authorizationStatus
         switch status {
