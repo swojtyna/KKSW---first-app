@@ -1,21 +1,22 @@
 import Observation
 import os
 
+@MainActor
 @Observable
-final class DenialViewModel {
+final class DenialViewModel: @unchecked Sendable {
     private(set) var isRequesting = false
 
-    private let requestAuth: RequestScreenTimeAuthUseCase
+    @ObservationIgnored
+    @LazyInjected private var requestAuth: RequestScreenTimeAuthUseCase
+
+    // TRANSITIONAL -- replaced by Combine publisher subscription in 01.1-04.
     var onAuthorized: (() -> Void)?
 
+    @ObservationIgnored
     private let logger = Logger(subsystem: "com.kksw.DeluluDetox", category: "Denial")
 
-    init(requestAuth: RequestScreenTimeAuthUseCase, onAuthorized: (() -> Void)? = nil) {
-        self.requestAuth = requestAuth
-        self.onAuthorized = onAuthorized
-    }
+    init() {}
 
-    @MainActor
     func retryTapped() async {
         isRequesting = true
         do {

@@ -1,22 +1,24 @@
 import Observation
 import os
 
+@MainActor
 @Observable
-final class OnboardingViewModel {
+final class OnboardingViewModel: @unchecked Sendable {
     private(set) var isRequesting = false
     private(set) var error: String?
 
-    private let requestAuth: RequestScreenTimeAuthUseCase
+    @ObservationIgnored
+    @LazyInjected private var requestAuth: RequestScreenTimeAuthUseCase
+
+    // TRANSITIONAL -- replaced by Combine publisher subscription in 01.1-04 (Root VM refactor).
+    // Keeps AppRootView.swift checkAuthorization wiring functional during Wave 3.
     var onAuthorized: (() -> Void)?
 
+    @ObservationIgnored
     private let logger = Logger(subsystem: "com.kksw.DeluluDetox", category: "Onboarding")
 
-    init(requestAuth: RequestScreenTimeAuthUseCase, onAuthorized: (() -> Void)? = nil) {
-        self.requestAuth = requestAuth
-        self.onAuthorized = onAuthorized
-    }
+    init() {}
 
-    @MainActor
     func grantAccessTapped() async {
         isRequesting = true
         error = nil

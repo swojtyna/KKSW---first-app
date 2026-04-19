@@ -1,21 +1,22 @@
 import SwiftUI
 
-struct DenialView: View {
-    @Bindable var model: DenialViewModel
+struct OnboardingView: View {
+    @Bindable var model: OnboardingViewModel
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
             VStack(spacing: 0) {
-                Image(systemName: "hand.raised.fill")
+                Image(systemName: "lock.iphone")
                     .font(.system(size: 72))
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Theme.accent)
-                    .accessibilityLabel("Raised hand")
+                    .accessibilityLabel("Phone with lock")
 
                 Spacer().frame(height: 16)
 
-                Text("Nice Try")
+                Text("Your Phone Is Winning")
                     .font(.largeTitle)
                     .bold()
                     .foregroundStyle(Theme.primaryText)
@@ -23,7 +24,7 @@ struct DenialView: View {
 
                 Spacer().frame(height: 8)
 
-                Text("DeluluDetox literally cannot work without Screen Time access. That\u{2019}s like hiring a bouncer and not letting them in the club.")
+                Text("DeluluDetox needs Screen Time access to block distracting apps. No data leaves your device \u{2014} ever.")
                     .font(.body)
                     .foregroundStyle(Theme.secondaryText)
                     .multilineTextAlignment(.center)
@@ -32,14 +33,14 @@ struct DenialView: View {
                 Spacer().frame(height: 32)
 
                 Button {
-                    Task { await model.retryTapped() }
+                    Task { await model.grantAccessTapped() }
                 } label: {
                     Group {
                         if model.isRequesting {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("Let\u{2019}s Try Again")
+                            Text("Grant Access")
                                 .font(.body)
                                 .bold()
                         }
@@ -62,11 +63,10 @@ struct DenialView: View {
 }
 
 #Preview {
-    DenialView(
-        model: DenialViewModel(
-            requestAuth: RequestScreenTimeAuthUseCaseImpl(
-                repository: ScreenTimeAuthRepositoryImpl()
-            )
-        )
-    )
+    // Preview requires DIContainer to have RequestScreenTimeAuthUseCase registered.
+    // Finalized in 01.1-04 with proper mock registration; for Wave 3 we register inline.
+    let container = DIContainer.shared
+    container.reset()
+    OnboardingInjection.register(in: container)
+    return OnboardingView(model: OnboardingViewModel())
 }

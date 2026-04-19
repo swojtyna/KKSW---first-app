@@ -1,22 +1,21 @@
 import SwiftUI
 
-struct OnboardingView: View {
-    @Bindable var model: OnboardingViewModel
+struct DenialView: View {
+    @Bindable var model: DenialViewModel
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
             VStack(spacing: 0) {
-                Image(systemName: "lock.iphone")
+                Image(systemName: "hand.raised.fill")
                     .font(.system(size: 72))
-                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Theme.accent)
-                    .accessibilityLabel("Phone with lock")
+                    .accessibilityLabel("Raised hand")
 
                 Spacer().frame(height: 16)
 
-                Text("Your Phone Is Winning")
+                Text("Nice Try")
                     .font(.largeTitle)
                     .bold()
                     .foregroundStyle(Theme.primaryText)
@@ -24,7 +23,7 @@ struct OnboardingView: View {
 
                 Spacer().frame(height: 8)
 
-                Text("DeluluDetox needs Screen Time access to block distracting apps. No data leaves your device \u{2014} ever.")
+                Text("DeluluDetox literally cannot work without Screen Time access. That\u{2019}s like hiring a bouncer and not letting them in the club.")
                     .font(.body)
                     .foregroundStyle(Theme.secondaryText)
                     .multilineTextAlignment(.center)
@@ -33,14 +32,14 @@ struct OnboardingView: View {
                 Spacer().frame(height: 32)
 
                 Button {
-                    Task { await model.grantAccessTapped() }
+                    Task { await model.retryTapped() }
                 } label: {
                     Group {
                         if model.isRequesting {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("Grant Access")
+                            Text("Let\u{2019}s Try Again")
                                 .font(.body)
                                 .bold()
                         }
@@ -63,11 +62,8 @@ struct OnboardingView: View {
 }
 
 #Preview {
-    OnboardingView(
-        model: OnboardingViewModel(
-            requestAuth: RequestScreenTimeAuthUseCaseImpl(
-                repository: ScreenTimeAuthRepositoryImpl()
-            )
-        )
-    )
+    let container = DIContainer.shared
+    container.reset()
+    OnboardingInjection.register(in: container)  // Denial konsumuje Request UC z Onboarding registration (D-17)
+    return DenialView(model: DenialViewModel())
 }
