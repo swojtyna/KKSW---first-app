@@ -16,8 +16,9 @@ final class MockScreenTimeAuthRepository: ScreenTimeAuthRepository, @unchecked S
         statusSubject.eraseToAnyPublisher()
     }
 
-    init() {
-        self.statusSubject = CurrentValueSubject(.notDetermined)
+    init(initialStatus: AuthorizationStatus = .notDetermined) {
+        self.stubbedStatus = initialStatus
+        self.statusSubject = CurrentValueSubject(initialStatus)
     }
 
     func requestAuthorization() async throws {
