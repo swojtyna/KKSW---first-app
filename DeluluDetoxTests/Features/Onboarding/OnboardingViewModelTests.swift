@@ -3,39 +3,41 @@ import XCTest
 
 @MainActor
 final class OnboardingViewModelTests: XCTestCase {
-    var mockRepo: MockScreenTimeAuthRepository!
+    // IUO pattern is safe in XCTest: setUp runs before every test and assigns the value; tearDown nils it.
+    // Standard idiom — see `.claude/guides` for rationale (W16).
+    var mockUseCase: MockRequestScreenTimeAuthUseCase!
 
     override func setUp() {
         super.setUp()
         DIContainer.shared.reset()
-        mockRepo = MockScreenTimeAuthRepository()
-        DIContainer.shared.register(ScreenTimeAuthRepository.self, scope: .application) { [mockRepo] _ in
-            mockRepo!
-        }
-        DIContainer.shared.register(RequestScreenTimeAuthUseCase.self, scope: .unique) { c in
-            RequestScreenTimeAuthUseCaseImpl(repository: c.resolve())
+        mockUseCase = MockRequestScreenTimeAuthUseCase()
+        DIContainer.shared.register(RequestScreenTimeAuthUseCase.self, scope: .unique) { [mockUseCase] _ in
+            mockUseCase!
         }
     }
 
     func testGrantAccessSuccess() async {
         let vm = OnboardingViewModel()
+
         await vm.grantAccessTapped()
 
-        XCTAssertEqual(mockRepo.requestAuthorizationCallCount, 1)
+        XCTAssertEqual(mockUseCase.callCount, 1)
         XCTAssertNil(vm.error)
         XCTAssertFalse(vm.isRequesting)
-        // Event authorized — pełny test przez statusPublisher w Wave 5 (01.1-05).
     }
 
     func testGrantAccessFailure() async {
-        mockRepo.requestAuthorizationError = NSError(
+        mockUseCase.stubbedError = NSError(
             domain: "FamilyControls", code: 2,
             userInfo: [NSLocalizedDescriptionKey: "Invalid account type"]
         )
         let vm = OnboardingViewModel()
+
         await vm.grantAccessTapped()
 
+        XCTAssertEqual(mockUseCase.callCount, 1)
         XCTAssertNotNil(vm.error)
+        XCTAssertEqual(vm.error, "Invalid account type")
         XCTAssertFalse(vm.isRequesting)
     }
 
