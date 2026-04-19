@@ -10,7 +10,24 @@ Main router for Claude Code in this repository. Read specialized documentation o
 
 ## Repository status
 
-Greenfield. No Xcode project, `Package.swift`, or source files have been created yet — only this file, `README.md`, `.gitignore`, and `.claude/` configuration. When the first Xcode project is scaffolded, update this file with build/run/test commands.
+Scaffolded. Source of truth: `project.yml` (XcodeGen). Regenerate `.xcodeproj` with `xcodegen generate` — never edit `DeluluDetox.xcodeproj` manually.
+
+| | |
+|---|---|
+| Project | `DeluluDetox.xcodeproj` |
+| App scheme | `DeluluDetox` |
+| Test target | `DeluluDetoxTests` |
+| App sources | `DeluluDetox/Sources/` · resources `DeluluDetox/Resources/` |
+| Extensions | `Extensions/{DeviceActivityMonitor,ShieldConfiguration,ShieldAction}Extension/` |
+| Default simulator | `iPhone 17` · iOS 26.2 (UUID `C958163F-49E1-4B46-8A6D-C2056CD25A37`) |
+
+**Build & test flow** — via XcodeBuildMCP (never raw `xcodebuild`):
+
+1. `session_show_defaults` — verify project / scheme / simulator (once per session).
+2. `build_sim` / `test_sim` — build or run the test target.
+3. Fix compilation / test failures autonomously.
+
+Details: `.claude/guides/xcodebuild-mcp/GUIDE.md` · `.claude/guides/xcodegen/GUIDE.md`.
 
 ## Conventions
 

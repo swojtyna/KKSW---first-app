@@ -7,8 +7,8 @@ final class OnboardingViewModelTests: XCTestCase {
     // Standard idiom — see `.claude/guides` for rationale (W16).
     var mockUseCase: MockRequestScreenTimeAuthUseCase!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         DIContainer.shared.reset()
         mockUseCase = MockRequestScreenTimeAuthUseCase()
         DIContainer.shared.register(RequestScreenTimeAuthUseCase.self, scope: .unique) { [mockUseCase] _ in

@@ -6,8 +6,8 @@ final class DenialViewModelTests: XCTestCase {
     // IUO safe in XCTest: setUp runs before every test (W16).
     var mockUseCase: MockRequestScreenTimeAuthUseCase!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         DIContainer.shared.reset()
         mockUseCase = MockRequestScreenTimeAuthUseCase()
         // Denial consumes UC registered by OnboardingInjection (D-17).

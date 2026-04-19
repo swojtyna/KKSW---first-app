@@ -15,8 +15,8 @@ final class AppRootViewModelTests: XCTestCase {
     var mockObserve: MockObserveScreenTimeAuthStatusUseCase!
     var mockRefresh: MockRefreshScreenTimeAuthStatusUseCase!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         DIContainer.shared.reset()
         mockObserve = MockObserveScreenTimeAuthStatusUseCase(initialStatus: .notDetermined)
         mockRefresh = MockRefreshScreenTimeAuthStatusUseCase()
@@ -28,41 +28,41 @@ final class AppRootViewModelTests: XCTestCase {
         }
     }
 
-    func testInitialDestinationForNotDetermined() async throws {
+    func testInitialDestinationForNotDetermined() async {
         let vm = AppRootViewModel()
-        try await Task.yield()
+        await Task.yield()
         // CurrentValueSubject initial .notDetermined → destination = .onboarding
         XCTAssertEqual(vm.destination, .onboarding)
     }
 
-    func testInitialDestinationForApproved() async throws {
+    func testInitialDestinationForApproved() async {
         mockObserve = MockObserveScreenTimeAuthStatusUseCase(initialStatus: .approved)
         DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
             mockObserve!
         }
 
         let vm = AppRootViewModel()
-        try await Task.yield()
+        await Task.yield()
 
         XCTAssertEqual(vm.destination, .home)
     }
 
-    func testEmissionOfApprovedRoutesToHome() async throws {
+    func testEmissionOfApprovedRoutesToHome() async {
         let vm = AppRootViewModel()
-        try await Task.yield()
+        await Task.yield()
         XCTAssertEqual(vm.destination, .onboarding)
 
         mockObserve.subject.send(.approved)
-        try await Task.yield()
+        await Task.yield()
 
         XCTAssertEqual(vm.destination, .home)
     }
 
-    func testEmissionOfDeniedRoutesToDenial() async throws {
+    func testEmissionOfDeniedRoutesToDenial() async {
         let vm = AppRootViewModel()
 
         mockObserve.subject.send(.denied)
-        try await Task.yield()
+        await Task.yield()
 
         XCTAssertEqual(vm.destination, .denial)
     }
@@ -76,19 +76,19 @@ final class AppRootViewModelTests: XCTestCase {
         XCTAssertEqual(mockRefresh.callCount, 1)
     }
 
-    func testMultipleEmissionsUpdateDestination() async throws {
+    func testMultipleEmissionsUpdateDestination() async {
         let vm = AppRootViewModel()
 
         mockObserve.subject.send(.approved)
-        try await Task.yield()
+        await Task.yield()
         XCTAssertEqual(vm.destination, .home)
 
         mockObserve.subject.send(.denied)
-        try await Task.yield()
+        await Task.yield()
         XCTAssertEqual(vm.destination, .denial)
 
         mockObserve.subject.send(.notDetermined)
-        try await Task.yield()
+        await Task.yield()
         XCTAssertEqual(vm.destination, .onboarding)
     }
 }
