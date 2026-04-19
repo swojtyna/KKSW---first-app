@@ -34,12 +34,12 @@ final class SessionRecordTests: XCTestCase {
     }
 
     func testSessionDurationAcceptsBoundarySeconds() {
-        XCTAssertNotNil(SessionDuration(seconds: 5 * 60))         // 5 min lower
+        XCTAssertNotNil(SessionDuration(seconds: 15 * 60))        // 15 min lower (DeviceActivitySchedule min)
         XCTAssertNotNil(SessionDuration(seconds: 8 * 60 * 60))    // 8 h upper
     }
 
     func testSessionDurationRejectsOutOfRange() {
-        XCTAssertNil(SessionDuration(seconds: 299))                // 4 min 59 s
+        XCTAssertNil(SessionDuration(seconds: 15 * 60 - 1))        // 14 min 59 s
         XCTAssertNil(SessionDuration(seconds: 8 * 60 * 60 + 1))    // 8 h + 1 s
     }
 
