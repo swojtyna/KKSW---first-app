@@ -2,7 +2,7 @@
 phase: 04
 slug: shield-customization
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-04-19
 ---
@@ -42,9 +42,17 @@ created: 2026-04-19
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | SHL-01..04 | — | TBD | unit / manual | TBD | ❌ W0 | ⬜ pending |
+| 04-01-T1 | 01 | 0 | SHL-03 | T-04-01-01..04 | Spike documents extensionContext.open(_:) verdict on iOS 26 device; spike artifacts not committed | manual + grep | `grep -c "## Wave 0 Spike Result" .planning/phases/04-shield-customization/04-DISCUSSION-LOG.md` | ✅ Plan 01 | ⬜ pending |
+| 04-01-T2 | 01 | 0 | SHL-01..04 | T-04-01-04 | XCTest scaffolds for ShieldConfigurationBuilder/Handler + HomeViewModel deep-link compile and skip cleanly | unit (skipped) | `XcodeBuildMCP test_sim --scheme DeluluDetox` (full suite green, +14 skipped) | ✅ Plan 01 | ⬜ pending |
+| 04-02-T1 | 02 | 1 | SHL-01, SHL-02, SHL-04 | T-04-02-01,02,06 | URL scheme registered; ShieldConfigurationBuilder + ActiveSessionEnvelope cover active + fallback branches | unit | `XcodeBuildMCP test_sim --scheme DeluluDetox -only-testing:DeluluDetoxTests/ShieldConfigurationBuilderTests` (5 passed) | ✅ Plan 02 | ⬜ pending |
+| 04-02-T2 | 02 | 1 | SHL-01, SHL-02 | T-04-02-03,05 | Extension's 4 overrides delegate to shared helper; imports limited to Foundation+UIKit+ManagedSettings+ManagedSettingsUI+os | build + grep | `XcodeBuildMCP build_sim --scheme DeluluDetox && grep -c "^import FamilyControls$" Extensions/ShieldConfigurationExtension/*.swift` (returns 0) | ✅ Plan 02 | ⬜ pending |
+| 04-03-T1 | 03 | 2 | SHL-03 | T-04-03-04 | ShieldActionHandler pure decision struct turns 5 unit tests green | unit | `XcodeBuildMCP test_sim --scheme DeluluDetox -only-testing:DeluluDetoxTests/ShieldActionHandlerTests` (5 passed) | ✅ Plan 03 | ⬜ pending |
+| 04-03-T2 | 03 | 2 | SHL-03 | T-04-03-02,06 | Extension wires extensionContext.open inside if-let; completionHandler always fires; imports limited to Foundation+ManagedSettings+os | build + grep | `XcodeBuildMCP build_sim --scheme DeluluDetox && grep -c "extensionContext?.open" Extensions/ShieldActionExtension/*.swift` (returns 1) | ✅ Plan 03 | ⬜ pending |
+| 04-04-T1 | 04 | 1 | SHL-04 | T-04-04-01,02,06 | HomeViewModel.handleDeepLink validates scheme/host/path strictly; reads currentActiveSession via withCheckedContinuation; never mutates session state | unit | `XcodeBuildMCP test_sim --scheme DeluluDetox -only-testing:DeluluDetoxTests/HomeViewModelTests` (4 new + existing pass) | ✅ Plan 04 | ⬜ pending |
+| 04-04-T2 | 04 | 1 | SHL-04 | T-04-04-03 | AppRootView.onOpenURL → homeModel.handleDeepLink wiring | build + grep | `XcodeBuildMCP build_sim --scheme DeluluDetox && grep -c ".onOpenURL { url in" DeluluDetox/Sources/Features/Root/View/AppRootView.swift` (returns 1) | ✅ Plan 04 | ⬜ pending |
+| 04-05-T1 | 05 | 3 | SHL-01..04 | T-04-05-01 | Device verification of all 4 SHL requirements; VERIFICATION.md populated | manual | `grep -c "^## SHL-" .planning/phases/04-shield-customization/04-VERIFICATION.md` (returns 4) | ✅ Plan 05 | ⬜ pending |
 
-*Planner fills this in based on RESEARCH.md `## Validation Architecture`.*
+*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,11 +60,11 @@ created: 2026-04-19
 
 ## Wave 0 Requirements
 
-- [ ] Wave 0 spike task: verify `extensionContext?.open(_:)` works from `ShieldActionDelegate` on a physical device (per RESEARCH.md, `context.openApp(URL)` does not exist; this workaround is unofficial)
-- [ ] XCTest stubs for shield-config builder, deep-link URL encoder/decoder, fallback selection logic
-- [ ] App-Group read helpers stubbed in extension target sources
+- [x] Wave 0 spike task — assigned to Plan 01 Task 1 (extensionContext.open device check); marked `autonomous: false`
+- [x] XCTest stubs for ShieldConfigurationBuilder, ShieldActionHandler, HomeViewModel deep-link — assigned to Plan 01 Task 2 (3 files, all initially XCTSkip)
+- [x] App-Group read helpers — `ActiveSessionEnvelope` (Plan 02) + `ShieldActionSessionProbe` (Plan 03) source-shared into both extension targets via project.yml
 
-*Planner refines based on RESEARCH.md `## Validation Architecture`.*
+Plans 02–04 turn the XCTSkip stubs into real assertions as their respective implementations land.
 
 ---
 

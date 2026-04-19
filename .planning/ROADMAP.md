@@ -116,7 +116,13 @@ Plans:
   2. Shield shows a sensible fallback design when encountering unknown or unexpected tokens
   3. Shield has a button that deep links to the main app
   4. Main app receives the deep link and navigates to the relevant active session context
-**Plans**: TBD
+**Plans:** 5 plans
+Plans:
+- [ ] 04-01-PLAN.md — Wave 0 spike (extensionContext.open device check) + 3 XCTest scaffolds (ShieldConfigurationBuilder/ShieldActionHandler/HomeViewModel deep-link)
+- [ ] 04-02-PLAN.md — project.yml URL scheme + source-shares; ShieldConfigurationBuilder + ActiveSessionEnvelope; ShieldConfigurationExtension wired (SHL-01, SHL-02)
+- [ ] 04-03-PLAN.md — ShieldActionHandler pure decision + ShieldActionExtension wired with extensionContext.open (SHL-03)
+- [ ] 04-04-PLAN.md — HomeViewModel.handleDeepLink + AppRootView.onOpenURL (SHL-04)
+- [ ] 04-05-PLAN.md — Human device verification (full SHL-01..SHL-04 walkthrough)
 **UI hint**: yes
 
 ### Phase 5: Scheduled Blocking
