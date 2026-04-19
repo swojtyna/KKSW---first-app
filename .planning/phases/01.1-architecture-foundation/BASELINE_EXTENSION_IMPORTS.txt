@@ -1,0 +1,7 @@
+# DeluluDetox extension → main-target import baseline
+# Captured: 2026-04-19T00:04:02Z
+# Pattern: import DeluluDetox\b OR @testable import DeluluDetox\b in Extensions/**/*.swift
+# Empty evidence block means "no hits" (expected happy-path).
+---EVIDENCE---
+
+---END-EVIDENCE---
