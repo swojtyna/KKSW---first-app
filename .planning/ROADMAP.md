@@ -100,7 +100,7 @@ Plans:
 Plans:
 - [ ] 03-01-PLAN.md — Session domain models (Outcome, Duration, Record, FinalizeMarker, Paths) + SessionRepository with two-file atomic persistence
 - [ ] 03-02-PLAN.md — SessionEnforcer wrapping ManagedSettings + DeviceActivityCenter (QSN-03 shield + QSN-05 system restrictions + QSN-06 DAS)
-- [ ] 03-03-PLAN.md — 7 Session UseCases + SessionInjection + DeluluDetoxApp bootstrap + 8 test mocks (atomic Start rollback, compose End/Finalize/SelfHeal/DetectRevocation)
+- [ ] 03-03-PLAN.md — 9 Session UseCases + SessionInjection + DeluluDetoxApp bootstrap + 11 test mocks (atomic Start rollback, compose End/Finalize/SelfHeal/DetectRevocation + MarkSuccessShown/CheckSuccessShown VM-boundary UCs)
 - [ ] 03-04-PLAN.md — DAM extension intervalDidEnd: clear shared ManagedSettingsStore + write finalize marker + post Darwin notification; project.yml source-share
 - [ ] 03-05-PLAN.md — SessionStartViewModel + SessionStartView (preset chips QSN-01 + custom wheel QSN-02 + empty-blocklist gate)
 - [ ] 03-06-PLAN.md — CountdownViewModel + TickClock + SessionSuccessViewModel + HomeView destinations + AppRootViewModel foreground self-heal hook
