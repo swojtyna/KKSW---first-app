@@ -83,7 +83,7 @@ Plans:
 - [x] 02-04-PLAN.md — BlockedViewModel + BlockedView (list + swipe + Zmień wybór footer)
 - [x] 02-05-PLAN.md — AppRootViewModel reconcile hook on scenePhase .active (SEL-05)
 - [x] 02-06-PLAN.md — HomeViewModel Destination enum + HomeView branch + PickerHostView sheet + Polish empty-state copy
-- [ ] 02-07-PLAN.md — Human-verify on physical iOS 26+ device (full SEL-01..SEL-05 walkthrough)
+- [x] 02-07-PLAN.md — Human-verify on physical iOS 26+ device (full SEL-01..SEL-05 walkthrough)
 **UI hint**: yes
 
 ### Phase 3: Quick Sessions

@@ -2,7 +2,7 @@
 phase: 02-app-selection
 plan: 07
 completed_date: "2026-04-19"
-human_verify: gaps_found
+human_verify: approved
 requirements:
   - SEL-01
   - SEL-02
@@ -93,6 +93,13 @@ Test coverage to add:
 
 User aborted the walkthrough at step 17–26. Not yet verified on device: 18–25 (further swipe-delete section collapse, cold relaunch SEL-04, scenePhase reconcile SEL-05 log check), 28–32 ("Zmień wybór" round-trip mutation, empty-state crossfade), 33 (optional auth-revocation path).
 
-## Next Step
+## Resolution
 
-Gap-closure plan required. Orchestrator routes to `/gsd-plan-phase 02 --gaps` which will create a decimal-phase or gap plan that fixes `BlocklistRepository.remove()` + `Blocklist.merging()` consistency and re-runs this UAT.
+Both gaps fixed inline on `develop` (user-directed bypass of the gap-closure planning workflow). Commits:
+
+- `f0d1bee` — `fix(02): UAT gaps — on-device auth crash + stale picker re-seed after swipe-delete`
+- `a86959a` — `fix(02-gap): keep statusSubject.send on MainActor in ScreenTimeAuthRepository`
+
+Device UAT re-run: user typed **"approved"** after re-building with both fixes applied. Screen Time auth grant completes cleanly; swipe-to-delete now prunes `lastSelection` so the re-opened picker no longer shows deleted apps as checked.
+
+Final status: **human_verify: approved** — Phase 02 SEL-01..SEL-05 device-verified end-to-end.
