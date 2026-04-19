@@ -27,14 +27,14 @@ final class ScreenTimeAuthRepositoryImpl: ScreenTimeAuthRepository, @unchecked S
 
     func requestAuthorization() async throws {
         try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-        let status = await MainActor.run { AuthorizationCenter.shared.authorizationStatus }
-        statusSubject.send(status)
+        await MainActor.run {
+            statusSubject.send(AuthorizationCenter.shared.authorizationStatus)
+        }
     }
 
     func refreshStatus() {
-        let status = MainActor.assumeIsolated {
-            AuthorizationCenter.shared.authorizationStatus
+        MainActor.assumeIsolated {
+            statusSubject.send(AuthorizationCenter.shared.authorizationStatus)
         }
-        statusSubject.send(status)
     }
 }
