@@ -110,6 +110,162 @@ enum OnboardingInjection {
 
 ---
 
+## Reactive state: Combine publisher w Repository
+
+Dla globalnych stanów aplikacji (status autoryzacji, active sessions, user preferences) Repository wewnętrznie trzyma `CurrentValueSubject` i eksponuje `AnyPublisher` read-only. Klienci subskrybują przez dedykowany UseCase.
+
+### Kiedy to stosować
+
+- Stan który ma **wielu subskrybentów** (Onboarding VM, Denial VM, AppRoot VM wszystkie obserwują ten sam ScreenTime status).
+- Stan który powinien być dostępny **natychmiast przy subskrypcji** (ostatnia znana wartość, nie trzeba osobnego "get current").
+- Źródło prawdy żyje w Repository — UC są cienkimi przejścówkami (pass-through + enkapsulacja protokołu).
+
+`CurrentValueSubject` > `AsyncStream.makeStream()` — ten drugi jest single-subscriber, wymagałby broadcastu.
+
+### Wzorzec: Repository + 2 UC (Observe + Refresh)
+
+```swift
+// Features/Onboarding/Repository/ScreenTimeAuthRepository.swift
+import Combine
+import FamilyControls
+
+protocol ScreenTimeAuthRepository: Sendable {
+    var statusPublisher: AnyPublisher<AuthorizationStatus, Never> { get }
+    func requestAuthorization() async throws
+    func refreshStatus()
+}
+
+final class ScreenTimeAuthRepositoryImpl: ScreenTimeAuthRepository, @unchecked Sendable {
+    private let statusSubject: CurrentValueSubject<AuthorizationStatus, Never>
+
+    var statusPublisher: AnyPublisher<AuthorizationStatus, Never> {
+        statusSubject.eraseToAnyPublisher()
+    }
+
+    init() {
+        self.statusSubject = CurrentValueSubject(AuthorizationCenter.shared.authorizationStatus)
+    }
+
+    func requestAuthorization() async throws {
+        try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+        statusSubject.send(AuthorizationCenter.shared.authorizationStatus)
+    }
+
+    func refreshStatus() {
+        statusSubject.send(AuthorizationCenter.shared.authorizationStatus)
+    }
+}
+```
+
+```swift
+// Features/Onboarding/UseCase/ObserveScreenTimeAuthStatusUseCase.swift
+protocol ObserveScreenTimeAuthStatusUseCase: Sendable {
+    func callAsFunction() -> AnyPublisher<AuthorizationStatus, Never>
+}
+
+final class ObserveScreenTimeAuthStatusUseCaseImpl: ObserveScreenTimeAuthStatusUseCase {
+    private let repository: ScreenTimeAuthRepository
+
+    init(repository: ScreenTimeAuthRepository) {
+        self.repository = repository
+    }
+
+    func callAsFunction() -> AnyPublisher<AuthorizationStatus, Never> {
+        repository.statusPublisher
+    }
+}
+```
+
+```swift
+// Features/Onboarding/UseCase/RefreshScreenTimeAuthStatusUseCase.swift
+protocol RefreshScreenTimeAuthStatusUseCase: Sendable {
+    func callAsFunction()
+}
+
+final class RefreshScreenTimeAuthStatusUseCaseImpl: RefreshScreenTimeAuthStatusUseCase {
+    private let repository: ScreenTimeAuthRepository
+
+    init(repository: ScreenTimeAuthRepository) {
+        self.repository = repository
+    }
+
+    func callAsFunction() {
+        repository.refreshStatus()
+    }
+}
+```
+
+### Rejestracja w DIContainer
+
+```swift
+// Features/Onboarding/Injection/OnboardingInjection.swift
+enum OnboardingInjection {
+    static func register(in container: DIContainer) {
+        container.register(ScreenTimeAuthRepository.self, scope: .application) { _ in
+            ScreenTimeAuthRepositoryImpl()
+        }
+        container.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { c in
+            ObserveScreenTimeAuthStatusUseCaseImpl(repository: c.resolve())
+        }
+        container.register(RefreshScreenTimeAuthStatusUseCase.self, scope: .unique) { c in
+            RefreshScreenTimeAuthStatusUseCaseImpl(repository: c.resolve())
+        }
+    }
+}
+```
+
+Repository musi mieć scope `.application` — to **singleton trzymający stan subjectu**. Gdyby scope był `.unique`, każdy resolve tworzyłby nowy repo → nowy subject → subskrybenci pracujący na różnych streamach. UC mogą być `.unique` (bezstanowe przejścówki).
+
+### Konsumpcja w ViewModelu
+
+```swift
+@MainActor
+@Observable
+final class AppRootViewModel: @unchecked Sendable {
+    @ObservationIgnored @LazyInjected private var observeStatus: ObserveScreenTimeAuthStatusUseCase
+    @ObservationIgnored @LazyInjected private var refreshStatus: RefreshScreenTimeAuthStatusUseCase
+    @ObservationIgnored private var cancellables: Set<AnyCancellable> = []
+
+    var destination: SomeEnum?
+
+    init() {
+        observeStatus()
+            .sink { [weak self] status in
+                self?.destination = Self.map(status)
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Wywoływane np. z `.onChange(of: scenePhase)` w View — user cofa permission w Settings → repo emituje → destination się aktualizuje.
+    func refresh() {
+        refreshStatus()
+    }
+}
+```
+
+**Uwaga na `@ObservationIgnored`** przed `@LazyInjected` i przed `cancellables` — inaczej każdy dostęp invaliduje observation. Swift Observation wymóg.
+
+### Refresh vs observe — dlaczego OBA
+
+- **Observe** — stream przyszłych zmian (prompt grant → repo emituje nowy status → subskrybenci reagują).
+- **Refresh** — wymuszenie odczytu **teraz** z systemowego źródła (user cofa Screen Time w Settings iOS → poza app → brak powiadomienia → trzeba "zapytać ponownie" przy `scenePhase == .active`).
+
+Bez Refresh dziura w logice: user może cofnąć zgodę poza app, AppRoot myśli że nadal .approved → pokaże Home choć blokada nie działa. To **core value violation** w apce blokującej. Refresh jest obroną.
+
+### Antywzorzec — sync `var status: AuthorizationStatus { get }`
+
+```swift
+// ❌ ŹLE — synchroniczny getter bez notyfikacji zmian
+protocol BadRepository {
+    var status: SomeStatus { get }
+    func request() async throws
+}
+```
+
+Subskrybenci musieliby pollować (timer co 1s?) lub ręcznie dostawać powiadomienia (NotificationCenter?). Zamiast — CurrentValueSubject daje *both* "last known value on subscribe" i "emit future changes" w jednym API.
+
+---
+
 ## `@LazyInjected` Pattern
 
 Dla warstw wysokich (ViewModel) używamy property wrappera:
