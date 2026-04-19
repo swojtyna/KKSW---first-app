@@ -77,9 +77,38 @@ final class BlocklistRepositoryImpl: BlocklistRepository, @unchecked Sendable {
 
     func remove(recordID: TokenRecord.ID) async throws {
         var current = blocklistSubject.value
+        guard let removed = current.records.first(where: { $0.id == recordID }) else { return }
         current.records.removeAll { $0.id == recordID }
+        current.lastSelection = Self.prune(selection: current.lastSelection, matching: removed)
         current.updatedAt = Date()
         try writeAndEmit(current)
+    }
+
+    /// Filter the token whose encoded bytes equal `record.encodedToken` out of the
+    /// matching facet of `selection`. Keeps all non-per-token facets of
+    /// `FamilyActivitySelection` intact so the next `FamilyActivityPicker` re-seed
+    /// excludes the deleted token without losing any global flags.
+    private static func prune(
+        selection: FamilyActivitySelection,
+        matching record: TokenRecord
+    ) -> FamilyActivitySelection {
+        var copy = selection
+        let encoder = JSONEncoder()
+        switch record.kind {
+        case .application:
+            copy.applicationTokens = copy.applicationTokens.filter { token in
+                (try? encoder.encode(token)) != record.encodedToken
+            }
+        case .category:
+            copy.categoryTokens = copy.categoryTokens.filter { token in
+                (try? encoder.encode(token)) != record.encodedToken
+            }
+        case .webDomain:
+            copy.webDomainTokens = copy.webDomainTokens.filter { token in
+                (try? encoder.encode(token)) != record.encodedToken
+            }
+        }
+        return copy
     }
 
     func reconcile() async throws {

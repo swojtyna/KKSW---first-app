@@ -1,5 +1,5 @@
 import Combine
-import FamilyControls
+@preconcurrency import FamilyControls
 
 // MARK: - Protocol
 
@@ -19,15 +19,22 @@ final class ScreenTimeAuthRepositoryImpl: ScreenTimeAuthRepository, @unchecked S
     }
 
     init() {
-        self.statusSubject = CurrentValueSubject(AuthorizationCenter.shared.authorizationStatus)
+        let initial = MainActor.assumeIsolated {
+            AuthorizationCenter.shared.authorizationStatus
+        }
+        self.statusSubject = CurrentValueSubject(initial)
     }
 
     func requestAuthorization() async throws {
         try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-        statusSubject.send(AuthorizationCenter.shared.authorizationStatus)
+        let status = await MainActor.run { AuthorizationCenter.shared.authorizationStatus }
+        statusSubject.send(status)
     }
 
     func refreshStatus() {
-        statusSubject.send(AuthorizationCenter.shared.authorizationStatus)
+        let status = MainActor.assumeIsolated {
+            AuthorizationCenter.shared.authorizationStatus
+        }
+        statusSubject.send(status)
     }
 }
