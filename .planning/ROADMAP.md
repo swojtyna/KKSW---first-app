@@ -98,8 +98,8 @@ Plans:
   5. Session ends automatically when the timer reaches zero and blocked apps become accessible again
 **Plans:** 7 plans
 Plans:
-- [ ] 03-01-PLAN.md — Session domain models (Outcome, Duration, Record, FinalizeMarker, Paths) + SessionRepository with two-file atomic persistence
-- [ ] 03-02-PLAN.md — SessionEnforcer wrapping ManagedSettings + DeviceActivityCenter (QSN-03 shield + QSN-05 system restrictions + QSN-06 DAS)
+- [x] 03-01-PLAN.md — Session domain models (Outcome, Duration, Record, FinalizeMarker, Paths) + SessionRepository with two-file atomic persistence
+- [x] 03-02-PLAN.md — SessionEnforcer wrapping ManagedSettings + DeviceActivityCenter (QSN-03 shield + QSN-05 system restrictions + QSN-06 DAS)
 - [ ] 03-03-PLAN.md — 9 Session UseCases + SessionInjection + DeluluDetoxApp bootstrap + 11 test mocks (atomic Start rollback, compose End/Finalize/SelfHeal/DetectRevocation + MarkSuccessShown/CheckSuccessShown VM-boundary UCs)
 - [ ] 03-04-PLAN.md — DAM extension intervalDidEnd: clear shared ManagedSettingsStore + write finalize marker + post Darwin notification; project.yml source-share
 - [ ] 03-05-PLAN.md — SessionStartViewModel + SessionStartView (preset chips QSN-01 + custom wheel QSN-02 + empty-blocklist gate)
