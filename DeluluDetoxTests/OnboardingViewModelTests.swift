@@ -3,14 +3,24 @@ import XCTest
 
 @MainActor
 final class OnboardingViewModelTests: XCTestCase {
+    var mockRepo: MockScreenTimeAuthRepository!
+
+    override func setUp() {
+        super.setUp()
+        DIContainer.shared.reset()
+        mockRepo = MockScreenTimeAuthRepository()
+        DIContainer.shared.register(ScreenTimeAuthRepository.self, scope: .application) { [mockRepo] _ in
+            mockRepo!
+        }
+        DIContainer.shared.register(RequestScreenTimeAuthUseCase.self, scope: .unique) { c in
+            RequestScreenTimeAuthUseCaseImpl(repository: c.resolve())
+        }
+    }
+
     func testGrantAccessSuccess() async {
-        let mockRepo = MockScreenTimeAuthRepository()
-        let useCase = RequestScreenTimeAuthUseCaseImpl(repository: mockRepo)
         var authorizedCalled = false
-        let vm = OnboardingViewModel(
-            requestAuth: useCase,
-            onAuthorized: { authorizedCalled = true }
-        )
+        let vm = OnboardingViewModel()
+        vm.onAuthorized = { authorizedCalled = true }
 
         await vm.grantAccessTapped()
 
@@ -20,17 +30,13 @@ final class OnboardingViewModelTests: XCTestCase {
     }
 
     func testGrantAccessFailure() async {
-        let mockRepo = MockScreenTimeAuthRepository()
         mockRepo.requestAuthorizationError = NSError(
             domain: "FamilyControls", code: 2,
             userInfo: [NSLocalizedDescriptionKey: "Invalid account type"]
         )
-        let useCase = RequestScreenTimeAuthUseCaseImpl(repository: mockRepo)
         var authorizedCalled = false
-        let vm = OnboardingViewModel(
-            requestAuth: useCase,
-            onAuthorized: { authorizedCalled = true }
-        )
+        let vm = OnboardingViewModel()
+        vm.onAuthorized = { authorizedCalled = true }
 
         await vm.grantAccessTapped()
 
@@ -40,9 +46,7 @@ final class OnboardingViewModelTests: XCTestCase {
     }
 
     func testIsRequestingDuringRequest() async {
-        let mockRepo = MockScreenTimeAuthRepository()
-        let useCase = RequestScreenTimeAuthUseCaseImpl(repository: mockRepo)
-        let vm = OnboardingViewModel(requestAuth: useCase)
+        let vm = OnboardingViewModel()
 
         // isRequesting starts false
         XCTAssertFalse(vm.isRequesting)
