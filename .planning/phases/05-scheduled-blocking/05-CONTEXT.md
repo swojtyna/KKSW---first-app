@@ -92,6 +92,8 @@ User tworzy jeden cykliczny harmonogram — zbiór dni tygodnia + przedział cza
   3. Append `ScheduleEvent(kind: .ended)` przez marker.
   4. Fire Darwin notification `com.kksw.DeluluDetox.scheduleEnded`.
 - **D-17:** **Event markers dla Phase 6** — DAM NIE pisze bezpośrednio do `schedule_events.json` (respekt zasady Phase 3 D-03: extension → marker only, main app reconciles). DAM zapisuje pojedynczy `schedule_event_marker.json` (overwrite, ostatnie event) + Darwin notification. Main app na next foreground odczytuje marker i appenduje do `schedule_events.json`. Append-only semantyka; Phase 6 subskrybuje.
+
+  > **D-17 amendment (2026-04-20, planning iteration 1):** Overwrite semantics superseded by timestamp-suffixed multi-marker naming (`schedule_event_marker_{unix_ms}.json`). Reason: cross-midnight schedule (D-03) splits into evening + morning segments; if no foreground occurs between segments, a single overwrite loses the evening event. Per RESEARCH OQ#4, timestamp-suffixed files prevent event loss. `ConsumeScheduleEventMarkerUseCase` reads all matching files, sorts by timestamp, processes in order, then deletes.
 - **D-18:** **Self-heal na `scenePhase == .active`** (odpowiednik Phase 3 D-02):
   1. Read `schedule.json`. Dla każdego enabled schedule'a:
   2. Oblicz czy `now` mieści się w oknie dziś (z uwzględnieniem cross-midnight i dni tygodnia).
@@ -106,6 +108,8 @@ User tworzy jeden cykliczny harmonogram — zbiór dni tygodnia + przedział cza
 ### Architecture
 - **D-21:** Clean Architecture (spójnie z Phase 1-4): `ScheduleRepository` (read/write `schedule.json`), `ScheduleReader` w SPM module współdzielonym z DAM extension (analogicznie do `SessionReader` z Phase 3). UseCases: `CreateOrUpdateScheduleUseCase`, `ToggleScheduleUseCase`, `SyncScheduleWithSystemUseCase`, `SelfHealSchedulesUseCase`. `ScheduleEditorViewModel` @Observable bez SwiftUI.
 - **D-22:** Navigation: `AppRootViewModel.Destination` dostaje `.scheduleList` + `.scheduleEditor(ScheduleEditorViewModel)` (swift-navigation, `@CasePathable`). MVP: przycisk "Harmonogram" w głównym nav graph → list (pokazuje jeden implicit schedule lub empty state "brak harmonogramu + przycisk stwórz") → edytor.
+
+  > **D-22 amendment (2026-04-20, planning iteration 1):** Navigation entry point is `HomeViewModel.Destination`, not `AppRootViewModel.Destination`. Reason: Phase 3 precedent — Home is feature-level navigation parent; AppRoot manages app lifecycle (onboarding → home), not feature navigation. `ScheduleListViewModel` is pushed from HomeViewModel; `ScheduleEditorViewModel` is pushed from ScheduleListViewModel.
 
 ### Claude's Discretion
 - Dokładna treść subtelnego "Cross-midnight" markera w edytorze (copy + styl).
