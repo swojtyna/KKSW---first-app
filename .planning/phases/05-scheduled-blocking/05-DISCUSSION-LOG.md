@@ -182,3 +182,17 @@ Consequence:
 - Plan 05-02 MUST NOT pick happy-path (repeats=true) vs daily-re-register-at-midnight fallback until this spike runs and a verdict section is appended below (heading: Wave-0-Spike-Verdict).
 - Tasks 2 and 3 of Plan 05-01 were executed (scaffolds + XCTSkipIf test stubs). No spike instrumentation was added. No spike revert was needed.
 - Downstream: run Plan 05-01 Task 1 on device before starting Plan 05-02.
+
+## Wave 0 Spike Verdict — ASSUMED Outcome A (conditional)
+
+Date: 2026-04-20
+Decided by: user (override of spike gate in D-17) — proceed with happy-path implementation without on-device verification.
+
+Assumed outcome: **A — `DeviceActivitySchedule(repeats: true)` with `DateComponents(hour:minute:)` fires `intervalDidStart` reliably day after day without re-registration.**
+
+Implications for Plan 05-02+:
+- Plan 05-02 `SyncScheduleWithSystemUseCase` implements ONLY the happy-path registration (single `startMonitoring` call per segment, `repeats: true`). No daily re-register-at-midnight scaffold.
+- Plan 05-04 / 05-05 proceed against the same assumption.
+- Plan 05-08 (on-device UAT) is the deferred verification gate. If SCH-03 UAT case ("schedule fires on day N+1 without app relaunch") fails there, we create a decimal fix phase (e.g. 05.1) to add daily re-register fallback.
+
+Risk log: if Outcome A is wrong, Plans 05-02 / 05-04 / 05-05 require rework — not wasted code, but added cost. User accepted this risk to unblock Wave 1.
