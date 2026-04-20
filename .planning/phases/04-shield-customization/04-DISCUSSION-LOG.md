@@ -159,10 +159,14 @@ Wszystkie odnotowane w CONTEXT.md `<deferred>` sekcji:
 - No physical iOS 26 device readily available for this session; spike ROI is low when the fallback is already well-understood and the Shield API contract has been frozen since 2022.
 - Choosing the fallback a priori removes a blocking dependency on Wave 2 (Plan 04-03) without compromising SHL-03 behavior — the user still gets a tappable primary button that routes to the main app via `UNNotificationRequest` delivery + `UNUserNotificationCenterDelegate` → deep-link path.
 
-**Consequence for Plan 04-03 implementation:**
-- Do NOT attempt `extensionContext?.open(URL(string: "deluludetox://..."))` in `ShieldActionHandler.handle(action:for:completionHandler:)`.
-- Instead: schedule an immediate local notification (`UNNotificationRequest` with `trigger: nil`) whose `userInfo` carries the deep-link URL; user taps notification banner → `UNUserNotificationCenterDelegate.didReceive(_:withCompletionHandler:)` in the main app's `AppDelegate` / `SceneDelegate` bridge routes to `HomeViewModel.handleDeepLink(_:)`.
-- URL scheme registration in `project.yml` (Plan 04-02 Task N) is still required — the local-notification handler uses the same `deluludetox://` scheme.
+**Consequence for Plan 04-03 implementation (treat as NEGATIVE spike verdict):**
+- Follow the **NEGATIVE verdict variant** already documented in `04-03-PLAN.md` Task 2.
+- Ship `extensionContext?.open(...)` as best-effort code, wrapped in:
+  - `// TODO(SHL-03 fallback): spike waived — extensionContext?.open is unverified on device...` comment block
+  - `#warning("SHL-03 spike waived — extensionContext.open path is best-effort; follow-up plan needed for local-push fallback")`
+- `completionHandler(.close)` is still called unconditionally AFTER the fire-and-forget open.
+- The full local-push-notification fallback (`UNNotificationRequest` → `UNUserNotificationCenterDelegate` → `HomeViewModel.handleDeepLink`) is deferred to a **follow-up gap-closure plan** (likely 04.1 or a Phase 5 plan), triggered if device verification in Plan 04-05 confirms `extensionContext?.open` does not foreground the app.
+- URL scheme registration in `project.yml` (Plan 04-02) is still required — both paths use `deluludetox://`.
 
 **Task 1 status:** `WAIVED` (not `blocked`). Plan 04-01 is now complete.
 
