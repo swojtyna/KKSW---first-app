@@ -55,23 +55,23 @@ final class ShieldActionExtension: ShieldActionDelegate {
             "decide kind=\(String(describing: kind), privacy: .public) hasActive=\(hasActive, privacy: .public) urlPresent=\(decision.urlToOpen != nil, privacy: .public)"
         )
 
-        // Open URL if decision included one (primary action only).
-        // RESEARCH.md Pattern 2: extensionContext?.open is community-confirmed
-        // (Opal, one-sec, AppLocker) but unsupported per Apple DTS.
-        // NOTE: `ShieldActionDelegate` inherits directly from `NSObject` and
-        // does NOT expose an `extensionContext` property on iOS 26 (verified
-        // via ManagedSettings.swiftinterface). Community workaround is the
-        // Objective-C runtime selector trick below — resolve UIApplication at
-        // runtime, look up `shared`, then `open:options:completionHandler:`.
-        // This bypasses the extension `UIApplication.shared` import ban.
+        // SHL-03 shield → main-app routing is deferred to a follow-up gap-closure
+        // plan (likely 04.1) that implements a local-push-notification fallback.
+        //
+        // Background: `ShieldActionDelegate` inherits from `NSObject` (not
+        // UIViewController) and does NOT expose `extensionContext` — verified
+        // against ManagedSettings.swiftinterface. The private-API workaround
+        // (NSClassFromString("UIApplication") → sharedApplication → openURL:
+        // via perform(_:)) is a known App Store rejection pattern (Guideline
+        // 2.5.1) and is not shipped.
+        //
+        // For now: log the decided URL for telemetry and return .close. The
+        // decision logic (ShieldActionHandler) remains fully unit-tested so
+        // the fallback plan only needs to wire the dispatch mechanism.
         if let url = decision.urlToOpen {
-            Self.log.info("opening url=\(url.absoluteString, privacy: .public)")
-            // TODO(SHL-03 fallback): Wave 0 spike waived — extensionContext?.open(_:)
-            // is unverified on iOS 26 device from ShieldActionDelegate. Replace this
-            // call with a local push notification + tap-handler that opens the app
-            // when device verification (Plan 04-05) confirms the open path fails.
-            #warning("SHL-03 spike waived — extensionContext.open path is best-effort; follow-up plan needed for local-push fallback")
-            openURLFromExtension(url)
+            Self.log.info(
+                "deep-link decided but dispatch deferred url=\(url.absoluteString, privacy: .public) — awaiting follow-up plan with local-push fallback"
+            )
         }
 
         // Always respond — even if open(_:) fails, completionHandler must fire
@@ -94,34 +94,4 @@ final class ShieldActionExtension: ShieldActionDelegate {
         }
     }
 
-    /// Fire-and-forget URL open from a Shield extension. Uses Objective-C
-    /// runtime dispatch to reach `UIApplication.shared.open(_:options:completionHandler:)`
-    /// without importing UIKit's application APIs (extensions can't use
-    /// `UIApplication.shared` directly — compile-time guard). Community
-    /// pattern from Opal / one-sec / AppLocker.
-    ///
-    /// Return value intentionally ignored — `completionHandler(.close)` below
-    /// fires unconditionally so the shield process is released even if the
-    /// open selector silently no-ops (Pitfall 4).
-    private func openURLFromExtension(_ url: URL) {
-        let uiApplicationClass: AnyClass? = NSClassFromString("UIApplication")
-        guard let appClass = uiApplicationClass else {
-            Self.log.error("UIApplication class not found via runtime")
-            return
-        }
-        let sharedSelector = NSSelectorFromString("sharedApplication")
-        guard appClass.responds(to: sharedSelector),
-              let sharedApp = (appClass as AnyObject).perform(sharedSelector)?.takeUnretainedValue()
-        else {
-            Self.log.error("sharedApplication unavailable from extension")
-            return
-        }
-        let openSelector = NSSelectorFromString("openURL:")
-        guard (sharedApp as AnyObject).responds(to: openSelector) else {
-            Self.log.error("openURL: selector unavailable")
-            return
-        }
-        _ = (sharedApp as AnyObject).perform(openSelector, with: url)
-        Self.log.info("openURL: dispatched via runtime")
-    }
 }
