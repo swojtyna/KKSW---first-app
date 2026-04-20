@@ -170,3 +170,15 @@ Wszystkie w CONTEXT.md `<deferred>`:
 - Multi-schedule DAS budget scaling
 - Widget / Live Activity
 - Cross-device iCloud sync
+
+---
+
+## Wave 0 Spike — DEFERRED
+
+Date: 2026-04-20
+Status: deferred — no physical iOS 26+ device available at execution time.
+
+Consequence:
+- Plan 05-02 MUST NOT pick happy-path (repeats=true) vs daily-re-register-at-midnight fallback until this spike runs and a verdict section is appended below (heading: Wave-0-Spike-Verdict).
+- Tasks 2 and 3 of Plan 05-01 were executed (scaffolds + XCTSkipIf test stubs). No spike instrumentation was added. No spike revert was needed.
+- Downstream: run Plan 05-01 Task 1 on device before starting Plan 05-02.
