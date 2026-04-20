@@ -30,14 +30,22 @@ protocol ScheduleActivityMonitoringRepository: Sendable {}
 
 protocol ObserveScheduleUseCase: Sendable {}
 
-protocol CreateOrUpdateScheduleUseCase: Sendable {}
+protocol CreateOrUpdateScheduleUseCase: Sendable {
+    func callAsFunction(_ schedule: Schedule) async throws
+}
 
 protocol ToggleScheduleUseCase: Sendable {}
 
-protocol SyncScheduleWithSystemUseCase: Sendable {}
+protocol SyncScheduleWithSystemUseCase: Sendable {
+    func callAsFunction(schedule: Schedule) async throws
+}
 
 protocol SelfHealSchedulesUseCase: Sendable {}
 
 protocol ComputeScheduleWindowUseCase: Sendable {}
 
-protocol ConsumeScheduleEventMarkerUseCase: Sendable {}
+protocol ConsumeScheduleEventMarkerUseCase: Sendable {
+    /// Count of markers consumed (appended to events.json + deleted).
+    @discardableResult
+    func callAsFunction() async throws -> Int
+}

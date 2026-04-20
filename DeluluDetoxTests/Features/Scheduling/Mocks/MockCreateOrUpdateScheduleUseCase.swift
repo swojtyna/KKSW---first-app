@@ -6,13 +6,11 @@ import Foundation
 final class MockCreateOrUpdateScheduleUseCase: CreateOrUpdateScheduleUseCase, @unchecked Sendable {
     private(set) var callCount = 0
     private(set) var lastInputSchedule: Schedule?
-    var stubbedResult: Schedule?
     var createOrUpdateError: Error?
 
-    func callAsFunction(schedule: Schedule) async throws -> Schedule {
+    func callAsFunction(_ schedule: Schedule) async throws {
         callCount += 1
         lastInputSchedule = schedule
         if let createOrUpdateError { throw createOrUpdateError }
-        return stubbedResult ?? schedule
     }
 }
