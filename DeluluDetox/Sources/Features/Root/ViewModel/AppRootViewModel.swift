@@ -33,6 +33,11 @@ final class AppRootViewModel: @unchecked Sendable {
     @LazyInjected private var selfHealExpiredSession: SelfHealExpiredSessionUseCase
     @ObservationIgnored
     @LazyInjected private var detectRevocation: DetectRevocationUseCase
+    // Phase 05 — Scheduling marker consumption + self-heal UCs.
+    @ObservationIgnored
+    @LazyInjected private var consumeScheduleMarker: ConsumeScheduleEventMarkerUseCase
+    @ObservationIgnored
+    @LazyInjected private var selfHealSchedules: SelfHealSchedulesUseCase
 
     @ObservationIgnored
     private var cancellables: Set<AnyCancellable> = []
@@ -62,6 +67,12 @@ final class AppRootViewModel: @unchecked Sendable {
     /// `.countdown` destination. CR-02 from 03-REVIEW.md.
     @ObservationIgnored
     private static let darwinSessionFinalizedName = "com.kksw.DeluluDetox.sessionFinalized"
+    /// Phase 05 — DAM posts these on schedule interval boundaries so the main
+    /// app can react immediately when foregrounded (no scenePhase wait).
+    @ObservationIgnored
+    private static let darwinScheduleStartedName = "com.kksw.DeluluDetox.scheduleStarted"
+    @ObservationIgnored
+    private static let darwinScheduleEndedName = "com.kksw.DeluluDetox.scheduleEnded"
 
     init() {
         observeStatus()
@@ -70,7 +81,7 @@ final class AppRootViewModel: @unchecked Sendable {
             }
             .store(in: &cancellables)
 
-        registerDarwinFinalizeObserver()
+        registerDarwinObservers()
     }
 
     deinit {
@@ -94,6 +105,8 @@ final class AppRootViewModel: @unchecked Sendable {
         let finalize = finalizeFromMarker
         let selfHeal = selfHealExpiredSession
         let revocation = detectRevocation
+        let consumeScheduleMarker = self.consumeScheduleMarker
+        let selfHealSchedules = self.selfHealSchedules
         let log = logger
         Task {
             let now = Date()
@@ -125,6 +138,22 @@ final class AppRootViewModel: @unchecked Sendable {
             } catch {
                 log.error("detectRevocation failed: \(String(describing: error), privacy: .public)")
             }
+
+            // Phase 05 — schedule marker consumption BEFORE self-heal
+            // (RESEARCH §Pitfall 8: events must be ingested before the
+            // reconciliation pass decides apply/clear).
+            do {
+                _ = try await consumeScheduleMarker()
+            } catch {
+                log.error("consumeScheduleMarker failed: \(String(describing: error), privacy: .public)")
+            }
+
+            // Phase 05 — schedule self-heal (CONTEXT §D-18).
+            do {
+                _ = try await selfHealSchedules(now: now)
+            } catch {
+                log.error("selfHealSchedules failed: \(String(describing: error), privacy: .public)")
+            }
         }
     }
 
@@ -132,10 +161,16 @@ final class AppRootViewModel: @unchecked Sendable {
     /// `intervalDidEnd` so a foregrounded main app reacts immediately instead
     /// of waiting for the next scenePhase transition. Bridges a CoreFoundation
     /// callback to `refreshStatus()` on `@MainActor`.
-    private func registerDarwinFinalizeObserver() {
+    private func registerDarwinObservers() {
+        registerDarwinObserver(name: Self.darwinSessionFinalizedName)
+        registerDarwinObserver(name: Self.darwinScheduleStartedName)
+        registerDarwinObserver(name: Self.darwinScheduleEndedName)
+    }
+
+    private func registerDarwinObserver(name: String) {
         let center = CFNotificationCenterGetDarwinNotifyCenter()
         let observer = Unmanaged.passUnretained(self).toOpaque()
-        let name = CFNotificationName(Self.darwinSessionFinalizedName as CFString)
+        let cfName = CFNotificationName(name as CFString)
         CFNotificationCenterAddObserver(
             center,
             observer,
@@ -146,11 +181,11 @@ final class AppRootViewModel: @unchecked Sendable {
                     vm.refreshStatus()
                 }
             },
-            name.rawValue,
+            cfName.rawValue,
             nil,
             .deliverImmediately
         )
-        logger.info("darwin observer registered: \(Self.darwinSessionFinalizedName, privacy: .public)")
+        logger.info("darwin observer registered: \(name, privacy: .public)")
     }
 
     private static func map(_ status: AuthorizationStatus) -> Destination {

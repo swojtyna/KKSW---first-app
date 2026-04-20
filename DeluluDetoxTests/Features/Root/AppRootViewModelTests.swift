@@ -18,6 +18,8 @@ final class AppRootViewModelTests: XCTestCase {
     var mockFinalizeFromMarker: MockFinalizeSessionFromMarkerUseCase!
     var mockSelfHeal: MockSelfHealExpiredSessionUseCase!
     var mockDetectRevocation: MockDetectRevocationUseCase!
+    var mockConsumeScheduleMarker: MockConsumeScheduleEventMarkerUseCase!
+    var mockSelfHealSchedules: MockSelfHealSchedulesUseCase!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -28,6 +30,8 @@ final class AppRootViewModelTests: XCTestCase {
         mockFinalizeFromMarker = MockFinalizeSessionFromMarkerUseCase()
         mockSelfHeal = MockSelfHealExpiredSessionUseCase()
         mockDetectRevocation = MockDetectRevocationUseCase()
+        mockConsumeScheduleMarker = MockConsumeScheduleEventMarkerUseCase()
+        mockSelfHealSchedules = MockSelfHealSchedulesUseCase()
         DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
             mockObserve!
         }
@@ -40,6 +44,8 @@ final class AppRootViewModelTests: XCTestCase {
         DIContainer.shared.register(FinalizeSessionFromMarkerUseCase.self, scope: .unique) { [mockFinalizeFromMarker] _ in mockFinalizeFromMarker! }
         DIContainer.shared.register(SelfHealExpiredSessionUseCase.self, scope: .unique) { [mockSelfHeal] _ in mockSelfHeal! }
         DIContainer.shared.register(DetectRevocationUseCase.self, scope: .unique) { [mockDetectRevocation] _ in mockDetectRevocation! }
+        DIContainer.shared.register(ConsumeScheduleEventMarkerUseCase.self, scope: .unique) { [mockConsumeScheduleMarker] _ in mockConsumeScheduleMarker! }
+        DIContainer.shared.register(SelfHealSchedulesUseCase.self, scope: .unique) { [mockSelfHealSchedules] _ in mockSelfHealSchedules! }
     }
 
     override func tearDown() async throws {
@@ -151,7 +157,7 @@ final class AppRootViewModelTests: XCTestCase {
 
     // MARK: - Phase 03 additions
 
-    func testRefreshStatusCallsAllFiveUseCases() async throws {
+    func testRefreshStatusCallsAllSevenUseCases() async throws {
         let vm = AppRootViewModel()
         vm.refreshStatus()
 
@@ -163,6 +169,8 @@ final class AppRootViewModelTests: XCTestCase {
         XCTAssertEqual(mockFinalizeFromMarker.callCount, 1)
         XCTAssertEqual(mockSelfHeal.callCount, 1)
         XCTAssertEqual(mockDetectRevocation.callCount, 1)
+        XCTAssertEqual(mockConsumeScheduleMarker.callCount, 1)
+        XCTAssertEqual(mockSelfHealSchedules.callCount, 1)
     }
 
     func testRefreshStatusLogsButDoesNotPropagateSelfHealError() async throws {
@@ -172,6 +180,54 @@ final class AppRootViewModelTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000) // 50 ms
         // Detect revocation still fired, confirming the UC chain did not abort.
         XCTAssertEqual(mockDetectRevocation.callCount, 1)
+    }
+
+    // MARK: - Phase 05 additions
+
+    func testRefreshStatusCallsScheduleUCsAfterSessionUCs() async throws {
+        // Shared ordering log — both schedule mocks append their tag in call order.
+        // RESEARCH §Pitfall 8 requires consumeScheduleMarker BEFORE selfHealSchedules.
+        let orderLog = NSMutableArray()
+        mockConsumeScheduleMarker.callOrderLog = orderLog
+        mockSelfHealSchedules.callOrderLog = orderLog
+
+        let vm = AppRootViewModel()
+        vm.refreshStatus()
+        try await Task.sleep(nanoseconds: 50_000_000) // 50 ms
+
+        XCTAssertEqual(mockConsumeScheduleMarker.callCount, 1)
+        XCTAssertEqual(mockSelfHealSchedules.callCount, 1)
+
+        XCTAssertEqual(orderLog.count, 2, "Both schedule UCs must fire.")
+        XCTAssertEqual(orderLog[0] as? String, "consumeScheduleMarker")
+        XCTAssertEqual(orderLog[1] as? String, "selfHealSchedules")
+    }
+
+    func testScheduleDarwinNotificationTriggersRefresh() async throws {
+        let vm = AppRootViewModel()
+        // Wait for init/observer registration.
+        try await Task.sleep(nanoseconds: 50_000_000)
+        let baselineRefresh = mockRefresh.callCount
+        let baselineSelfHeal = mockSelfHealSchedules.callCount
+
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        let started = CFNotificationName("com.kksw.DeluluDetox.scheduleStarted" as CFString)
+        CFNotificationCenterPostNotification(center, started, nil, nil, true)
+        try await Task.sleep(nanoseconds: 100_000_000) // 100 ms for Darwin + refreshStatus
+
+        XCTAssertGreaterThan(mockRefresh.callCount, baselineRefresh, "scheduleStarted should trigger refreshStatus")
+        XCTAssertGreaterThan(mockSelfHealSchedules.callCount, baselineSelfHeal, "scheduleStarted should cascade into selfHealSchedules")
+
+        let afterStartRefresh = mockRefresh.callCount
+        let afterStartSelfHeal = mockSelfHealSchedules.callCount
+
+        let ended = CFNotificationName("com.kksw.DeluluDetox.scheduleEnded" as CFString)
+        CFNotificationCenterPostNotification(center, ended, nil, nil, true)
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertGreaterThan(mockRefresh.callCount, afterStartRefresh, "scheduleEnded should trigger refreshStatus")
+        XCTAssertGreaterThan(mockSelfHealSchedules.callCount, afterStartSelfHeal, "scheduleEnded should cascade into selfHealSchedules")
+        _ = vm
     }
 }
 

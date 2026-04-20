@@ -8,8 +8,15 @@ final class MockConsumeScheduleEventMarkerUseCase: ConsumeScheduleEventMarkerUse
     var stubbedAppendedCount: Int = 0
     var consumeError: Error?
 
+    /// Shared call-order log (optional — AppRootViewModelTests passes a single
+    /// array through two mocks to verify "consume marker BEFORE self-heal"
+    /// ordering per RESEARCH §Pitfall 8).
+    var callOrderLog: NSMutableArray?
+    var callOrderTag: String = "consumeScheduleMarker"
+
     func callAsFunction() async throws -> Int {
         callCount += 1
+        callOrderLog?.add(callOrderTag)
         if let consumeError { throw consumeError }
         return stubbedAppendedCount
     }
