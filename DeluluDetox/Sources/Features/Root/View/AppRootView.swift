@@ -24,8 +24,8 @@ struct AppRootView: View {
                     HomeView(model: homeModel)
                 }
             case .none:
-                // Przed pierwszą emisją statusu z repo — krótki placeholder.
-                Theme.background
+                // Przed pierwszą emisją statusu z repo — marka zamiast pustego tła.
+                SplashView()
             }
         }
         .animation(.easeInOut(duration: 0.35), value: model.destination)
