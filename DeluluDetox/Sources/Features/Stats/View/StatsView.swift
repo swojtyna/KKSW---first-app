@@ -17,6 +17,21 @@ struct StatsView: View {
     private let recordStreak: Int = 12
     private let sessionsThisMonth: Int = 23
 
+    private struct WeekdayHeader: Identifiable {
+        let id: String
+        let letter: String
+    }
+
+    private let weekdayHeaders: [WeekdayHeader] = [
+        WeekdayHeader(id: "wd-mon", letter: "P"),
+        WeekdayHeader(id: "wd-tue", letter: "W"),
+        WeekdayHeader(id: "wd-wed", letter: "Ś"),
+        WeekdayHeader(id: "wd-thu", letter: "C"),
+        WeekdayHeader(id: "wd-fri", letter: "P"),
+        WeekdayHeader(id: "wd-sat", letter: "S"),
+        WeekdayHeader(id: "wd-sun", letter: "N"),
+    ]
+
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.lg) {
@@ -140,9 +155,10 @@ struct StatsView: View {
             }
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
-                // Weekday headers — indices (not letters) as IDs since "P" repeats (Pn + Pt).
-                ForEach(Array(["P", "W", "Ś", "C", "P", "S", "N"].enumerated()), id: \.offset) { _, letter in
-                    Text(letter)
+                // Weekday headers — "wd-N" string IDs since "P" repeats (Pn + Pt)
+                // and raw offsets would collide with the Int day IDs below.
+                ForEach(weekdayHeaders, id: \.id) { header in
+                    Text(header.letter)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.textSecondary)
                         .frame(maxWidth: .infinity)
