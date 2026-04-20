@@ -1,22 +1,108 @@
 import XCTest
 @testable import DeluluDetox
 
-/// Plan 05-04 lands these assertions.
+/// Plan 05-04 Task 2 — `SyncScheduleWithSystemUseCaseImpl` assertions.
+/// Pattern mirrors `SessionRepositoryTests.currentActive/...` — drive the
+/// MockScheduleRepository's CurrentValueSubject so the UC's snapshot read
+/// resolves synchronously.
+@MainActor
 final class SyncScheduleWithSystemUseCaseTests: XCTestCase {
 
-    func testSyncStopsOldThenStartsNewWhenEnabled() throws {
-        try XCTSkipIf(true, "Stub — Plan 05-04 replaces with real assertion. Expected: UC calls monitoring.stopMonitoring(scheduleId:) FIRST, then monitoring.startMonitoring(schedule:) — verify call order via MockScheduleActivityMonitoringRepository ordered-call log.")
+    // MARK: - Helpers
+
+    private func schedule(id: UUID, enabled: Bool) -> Schedule {
+        Schedule(
+            id: id,
+            name: nil,
+            daysOfWeek: [2, 3, 4, 5, 6],
+            startHour: 9, startMinute: 0,
+            endHour: 17, endMinute: 0,
+            enabled: enabled,
+            blocklistId: UUID(),
+            appVersion: "test"
+        )
     }
 
-    func testSyncOnlyStopsWhenScheduleDisabled() throws {
-        try XCTSkipIf(true, "Stub — Plan 05-04 replaces with real assertion. Expected: schedule.enabled == false → UC calls stopMonitoring, does NOT call startMonitoring.")
+    // MARK: - Tests
+
+    func testSyncStopsOldThenStartsNewWhenEnabled() async throws {
+        let repo = MockScheduleRepository()
+        let monitoring = MockScheduleActivityMonitoringRepository()
+        let uc = SyncScheduleWithSystemUseCaseImpl(monitoring: monitoring, repository: repo)
+
+        let s = schedule(id: UUID(), enabled: true)
+        repo.schedulesSubject.send([s])
+
+        try await uc(schedule: s)
+
+        XCTAssertEqual(monitoring.stopMonitoringCallCount, 1)
+        XCTAssertEqual(monitoring.stoppedScheduleIds.last, s.id)
+        XCTAssertEqual(monitoring.startMonitoringCallCount, 1)
+        XCTAssertEqual(monitoring.lastStartedSchedule?.id, s.id)
+        // Call-order assertion — stop BEFORE start.
+        XCTAssertEqual(monitoring.callLog.first, .stop(scheduleId: s.id))
+        XCTAssertEqual(monitoring.callLog.last, .start(scheduleId: s.id))
     }
 
-    func testSyncRollsBackScheduleJSONWhenStartMonitoringThrows() throws {
-        try XCTSkipIf(true, "Stub — Plan 05-04 replaces with real assertion. Expected: startMonitoring throws → UC calls repository.rollback / revert to prior snapshot AND rethrows so editor can surface the sarcastic error toast (CONTEXT §D-14).")
+    func testSyncOnlyStopsWhenScheduleDisabled() async throws {
+        let repo = MockScheduleRepository()
+        let monitoring = MockScheduleActivityMonitoringRepository()
+        let uc = SyncScheduleWithSystemUseCaseImpl(monitoring: monitoring, repository: repo)
+
+        let s = schedule(id: UUID(), enabled: false)
+        repo.schedulesSubject.send([s])
+
+        try await uc(schedule: s)
+
+        XCTAssertEqual(monitoring.stopMonitoringCallCount, 1)
+        XCTAssertEqual(monitoring.startMonitoringCallCount, 0)
     }
 
-    func testSyncLogsErrorWhenStopMonitoringThrows() throws {
-        try XCTSkipIf(true, "Stub — Plan 05-04 replaces with real assertion. Expected: stopMonitoring throws (stale segment, etc.) → UC logs the failure and CONTINUES with startMonitoring rather than aborting (pitfall #5: disable mid-window otherwise leaves dirty store + no recovery).")
+    func testSyncRollsBackScheduleJSONWhenStartMonitoringThrows() async {
+        let repo = MockScheduleRepository()
+        let monitoring = MockScheduleActivityMonitoringRepository()
+        let uc = SyncScheduleWithSystemUseCaseImpl(monitoring: monitoring, repository: repo)
+
+        // Seed prior snapshot: "enabled=false" version persisted before.
+        let id = UUID()
+        let prior = schedule(id: id, enabled: false)
+        repo.schedulesSubject.send([prior])
+
+        // Caller passes the "new" enabled=true version.
+        let new = schedule(id: id, enabled: true)
+
+        struct BoomError: Error {}
+        monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
+
+        do {
+            try await uc(schedule: new)
+            XCTFail("Expected uc(schedule:) to throw when startMonitoring throws")
+        } catch {
+            // Expected — rethrows.
+        }
+
+        XCTAssertEqual(monitoring.stopMonitoringCallCount, 1)
+        XCTAssertEqual(monitoring.startMonitoringCallCount, 1)
+        // Rollback: upsert called with prior snapshot.
+        XCTAssertEqual(repo.upsertCallCount, 1)
+        XCTAssertEqual(repo.lastUpserted?.id, id)
+        XCTAssertEqual(repo.lastUpserted?.enabled, false)
+    }
+
+    func testSyncDoesNotRetryStopMonitoringAfterStartFailure() async {
+        let repo = MockScheduleRepository()
+        let monitoring = MockScheduleActivityMonitoringRepository()
+        let uc = SyncScheduleWithSystemUseCaseImpl(monitoring: monitoring, repository: repo)
+
+        let s = schedule(id: UUID(), enabled: true)
+        repo.schedulesSubject.send([s])
+
+        struct BoomError: Error {}
+        monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
+
+        _ = try? await uc(schedule: s)
+
+        // Exactly one stop (pre-start), never re-called after the start threw.
+        XCTAssertEqual(monitoring.stopMonitoringCallCount, 1)
     }
 }
