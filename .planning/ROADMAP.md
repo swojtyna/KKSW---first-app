@@ -159,7 +159,7 @@ Plans:
   4. User receives a local notification when a scheduled block starts
 **Plans:** 5 plans
 Plans:
-- [ ] 06-01-PLAN.md — Stats compute core: Stats model + pure ComputeStatsUseCase + 20+ DST-safe XCTests (GAM-01/02)
+- [x] 06-01-PLAN.md — Stats compute core: Stats model + pure ComputeStatsUseCase + 20+ DST-safe XCTests (GAM-01/02)
 - [ ] 06-02-PLAN.md — Notifications infra: LocalNotificationRepository + NotificationCaptionLibrary + composite AppNotificationDelegate + DeluluDetoxApp rewire (delegate swap + drop launch auth)
 - [ ] 06-03-PLAN.md — NTF-01: Schedule/Cancel/LazyPrompt UCs + StartSession/EndSession hooks + HomeViewModel D-13 trigger
 - [ ] 06-04-PLAN.md — NTF-02: ReconcileScheduleNotificationsUseCase + SyncScheduleWithSystemUseCase hook + AppRootViewModel foreground reconcile (cross-midnight evening-only)
