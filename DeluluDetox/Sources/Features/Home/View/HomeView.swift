@@ -5,12 +5,14 @@ import SwiftUINavigation
 struct HomeView: View {
     @Bindable var model: HomeViewModel
     @State private var blockedModel = BlockedViewModel()
+    @State private var scheduleListModel = ScheduleListViewModel()
+    @State private var selectedTab: Int = 0
 
     var body: some View {
-        contentLayer
+        tabContent
             .safeAreaInset(edge: .bottom) {
-                DesignTabBar(activeIndex: 0) { index in
-                    handleTabSelect(index)
+                DesignTabBar(activeIndex: selectedTab) { index in
+                    selectedTab = index
                 }
                 .padding(.bottom, Theme.Spacing.xs)
             }
@@ -34,17 +36,6 @@ struct HomeView: View {
             .navigationDestination(item: $model.destination.countdown) { countdownModel in
                 CountdownView(model: countdownModel)
             }
-            .navigationDestination(item: $model.destination.scheduleList) { listModel in
-                scheduleListDestination(listModel: listModel)
-            }
-            .navigationDestination(
-                isPresented: Binding(
-                    get: { if case .stats = model.destination { return true } else { return false } },
-                    set: { if !$0, case .stats = model.destination { model.destination = nil } }
-                )
-            ) {
-                StatsView()
-            }
             .alert(
                 "Coś się popsuło",
                 isPresented: Binding(
@@ -65,20 +56,28 @@ struct HomeView: View {
             }
     }
 
-    // MARK: - Sub-expressions (help the Swift type-checker)
+    // MARK: - Tab content
 
+    /// Swaps the active tab's view inline. Each tab owns its state via @State
+    /// in HomeView so switching back preserves scroll position / edited fields.
+    /// Navigation pushes that originate INSIDE a tab (e.g., tapping a schedule
+    /// row to open the editor) still resolve through the parent NavigationStack
+    /// provided by AppRootView.
     @ViewBuilder
-    private var contentLayer: some View {
+    private var tabContent: some View {
         Group {
-            if model.snapshot.records.isEmpty {
-                emptyHero
-            } else {
+            switch selectedTab {
+            case 1:
                 BlockedView(model: blockedModel)
+            case 2:
+                ScheduleListView(model: scheduleListModel)
+            case 3:
+                StatsView()
+            default:
+                dzisiajContent
             }
         }
         .background(Color.surfaceGrouped)
-        .navigationTitle("DeluluDetox")
-        .navigationBarTitleDisplayMode(.large)
         .onAppear {
             // Wire BlockedView's CTAs up to the VM that owns the picker /
             // session destinations. Captured weakly so BlockedView's closure
@@ -92,15 +91,17 @@ struct HomeView: View {
         }
     }
 
-    /// DesignTabBar tap router. Dzisiaj (0) and Lista (1) both resolve to the
-    /// current home content for now — Phase 6 will split Dzisiaj into a streak
-    /// dashboard and keep Lista as the full BlockedView. Plan (2) and Staty (3)
-    /// push their destinations via HomeViewModel.
-    private func handleTabSelect(_ index: Int) {
-        switch index {
-        case 2: model.scheduleListTapped()
-        case 3: model.statsTapped()
-        default: break
+    /// "Dzisiaj" tab content — Phase 6 will replace this with a streak
+    /// dashboard. For now mirrors the prior Home body: empty hero when the
+    /// blocklist has no records, else the list itself.
+    @ViewBuilder
+    private var dzisiajContent: some View {
+        if model.snapshot.records.isEmpty {
+            emptyHero
+                .navigationTitle("DeluluDetox")
+                .navigationBarTitleDisplayMode(.large)
+        } else {
+            BlockedView(model: blockedModel)
         }
     }
 
@@ -123,14 +124,6 @@ struct HomeView: View {
                     startModel.destination = nil
                 }
             }
-    }
-
-    /// Plan 05-07 — schedule list sub-destination. Extracted into a
-    /// `@ViewBuilder` function so HomeView's growing `body` stays under the
-    /// Swift type-checker budget (Phase 3 Plan 06 deviation D1 pattern).
-    @ViewBuilder
-    private func scheduleListDestination(listModel: ScheduleListViewModel) -> some View {
-        ScheduleListView(model: listModel)
     }
 
     @ViewBuilder
