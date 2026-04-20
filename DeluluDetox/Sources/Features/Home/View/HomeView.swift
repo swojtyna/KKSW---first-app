@@ -214,6 +214,7 @@ private struct PickerHostView: View {
     OnboardingInjection.register(in: container)
     AppSelectionInjection.register(in: container)
     SessionInjection.register(in: container)
+    SchedulingInjection.register(in: container)
     return NavigationStack {
         HomeView(model: HomeViewModel())
     }
