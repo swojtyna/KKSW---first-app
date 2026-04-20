@@ -31,6 +31,13 @@ final class HomeViewModelTests: XCTestCase {
         DIContainer.shared.register(ObserveSessionHistoryUseCase.self, scope: .application) { [mockObserveHistory] _ in mockObserveHistory! }
         DIContainer.shared.register(MarkSuccessShownUseCase.self, scope: .application) { [mockMarkSuccessShown] _ in mockMarkSuccessShown! }
         DIContainer.shared.register(CheckSuccessShownUseCase.self, scope: .application) { [mockCheckSuccessShown] _ in mockCheckSuccessShown! }
+
+        // Plan 05-07 — HomeViewModel.scheduleListTapped() now instantiates
+        // ScheduleListViewModel (which resolves ObserveScheduleUseCase +
+        // ToggleScheduleUseCase via @LazyInjected). Register lightweight
+        // mocks so any tests that exercise the new intent do not crash in DI.
+        DIContainer.shared.register(ObserveScheduleUseCase.self, scope: .unique) { _ in MockObserveScheduleUseCase() }
+        DIContainer.shared.register(ToggleScheduleUseCase.self, scope: .unique) { _ in MockToggleScheduleUseCase() }
     }
 
     // MARK: - Helpers
@@ -344,5 +351,23 @@ final class HomeViewModelTests: XCTestCase {
             "com.kksw.DeluluDetox.shield-deeplink.",
             "Delegate filters identifier by this prefix — repository must produce identifiers with this exact prefix."
         )
+    }
+
+    // MARK: - Plan 05-07 schedule navigation entry
+
+    /// scheduleListTapped() routes HomeViewModel.destination to .scheduleList(ScheduleListViewModel).
+    /// Required by Plan 05-07 — Home is the nav graph entry for the Schedule feature
+    /// (CONTEXT §D-22 amendment).
+    func testScheduleListTappedRoutesToScheduleListDestination() async {
+        let vm = HomeViewModel()
+        await yield()
+
+        vm.scheduleListTapped()
+
+        guard case .scheduleList(let listVM) = vm.destination else {
+            XCTFail("Expected .scheduleList destination, got \(String(describing: vm.destination))")
+            return
+        }
+        XCTAssertNotNil(listVM)
     }
 }

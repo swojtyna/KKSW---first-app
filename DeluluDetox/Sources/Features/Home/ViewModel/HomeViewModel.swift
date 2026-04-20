@@ -16,6 +16,7 @@ final class HomeViewModel: @unchecked Sendable {
         case sessionStart(SessionStartViewModel)
         case countdown(CountdownViewModel)
         case sessionSuccess(SessionSuccessViewModel)
+        case scheduleList(ScheduleListViewModel)
 
         // HomeViewModel.Destination cases containing non-Equatable payloads
         // (SessionStartViewModel / CountdownViewModel / SessionSuccessViewModel)
@@ -28,6 +29,7 @@ final class HomeViewModel: @unchecked Sendable {
             case (.sessionStart(let a), .sessionStart(let b)): return a === b
             case (.countdown(let a), .countdown(let b)): return a === b
             case (.sessionSuccess(let a), .sessionSuccess(let b)): return a === b
+            case (.scheduleList(let a), .scheduleList(let b)): return a === b
             default: return false
             }
         }
@@ -123,6 +125,16 @@ final class HomeViewModel: @unchecked Sendable {
 
     func startSessionTapped() {
         destination = .sessionStart(SessionStartViewModel())
+    }
+
+    // MARK: - Schedule intents (new in Plan 05-07)
+
+    /// Triggered by HomeView toolbar "Harmonogram" button — pushes the
+    /// ScheduleListViewModel onto the home nav stack. The list VM resolves
+    /// its own UseCases via @LazyInjected; HomeViewModel carries no schedule
+    /// deps itself.
+    func scheduleListTapped() {
+        destination = .scheduleList(ScheduleListViewModel())
     }
 
     // MARK: - Cross-VM bridge — SessionStartViewModel countdownHandoff → parent countdown

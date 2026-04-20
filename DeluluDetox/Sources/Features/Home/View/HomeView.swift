@@ -28,6 +28,9 @@ struct HomeView: View {
             .navigationDestination(item: $model.destination.countdown) { countdownModel in
                 CountdownView(model: countdownModel)
             }
+            .navigationDestination(item: $model.destination.scheduleList) { listModel in
+                scheduleListDestination(listModel: listModel)
+            }
             .alert(
                 "Coś się popsuło",
                 isPresented: Binding(
@@ -63,6 +66,15 @@ struct HomeView: View {
         .navigationTitle("DeluluDetox")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    model.scheduleListTapped()
+                } label: {
+                    Image(systemName: "calendar")
+                        .foregroundStyle(Theme.accent)
+                }
+                .accessibilityLabel("Harmonogram")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     model.startSessionTapped()
@@ -102,6 +114,14 @@ struct HomeView: View {
                     startModel.destination = nil
                 }
             }
+    }
+
+    /// Plan 05-07 — schedule list sub-destination. Extracted into a
+    /// `@ViewBuilder` function so HomeView's growing `body` stays under the
+    /// Swift type-checker budget (Phase 3 Plan 06 deviation D1 pattern).
+    @ViewBuilder
+    private func scheduleListDestination(listModel: ScheduleListViewModel) -> some View {
+        ScheduleListView(model: listModel)
     }
 
     @ViewBuilder
