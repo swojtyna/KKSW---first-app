@@ -147,3 +147,22 @@ Wszystkie odnotowane w CONTEXT.md `<deferred>` sekcji:
 - Haptic / sound (Shield API limitation + post-MVP)
 - Emergency pass (post-MVP gamification)
 - Dynamic copy history-based (post-MVP)
+
+---
+
+## Wave 0 Spike — WAIVED (2026-04-20)
+
+**Decision:** Waive Plan 04-01 Task 1 (physical-device verification of `extensionContext?.open(_:)` from `ShieldActionDelegate`). Plan 04-03 commits unconditionally to the local-push-notification fallback.
+
+**Rationale:**
+- RESEARCH.md Pitfall 4 establishes `extensionContext?.open(_:)` is unreliable from Shield extensions — Apple has not documented it as supported for `ShieldActionDelegate`, and community reports show inconsistent behavior across iOS versions.
+- No physical iOS 26 device readily available for this session; spike ROI is low when the fallback is already well-understood and the Shield API contract has been frozen since 2022.
+- Choosing the fallback a priori removes a blocking dependency on Wave 2 (Plan 04-03) without compromising SHL-03 behavior — the user still gets a tappable primary button that routes to the main app via `UNNotificationRequest` delivery + `UNUserNotificationCenterDelegate` → deep-link path.
+
+**Consequence for Plan 04-03 implementation:**
+- Do NOT attempt `extensionContext?.open(URL(string: "deluludetox://..."))` in `ShieldActionHandler.handle(action:for:completionHandler:)`.
+- Instead: schedule an immediate local notification (`UNNotificationRequest` with `trigger: nil`) whose `userInfo` carries the deep-link URL; user taps notification banner → `UNUserNotificationCenterDelegate.didReceive(_:withCompletionHandler:)` in the main app's `AppDelegate` / `SceneDelegate` bridge routes to `HomeViewModel.handleDeepLink(_:)`.
+- URL scheme registration in `project.yml` (Plan 04-02 Task N) is still required — the local-notification handler uses the same `deluludetox://` scheme.
+
+**Task 1 status:** `WAIVED` (not `blocked`). Plan 04-01 is now complete.
+

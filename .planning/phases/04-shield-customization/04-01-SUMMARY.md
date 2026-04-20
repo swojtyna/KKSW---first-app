@@ -3,7 +3,7 @@ phase: 04
 plan: 01
 subsystem: shield-customization
 tags: [wave-0, spike, test-scaffold, tdd]
-status: partial
+status: complete
 requires: []
 provides:
   - "DeluluDetoxTests/Features/Shield/ShieldConfigurationBuilderTests.swift (5 XCTSkip stubs for SHL-01/SHL-02 — Plan 02 replaces skips with assertions)"
@@ -27,8 +27,9 @@ decisions:
 metrics:
   duration_minutes: 5
   tasks_completed: 1
+  tasks_waived: 1
   tasks_total: 2
-  tasks_blocked: 1
+  tasks_blocked: 0
   completed_date: 2026-04-20
 ---
 
