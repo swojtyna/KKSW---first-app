@@ -39,6 +39,16 @@ struct AppRootView: View {
                 await homeModel.handleDeepLink(url)
             }
         }
+        .onReceive(model.deepLinkPublisher) { url in
+            // SHL-03 fallback — local-notification banner tap. The delegate
+            // lands URLs on AppRootViewModel.deepLinkSubject; we bridge into
+            // the same HomeViewModel.handleDeepLink the .onOpenURL path uses
+            // so the URL contract (deluludetox://session/active, deluludetox://)
+            // has one router. Wzorzec B per navigation GUIDE.md.
+            Task { @MainActor in
+                await homeModel.handleDeepLink(url)
+            }
+        }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 model.refreshStatus()

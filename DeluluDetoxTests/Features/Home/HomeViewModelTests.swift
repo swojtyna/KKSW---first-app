@@ -322,4 +322,27 @@ final class HomeViewModelTests: XCTestCase {
         }
         XCTAssertEqual(msg, "preserve")
     }
+
+    // MARK: - SHL-03 dispatcher contract smoke test
+    //
+    // Cases A/B/C (session-active → countdown, no-active → clears, root → clears)
+    // are already covered by the four `testHandleDeepLink_*` tests above (Plan 04-04
+    // deliverable). Rather than inflate test count with duplicates, we add ONE
+    // contract smoke test asserting the string keys the ShieldActionExtension
+    // dispatcher and the ShieldDeepLinkNotificationDelegate agree on — if anyone
+    // renames `userInfoURLKey` or `identifierPrefix` without updating the other
+    // side, this test catches it in CI before the device surfaces a silent failure.
+
+    func testShieldNotificationDispatcher_userInfoURLKeyContract() {
+        XCTAssertEqual(
+            ShieldNotificationDispatcher.userInfoURLKey,
+            "url",
+            "Delegate reads userInfo[\"url\"] — dispatcher must write to the same key."
+        )
+        XCTAssertEqual(
+            ShieldNotificationDispatcher.identifierPrefix,
+            "com.kksw.DeluluDetox.shield-deeplink.",
+            "Delegate filters identifier by this prefix — dispatcher must produce identifiers with this exact prefix."
+        )
+    }
 }

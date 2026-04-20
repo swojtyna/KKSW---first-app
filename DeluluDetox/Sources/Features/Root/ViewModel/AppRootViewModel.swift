@@ -40,6 +40,20 @@ final class AppRootViewModel: @unchecked Sendable {
     @ObservationIgnored
     private let logger = Logger(subsystem: "com.kksw.DeluluDetox", category: "AppRoot")
 
+    /// SHL-03 fallback channel — `ShieldDeepLinkNotificationDelegate` sends
+    /// tapped-notification URLs here; `AppRootView.onReceive` forwards to
+    /// `homeModel.handleDeepLink`. Wzorzec B per navigation GUIDE.md: child
+    /// event → parent repository → sibling .sink. The subject is exposed as
+    /// `AnyPublisher` to forbid external sends.
+    @ObservationIgnored
+    private let deepLinkSubject = PassthroughSubject<URL, Never>()
+
+    var deepLinkPublisher: AnyPublisher<URL, Never> { deepLinkSubject.eraseToAnyPublisher() }
+
+    func ingestShieldDeepLink(_ url: URL) {
+        deepLinkSubject.send(url)
+    }
+
     /// Darwin notification name posted by the DAM extension on `intervalDidEnd`.
     /// MUST match `DeviceActivityMonitorExtension.darwinSessionFinalizedName`.
     /// Without this subscriber the countdown screen freezes at 00:00 when the
