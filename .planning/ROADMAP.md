@@ -116,13 +116,15 @@ Plans:
   2. Shield shows a sensible fallback design when encountering unknown or unexpected tokens
   3. Shield has a button that deep links to the main app
   4. Main app receives the deep link and navigates to the relevant active session context
-**Plans:** 5 plans
+**Plans:** 7 plans (5 complete + 2 gap-closure)
 Plans:
 - [x] 04-01-PLAN.md — Wave 0 spike (extensionContext.open device check) + 3 XCTest scaffolds (ShieldConfigurationBuilder/ShieldActionHandler/HomeViewModel deep-link)
 - [x] 04-02-PLAN.md — project.yml URL scheme + source-shares; ShieldConfigurationBuilder + ActiveSessionEnvelope; ShieldConfigurationExtension wired (SHL-01, SHL-02)
 - [x] 04-03-PLAN.md — ShieldActionHandler pure decision + ShieldActionExtension wired with extensionContext.open (SHL-03)
 - [x] 04-04-PLAN.md — HomeViewModel.handleDeepLink + AppRootView.onOpenURL (SHL-04)
-- [x] 04-05-PLAN.md — Human device verification (full SHL-01..SHL-04 walkthrough)
+- [x] 04-05-PLAN.md — Human device verification (full SHL-01..SHL-04 walkthrough) — Partial pass: SHL-03 dispatch deferred, SHL-02 unverified
+- [ ] 04-06-PLAN.md — [gap-closure] Local-push-notification fallback for SHL-03 dispatch (ShieldNotificationDispatcher + UNUserNotificationCenterDelegate + auth request at App launch)
+- [ ] 04-07-PLAN.md — [gap-closure] SHL-02 fallback copy contract tests (automated guard replacing deferred device check)
 **UI hint**: yes
 
 ### Phase 5: Scheduled Blocking
