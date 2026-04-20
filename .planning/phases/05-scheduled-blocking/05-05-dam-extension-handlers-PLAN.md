@@ -2,8 +2,8 @@
 phase: 05
 plan: 05
 type: execute
-wave: 1
-depends_on: [05-01]
+wave: 2
+depends_on: [05-01, 05-02, 05-03]
 files_modified:
   - Extensions/DeviceActivityMonitorExtension/DeviceActivityMonitorExtension.swift
 autonomous: true
@@ -36,6 +36,8 @@ must_haves:
 
 <objective>
 Extend the existing `DeviceActivityMonitorExtension.swift` (Phase 3's quickSession-only handler) with the schedule dispatch path: parse schedule activity names by prefix, apply/clear the schedule-named ManagedSettingsStore during scheduled windows, write timestamp-suffixed event markers for the main-app consumer, post Darwin notifications. This is the sole DAM-side code Phase 5 ships — the cross-process contract (named store, marker format, Darwin names) is the interface every other Phase 5 plan targets.
+
+**Wave placement note (planning iteration 1, 2026-04-20):** This plan runs in Wave 2 alongside Plan 05-04, not Wave 1. Rationale: the `<verify>` automated command runs the full test suite which requires Plans 05-02 and 05-03's artifacts (ScheduleRepository, ScheduleActivityMonitoringRepository, ScheduleShieldRepository) to compile. Wave 1 parallel execution would cause compilation races. Plan 05-05 therefore depends on `[05-01, 05-02, 05-03]` and executes after Wave 1 completes.
 
 Purpose:
 - SCH-03 acceptance: "Schedule executes via DeviceActivityMonitor extension — apps blocked during scheduled window." This plan implements that, end-to-end, in the extension process.
@@ -368,7 +370,7 @@ ONE edge case: if Outcome C + Plan 04 implements "daily midnight re-register", t
     }
     ```
 
-    6. Verify: `mcp__XcodeBuildMCP__build_sim` scheme=DeluluDetox destination=iPhone 17 — extension compiles with all 5 imports + new methods. `mcp__XcodeBuildMCP__test_sim` full suite — 0 failures, 0 regressions in Phase 2/3/4 tests.
+    6. Verify: `mcp__XcodeBuildMCP__build_sim` scheme=DeluluDetox — extension compiles with all 5 imports + new methods. `mcp__XcodeBuildMCP__test_sim` full suite — 0 failures, 0 regressions in Phase 2/3/4 tests.
 
     7. Commit: `feat(05-05): extend DAM extension with schedule intervalDidStart + intervalDidEnd handlers`.
 
@@ -377,7 +379,7 @@ ONE edge case: if Outcome C + Plan 04 implements "daily midnight re-register", t
     **Pre-flight check:** run `grep -c "com.apple.developer.family-controls" project.yml` under the `DeviceActivityMonitorExtension` block to confirm the entitlement exists. It was added in Phase 1 scaffolding. If missing, ADD it and run `xcodegen generate` before compiling.
   </action>
   <verify>
-    <automated>mcp__XcodeBuildMCP__test_sim scheme=DeluluDetox destination={iPhone 17} — expect 0 failures, full suite green (Plan 04 test count preserved; no new tests this plan since DAM behavior is manual-only per VALIDATION.md)</automated>
+    <automated>mcp__XcodeBuildMCP__test_sim scheme=DeluluDetox — expect 0 failures, full suite green (Plan 04 test count preserved; no new tests this plan since DAM behavior is manual-only per VALIDATION.md)</automated>
   </verify>
   <acceptance_criteria>
     - `grep -c "@preconcurrency import FamilyControls" Extensions/DeviceActivityMonitorExtension/DeviceActivityMonitorExtension.swift` == 1
