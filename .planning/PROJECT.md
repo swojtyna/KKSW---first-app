@@ -17,12 +17,12 @@ A native iOS self-control app that blocks distracting apps, categories, and webs
 - [x] Quick session — instant block for chosen duration (15/30/60/90 min, custom 15 min – 8 h) — Phase 03
 - [x] Custom shield with branding and basic buttons — Phase 04 (SHL-01, SHL-02)
 - [x] Shield deep link to main app for richer UX — Phase 04 (SHL-03 via local-notification fallback + SHL-04)
+- [x] Minimal gamification — completed sessions count + streak (consecutive days) — Phase 06 (GAM-01, GAM-02; human UAT pending in 06-HUMAN-UAT.md)
+- [x] Local notifications on session end — Phase 06 (NTF-01 session-end + NTF-02 schedule start; human UAT pending in 06-HUMAN-UAT.md)
 
 ### Active
 
 - [ ] Schedules — recurring blocks (e.g. weekdays 9–17)
-- [ ] Minimal gamification — completed sessions count + streak (consecutive days)
-- [ ] Local notifications on session end
 
 ### Out of Scope
 
@@ -104,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-20 after Phase 04 (shield-customization) completion — SHL-01..04 shipped, banner-tap device UAT recommended via 04-HUMAN-UAT.md*
+*Last updated: 2026-04-21 after Phase 06 (engagement-layer) completion — GAM-01/02 + NTF-01/02 shipped (309/309 test suite green); on-device UAT pending via 06-HUMAN-UAT.md. Remaining Active item: Schedules (Phase 05 already shipped the scheduling infra; NTF-02 reconcile landed in Phase 06).*
