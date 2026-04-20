@@ -23,6 +23,16 @@ final class HomeViewModel: @unchecked Sendable {
         // (SessionStartViewModel / CountdownViewModel / SessionSuccessViewModel)
         // use identity equality here — rare in SwiftUINavigation usage; most
         // comparisons are case-path pattern matches, not Equatable ==.
+        //
+        // INTENT (`.stats` specifically): identity equality is BY DESIGN.
+        // `statsCardTapped()` allocates a fresh `StatsViewModel()` on every tap,
+        // so two sequential `.stats(_)` destinations are intentionally != —
+        // the screen's month picker resets on each push, which is the desired
+        // GAM-01/02 UX. This is pinned by `testStatsCardDestination_isIdentityEquatable`.
+        // If persistent-across-taps state is ever desired, hoist the VM to a
+        // `@State` property on HomeView (same pattern as `statsTabModel`),
+        // pass it into `statsCardTapped(_:)`, and switch `.stats` to structural
+        // `==` on the VM's Equatable projection. Pick one and align the test.
         static func == (lhs: Destination, rhs: Destination) -> Bool {
             switch (lhs, rhs) {
             case (.picker(let a), .picker(let b)): return a == b
