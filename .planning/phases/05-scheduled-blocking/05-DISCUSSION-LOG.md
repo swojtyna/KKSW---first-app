@@ -183,7 +183,16 @@ Consequence:
 - Tasks 2 and 3 of Plan 05-01 were executed (scaffolds + XCTSkipIf test stubs). No spike instrumentation was added. No spike revert was needed.
 - Downstream: run Plan 05-01 Task 1 on device before starting Plan 05-02.
 
-## Wave 0 Spike Verdict — ASSUMED Outcome A (conditional)
+## Wave 0 Spike Verdict — CONFIRMED Outcome A (2026-04-20 on device)
+
+Retroactively verified via Plan 05-08 physical-device UAT. Scenarios 1, 3 and 4 from `05-HUMAN-UAT.md` all PASS:
+- Scenario 1 — basic `intervalDidStart` fires on scheduled day.
+- Scenario 3 — weekday filter works on `repeats: true` DAS.
+- Scenario 4 — cross-midnight segment handoff (22:00–06:00): `.evening` intervalDidStart at 22:00, intervalDidEnd at 23:59:59, `.morning` intervalDidStart at 00:00, intervalDidEnd at 06:00. Markers consumed on next foreground.
+
+Conclusion: `DeviceActivitySchedule(repeats: true)` with `DateComponents(hour:minute:)` fires reliably day after day without main-app-side re-registration. No daily-re-register-at-midnight fallback needed. Plans 05-02 / 05-04 / 05-05 happy-path implementations stand.
+
+## Wave 0 Spike Verdict — ASSUMED Outcome A (original conditional entry, kept for audit)
 
 Date: 2026-04-20
 Decided by: user (override of spike gate in D-17) — proceed with happy-path implementation without on-device verification.
