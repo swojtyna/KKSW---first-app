@@ -161,7 +161,7 @@ Plans:
 Plans:
 - [x] 06-01-PLAN.md — Stats compute core: Stats model + pure ComputeStatsUseCase + 20+ DST-safe XCTests (GAM-01/02)
 - [x] 06-02-PLAN.md — Notifications infra: LocalNotificationRepository + NotificationCaptionLibrary + composite AppNotificationDelegate + DeluluDetoxApp rewire (delegate swap + drop launch auth)
-- [ ] 06-03-PLAN.md — NTF-01: Schedule/Cancel/LazyPrompt UCs + StartSession/EndSession hooks + HomeViewModel D-13 trigger
+- [x] 06-03-PLAN.md — NTF-01: Schedule/Cancel/LazyPrompt UCs + StartSession/EndSession hooks + HomeViewModel D-13 trigger
 - [ ] 06-04-PLAN.md — NTF-02: ReconcileScheduleNotificationsUseCase + SyncScheduleWithSystemUseCase hook + AppRootViewModel foreground reconcile (cross-midnight evening-only)
 - [ ] 06-05-PLAN.md — Stats presentation: ObserveStatsUseCase + StatsViewModel + HomeStatsCardViewModel + StatsInjection + drop mock data from StatsView & HomeDashboardView + HomeViewModel.Destination.stats
 **UI hint**: yes
