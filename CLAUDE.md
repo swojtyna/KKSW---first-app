@@ -90,6 +90,7 @@ Details: `.claude/guides/xcodebuild-mcp/GUIDE.md` · `.claude/guides/xcodegen/GU
 | XcodeGen setup | `.claude/guides/xcodegen/GUIDE.md` |
 | Build & test with XcodeBuildMCP | `.claude/guides/xcodebuild-mcp/GUIDE.md` |
 | Authoring new guides | `.claude/guides/create-new-guide/GUIDE.md` |
+| Operational flow (7 commands) | `WORKFLOW.md` |
 
 ---
 
@@ -137,18 +138,22 @@ Architecture not yet mapped. Follow existing patterns found in the codebase.
 No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, or `.github/skills/` with a `SKILL.md` index file.
 <!-- GSD:skills-end -->
 
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
+## Workflow Enforcement
 
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+Before editing code, start work through a phase command so planning artifacts and execution context stay in sync.
 
-Use these entry points:
-- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd-debug` for investigation and bug fixing
-- `/gsd-execute-phase` for planned phase work
+Entry points:
+- `/phase-discuss <N>` → produces `<NN>-CONTEXT.md`
+- `/phase-plan <N>` → produces `<NN>-PLAN.md` (with Plan Approval gate)
+- `/phase-do <N>` → implementation + commits + `<NN>-SUMMARY.md`
+- `/phase-verify <N>` → UAT + `<NN>-VERIFICATION.md`
+- `/phase-ship <N>` → ROADMAP checkbox + STATE bump
+- `/phase-add [--after N] <slug>` → add phase to ROADMAP
+- `/phase-status` → read-only dashboard
 
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-<!-- GSD:workflow-end -->
+Details: `WORKFLOW.md` (operational docs for user).
+
+Do not make direct repo edits outside a phase workflow unless explicitly asked to bypass.
 
 <!-- GSD:profile-start -->
 ## Developer Profile
