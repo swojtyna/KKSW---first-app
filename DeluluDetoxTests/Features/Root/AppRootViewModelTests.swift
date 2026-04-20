@@ -20,6 +20,9 @@ final class AppRootViewModelTests: XCTestCase {
     var mockDetectRevocation: MockDetectRevocationUseCase!
     var mockConsumeScheduleMarker: MockConsumeScheduleEventMarkerUseCase!
     var mockSelfHealSchedules: MockSelfHealSchedulesUseCase!
+    // Phase 06-04 additions — foreground reconcile.
+    var mockObserveSchedule: MockObserveScheduleUseCase!
+    var mockReconcileScheduleNotifications: MockReconcileScheduleNotificationsUseCase!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -32,6 +35,8 @@ final class AppRootViewModelTests: XCTestCase {
         mockDetectRevocation = MockDetectRevocationUseCase()
         mockConsumeScheduleMarker = MockConsumeScheduleEventMarkerUseCase()
         mockSelfHealSchedules = MockSelfHealSchedulesUseCase()
+        mockObserveSchedule = MockObserveScheduleUseCase()
+        mockReconcileScheduleNotifications = MockReconcileScheduleNotificationsUseCase()
         DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
             mockObserve!
         }
@@ -46,6 +51,8 @@ final class AppRootViewModelTests: XCTestCase {
         DIContainer.shared.register(DetectRevocationUseCase.self, scope: .unique) { [mockDetectRevocation] _ in mockDetectRevocation! }
         DIContainer.shared.register(ConsumeScheduleEventMarkerUseCase.self, scope: .unique) { [mockConsumeScheduleMarker] _ in mockConsumeScheduleMarker! }
         DIContainer.shared.register(SelfHealSchedulesUseCase.self, scope: .unique) { [mockSelfHealSchedules] _ in mockSelfHealSchedules! }
+        DIContainer.shared.register(ObserveScheduleUseCase.self, scope: .unique) { [mockObserveSchedule] _ in mockObserveSchedule! }
+        DIContainer.shared.register(ReconcileScheduleNotificationsUseCase.self, scope: .unique) { [mockReconcileScheduleNotifications] _ in mockReconcileScheduleNotifications! }
     }
 
     override func tearDown() async throws {
@@ -227,6 +234,38 @@ final class AppRootViewModelTests: XCTestCase {
 
         XCTAssertGreaterThan(mockRefresh.callCount, afterStartRefresh, "scheduleEnded should trigger refreshStatus")
         XCTAssertGreaterThan(mockSelfHealSchedules.callCount, afterStartSelfHeal, "scheduleEnded should cascade into selfHealSchedules")
+        _ = vm
+    }
+}
+
+// MARK: - Plan 06-04 NTF-02 foreground reconcile
+
+extension AppRootViewModelTests {
+    func testForegroundHook_reconcilesAllSchedules() async throws {
+        // Seed publisher with one enabled + one disabled schedule. BOTH pass
+        // through — the reconcile UC itself handles enabled=false (removes
+        // stale pending). AppRootViewModel must not gate on `.enabled`.
+        let enabled = Schedule(
+            id: UUID(), name: nil, daysOfWeek: [2, 3],
+            startHour: 9, startMinute: 0, endHour: 17, endMinute: 0,
+            enabled: true, blocklistId: UUID(), appVersion: "test"
+        )
+        let disabled = Schedule(
+            id: UUID(), name: nil, daysOfWeek: [4],
+            startHour: 18, startMinute: 0, endHour: 20, endMinute: 0,
+            enabled: false, blocklistId: UUID(), appVersion: "test"
+        )
+        mockObserveSchedule.subject.send([enabled, disabled])
+
+        let vm = AppRootViewModel()
+        vm.refreshStatus()
+        try await Task.sleep(nanoseconds: 100_000_000) // 100 ms — foreground chain is long
+
+        // Both schedules reconciled — enabled + disabled.
+        let receivedIds = mockReconcileScheduleNotifications.receivedSchedules.map(\.id)
+        XCTAssertTrue(receivedIds.contains(enabled.id), "enabled schedule must be reconciled")
+        XCTAssertTrue(receivedIds.contains(disabled.id), "disabled schedule must also be passed through — UC handles the `enabled=false` case")
+        XCTAssertEqual(mockReconcileScheduleNotifications.receivedSchedules.count, 2)
         _ = vm
     }
 }

@@ -38,6 +38,13 @@ final class AppRootViewModel: @unchecked Sendable {
     @LazyInjected private var consumeScheduleMarker: ConsumeScheduleEventMarkerUseCase
     @ObservationIgnored
     @LazyInjected private var selfHealSchedules: SelfHealSchedulesUseCase
+    // Phase 06 §H4 — NTF-02 foreground reconcile. Publisher snapshot via
+    // first()-sink; reconcile each schedule (enabled + disabled) so pending
+    // requests stay in lockstep even if iOS evicted pending requests.
+    @ObservationIgnored
+    @LazyInjected private var observeSchedule: ObserveScheduleUseCase
+    @ObservationIgnored
+    @LazyInjected private var reconcileScheduleNotifications: ReconcileScheduleNotificationsUseCase
 
     @ObservationIgnored
     private var cancellables: Set<AnyCancellable> = []
@@ -107,6 +114,8 @@ final class AppRootViewModel: @unchecked Sendable {
         let revocation = detectRevocation
         let consumeScheduleMarker = self.consumeScheduleMarker
         let selfHealSchedules = self.selfHealSchedules
+        let observeSchedule = self.observeSchedule
+        let reconcileScheduleNotifications = self.reconcileScheduleNotifications
         let log = logger
         Task {
             let now = Date()
@@ -154,6 +163,30 @@ final class AppRootViewModel: @unchecked Sendable {
             } catch {
                 log.error("selfHealSchedules failed: \(String(describing: error), privacy: .public)")
             }
+
+            // Phase 06 §H4 — NTF-02 foreground reliability reconcile. Each
+            // invocation removes-and-re-adds pending `schedule.start.{id}.*`
+            // for every schedule in the current publisher snapshot (enabled
+            // AND disabled — the UC itself handles enabled=false by removing
+            // stale). Idempotent; safe to call every foreground.
+            let schedules = await Self.firstSchedulesSnapshot(observeSchedule)
+            for schedule in schedules {
+                await reconcileScheduleNotifications(schedule: schedule)
+            }
+        }
+    }
+
+    /// First-value snapshot of `ObserveScheduleUseCase()`. Combine `.first()`
+    /// + `.sink` bridge to async; cancellable cancels after resume.
+    private static func firstSchedulesSnapshot(_ observe: ObserveScheduleUseCase) async -> [Schedule] {
+        await withCheckedContinuation { (continuation: CheckedContinuation<[Schedule], Never>) in
+            var cancellable: AnyCancellable?
+            cancellable = observe()
+                .first()
+                .sink { value in
+                    continuation.resume(returning: value)
+                    cancellable?.cancel()
+                }
         }
     }
 

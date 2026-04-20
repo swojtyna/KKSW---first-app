@@ -32,10 +32,14 @@ enum SchedulingInjection {
         }
 
         // Sync UC — register BEFORE Toggle/CreateOrUpdate (they resolve it).
+        // Resolves NotificationsInjection's ReconcileScheduleNotificationsUseCase
+        // (Plan 06-04 §H3) — Notifications injection runs FIRST in
+        // DeluluDetoxApp.init() so the container has it by the time we resolve here.
         container.register(SyncScheduleWithSystemUseCase.self, scope: .unique) { c in
             SyncScheduleWithSystemUseCaseImpl(
                 monitoring: c.resolve(),
-                repository: c.resolve()
+                repository: c.resolve(),
+                reconcileNotifications: c.resolve()
             )
         }
 

@@ -29,5 +29,12 @@ enum NotificationsInjection {
         container.register(SchedulePermissionPromptUseCase.self, scope: .unique) { c in
             SchedulePermissionPromptUseCaseImpl(repository: c.resolve())
         }
+        // NTF-02 reconcile (Plan 06-04)
+        container.register(ReconcileScheduleNotificationsUseCase.self, scope: .unique) { c in
+            ReconcileScheduleNotificationsUseCaseImpl(
+                repository: c.resolve(),
+                captions: c.resolve()
+            )
+        }
     }
 }

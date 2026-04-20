@@ -23,15 +23,25 @@ import os
 final class SyncScheduleWithSystemUseCaseImpl: SyncScheduleWithSystemUseCase, @unchecked Sendable {
     private let monitoring: ScheduleActivityMonitoringRepository
     private let repository: ScheduleRepository
+    /// Phase 6 §H3 — NTF-02 reconcile dep. Called on BOTH enable and disable
+    /// paths so pending notifications stay in lockstep with DAS state. On
+    /// startMonitoring throw we skip reconcile (pending set reflects the
+    /// prior-snapshot state that `repository.upsert(prior)` rolls back to).
+    private let reconcileNotifications: ReconcileScheduleNotificationsUseCase
 
     private static let log = Logger(
         subsystem: "com.kksw.DeluluDetox",
         category: "SyncScheduleWithSystemUseCase"
     )
 
-    init(monitoring: ScheduleActivityMonitoringRepository, repository: ScheduleRepository) {
+    init(
+        monitoring: ScheduleActivityMonitoringRepository,
+        repository: ScheduleRepository,
+        reconcileNotifications: ReconcileScheduleNotificationsUseCase
+    ) {
         self.monitoring = monitoring
         self.repository = repository
+        self.reconcileNotifications = reconcileNotifications
     }
 
     func callAsFunction(schedule: Schedule) async throws {
@@ -44,6 +54,10 @@ final class SyncScheduleWithSystemUseCaseImpl: SyncScheduleWithSystemUseCase, @u
 
         // Step 2: disabled → we're done.
         guard schedule.enabled else {
+            // Phase 6 §H3 — reconcile on disable too. The UC removes all pending
+            // `schedule.start.{id}.*` so the user doesn't get a banner for a
+            // schedule they just turned off.
+            await reconcileNotifications(schedule: schedule)
             Self.log.info("schedule disabled id=\(schedule.id.uuidString, privacy: .public)")
             return
         }
@@ -51,6 +65,9 @@ final class SyncScheduleWithSystemUseCaseImpl: SyncScheduleWithSystemUseCase, @u
         // Step 3: register new DAS.
         do {
             try await monitoring.startMonitoring(schedule: schedule)
+            // Phase 6 §H3 — reconcile AFTER startMonitoring success so NTF-02
+            // state mirrors DAS state. On throw we skip (see catch).
+            await reconcileNotifications(schedule: schedule)
             Self.log.info("schedule synced id=\(schedule.id.uuidString, privacy: .public) enabled=true")
         } catch {
             Self.log.error(
@@ -60,6 +77,10 @@ final class SyncScheduleWithSystemUseCaseImpl: SyncScheduleWithSystemUseCase, @u
                 try? await repository.upsert(prior)
                 Self.log.info("rolled back schedule.json to prior snapshot id=\(schedule.id.uuidString, privacy: .public)")
             }
+            // On startMonitoring failure we intentionally do NOT reconcile:
+            // pending notifications remain reflecting the prior-snapshot state
+            // (which `repository.upsert(prior)` above rolls back to). No cleanup
+            // is required on throw.
             throw error
         }
     }
