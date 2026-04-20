@@ -29,6 +29,16 @@ struct AppRootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.35), value: model.destination)
+        .onOpenURL { url in
+            // SHL-04: deliver shield-originated URLs to HomeViewModel.
+            // CONTEXT §D-09: AppRootView holds homeModel as @State — calling
+            // handleDeepLink directly is acceptable View-level wiring per
+            // navigation GUIDE.md (no need for a Repository/PassthroughSubject
+            // bridge — this is a UI affordance, not a domain concern).
+            Task { @MainActor in
+                await homeModel.handleDeepLink(url)
+            }
+        }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 model.refreshStatus()
