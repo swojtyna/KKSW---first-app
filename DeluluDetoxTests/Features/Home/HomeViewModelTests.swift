@@ -260,21 +260,66 @@ final class HomeViewModelTests: XCTestCase {
         XCTAssertNil(vm.destination)
     }
 
-    // MARK: - SHL-04 deep link routing (Plan 04 implements; Plan 01 scaffolds)
+    // MARK: - SHL-04 deep link routing
 
     func testHandleDeepLink_sessionActiveURL_routesToCountdown() async throws {
-        try XCTSkipIf(true, "Plan 04 will add HomeViewModel.handleDeepLink(_:). Expected: handleDeepLink(URL(string: \"deluludetox://session/active\")!) with active session present sets destination to .countdown.")
+        let vm = HomeViewModel()
+        await yield()
+
+        let session = makeSession()
+        mockObserveActive.subject.send(session)
+        // Wait for handleActive observer to install initial countdown destination.
+        await yield()
+
+        await vm.handleDeepLink(URL(string: "deluludetox://session/active")!)
+        await yield()
+
+        guard case .countdown(let cvm) = vm.destination else {
+            return XCTFail("Expected .countdown, got \(String(describing: vm.destination))")
+        }
+        XCTAssertEqual(cvm.session.id, session.id)
     }
 
     func testHandleDeepLink_sessionActiveURL_noActiveSession_clearsDestination() async throws {
-        try XCTSkipIf(true, "Plan 04 will add HomeViewModel.handleDeepLink(_:). Expected: handleDeepLink with no active session sets destination to nil (silent route per D-10).")
+        let vm = HomeViewModel()
+        await yield()
+        mockObserveActive.subject.send(nil)
+        await yield()
+
+        // Pre-condition: pollute destination so we can prove handleDeepLink clears it.
+        vm.destination = .errorAlert("preexisting")
+
+        await vm.handleDeepLink(URL(string: "deluludetox://session/active")!)
+        await yield()
+
+        XCTAssertNil(vm.destination, "handleDeepLink with no active session must clear destination (D-10 silent home).")
     }
 
     func testHandleDeepLink_rootURL_clearsDestination() async throws {
-        try XCTSkipIf(true, "Plan 04 will add HomeViewModel.handleDeepLink(_:). Expected: handleDeepLink(URL(string: \"deluludetox://\")!) sets destination to nil.")
+        let vm = HomeViewModel()
+        await yield()
+
+        vm.destination = .errorAlert("preexisting")
+
+        await vm.handleDeepLink(URL(string: "deluludetox://")!)
+        await yield()
+
+        XCTAssertNil(vm.destination)
     }
 
     func testHandleDeepLink_unknownScheme_isIgnored() async throws {
-        try XCTSkipIf(true, "Plan 04 will add HomeViewModel.handleDeepLink(_:). Expected: handleDeepLink(URL(string: \"https://example.com\")!) leaves destination unchanged (early-return on scheme guard).")
+        let vm = HomeViewModel()
+        await yield()
+
+        vm.destination = .errorAlert("preserve")
+
+        await vm.handleDeepLink(URL(string: "https://example.com")!)
+        await yield()
+
+        // Destination must be UNCHANGED — early-return guard on scheme.
+        guard case .errorAlert(let msg) = vm.destination else {
+            return XCTFail("Expected destination to remain .errorAlert, got \(String(describing: vm.destination))")
+        }
+        XCTAssertEqual(msg, "preserve")
     }
 }
