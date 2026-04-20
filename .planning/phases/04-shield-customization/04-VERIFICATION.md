@@ -1,8 +1,9 @@
 ---
 phase: 04-shield-customization
 verified: 2026-04-20T04:00:00Z
-status: human_needed
-score: 4/4 success-criteria automated-verified
+status: passed
+score: 4/4 success-criteria verified (automated + device UAT)
+human_uat_file: 04-HUMAN-UAT.md (complete — 1/1 passed 2026-04-20)
 re_verification:
   previous_status: partial
   previous_score: 2/4 (SHL-01, SHL-04 pass; SHL-02 deferred; SHL-03 partial)
