@@ -123,8 +123,8 @@ Plans:
 - [x] 04-03-PLAN.md — ShieldActionHandler pure decision + ShieldActionExtension wired with extensionContext.open (SHL-03)
 - [x] 04-04-PLAN.md — HomeViewModel.handleDeepLink + AppRootView.onOpenURL (SHL-04)
 - [x] 04-05-PLAN.md — Human device verification (full SHL-01..SHL-04 walkthrough) — Partial pass: SHL-03 dispatch deferred, SHL-02 unverified
-- [ ] 04-06-PLAN.md — [gap-closure] Local-push-notification fallback for SHL-03 dispatch (ShieldNotificationDispatcher + UNUserNotificationCenterDelegate + auth request at App launch)
-- [ ] 04-07-PLAN.md — [gap-closure] SHL-02 fallback copy contract tests (automated guard replacing deferred device check)
+- [x] 04-06-PLAN.md — [gap-closure] Local-push-notification fallback for SHL-03 dispatch (ShieldNotificationDispatcher + UNUserNotificationCenterDelegate + auth request at App launch)
+- [x] 04-07-PLAN.md — [gap-closure] SHL-02 fallback copy contract tests (automated guard replacing deferred device check)
 **UI hint**: yes
 
 ### Phase 5: Scheduled Blocking
