@@ -24,7 +24,19 @@ protocol ScheduleRepository: Sendable {
     func consumeEventMarkers() async throws -> [ScheduleEventMarker]
 }
 
-protocol ScheduleShieldRepository: Sendable {}
+protocol ScheduleShieldRepository: Sendable {
+    /// Apply shield from blocklist selection to the `deluludetox.schedule`
+    /// named store (D-05). Also sets `requireAutomaticDateAndTime = true`
+    /// (clock-skew bypass defense — RESEARCH §Threat Patterns).
+    ///
+    /// Deliberately does NOT touch `denyAppRemoval` — schedules are user-
+    /// reconfigurable by design (D-11 disable-from-next-window); removing
+    /// the app during an active schedule is an acceptable eject.
+    func applyShield(for blocklist: Blocklist) async throws
+
+    /// Clear the schedule-named store only. Session store is untouched (D-05).
+    func clearShield() async
+}
 
 protocol ScheduleActivityMonitoringRepository: Sendable {}
 
