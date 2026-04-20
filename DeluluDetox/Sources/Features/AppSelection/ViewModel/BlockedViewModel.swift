@@ -29,10 +29,10 @@ final class BlockedViewModel: @unchecked Sendable {
     /// retain cycles.
     var onChangeSelection: (() -> Void)?
 
-    /// Wired by `HomeView` — taps on the "Szybka sesja" CTA forward up to
-    /// `HomeViewModel.startSessionTapped()` which owns the sessionStart
-    /// destination. Same weak-capture pattern as `onChangeSelection`.
-    var onStartSession: (() -> Void)?
+    /// Wired by `HomeView` — taps on the "Wyczyść listę" CTA forward up to
+    /// `HomeViewModel.clearBlocklistTapped()`, which commits an empty
+    /// FamilyActivitySelection via UpdateBlocklistUseCase.
+    var onClearList: (() -> Void)?
 
     @ObservationIgnored
     @LazyInjected private var observeBlocklist: ObserveBlocklistUseCase
@@ -76,7 +76,7 @@ final class BlockedViewModel: @unchecked Sendable {
         onChangeSelection?()
     }
 
-    func startSessionTapped() {
-        onStartSession?()
+    func clearListTapped() {
+        onClearList?()
     }
 }

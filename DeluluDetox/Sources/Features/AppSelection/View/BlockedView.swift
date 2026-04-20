@@ -19,6 +19,8 @@ import SwiftUI
 struct BlockedView: View {
     @Bindable var model: BlockedViewModel
 
+    @State private var showClearConfirm: Bool = false
+
     var body: some View {
         List {
             if !model.appRecords.isEmpty {
@@ -77,15 +79,27 @@ struct BlockedView: View {
         .navigationBarTitleDisplayMode(.large)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Theme.Spacing.sm) {
-                PrimaryButton(title: "Szybka sesja", systemIcon: "bolt.fill") {
-                    model.startSessionTapped()
-                }
-                SecondaryButton(title: "Zmień wybór", systemIcon: "slider.horizontal.3") {
+                PrimaryButton(title: "Edytuj listę", systemIcon: "plus") {
                     model.changeSelectionTapped()
+                }
+                SecondaryButton(title: "Wyczyść listę", systemIcon: "trash.fill") {
+                    showClearConfirm = true
                 }
             }
             .padding(.horizontal, Theme.Spacing.xxl)
             .padding(.vertical, Theme.Spacing.lg)
+        }
+        .confirmationDialog(
+            "Wyczyścić całą listę?",
+            isPresented: $showClearConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Tak, usuń wszystko", role: .destructive) {
+                model.clearListTapped()
+            }
+            Button("Nie", role: .cancel) { }
+        } message: {
+            Text("Znikną wszystkie zablokowane aplikacje, kategorie i strony.")
         }
     }
 }

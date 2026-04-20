@@ -121,6 +121,20 @@ final class HomeViewModel: @unchecked Sendable {
         }
     }
 
+    /// Triggered by BlockedView "Wyczyść listę" CTA (via
+    /// BlockedViewModel.onClearList). Commits an empty FamilyActivitySelection
+    /// through the same UpdateBlocklistUseCase path as pickerDismissed so the
+    /// write uses a single code path.
+    func clearBlocklistTapped() async {
+        do {
+            try await updateBlocklist(FamilyActivitySelection())
+            logger.info("blocklist cleared")
+        } catch {
+            logger.error("clear failed: \(String(describing: error), privacy: .public)")
+            destination = .errorAlert("Nie udało się wyczyścić listy. Spróbuj ponownie.")
+        }
+    }
+
     // MARK: - Session intents (new)
 
     func startSessionTapped() {

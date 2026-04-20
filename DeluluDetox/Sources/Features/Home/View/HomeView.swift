@@ -87,8 +87,8 @@ struct HomeView: View {
             blockedModel.onChangeSelection = { [weak model] in
                 model?.chooseAppsTapped()
             }
-            blockedModel.onStartSession = { [weak model] in
-                model?.startSessionTapped()
+            blockedModel.onClearList = { [weak model] in
+                Task { await model?.clearBlocklistTapped() }
             }
         }
     }
