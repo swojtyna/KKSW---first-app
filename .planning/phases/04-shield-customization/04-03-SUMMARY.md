@@ -2,7 +2,7 @@
 phase: 04-shield-customization
 plan: 03
 subsystem: shield
-tags: [managed-settings, shield-action, deep-link, url-scheme, objc-runtime, extension-ram]
+tags: [managed-settings, shield-action, deep-link, url-scheme, extension-ram, deferred-dispatch]
 
 # Dependency graph
 requires:
@@ -14,7 +14,7 @@ provides:
   - Pure ShieldActionHandler decision struct (main-app target, source-shared) for SHL-03
   - ShieldActionSessionProbe.hasActiveSession() — 1-byte-read active session presence check
   - Production ShieldActionExtension with 3 overrides delegating to shared handle(action:completionHandler:)
-  - Best-effort URL open via Objective-C runtime selector (NSClassFromString + openURL:) — TODO/warning marker for local-push fallback
+  - Shield → main-app dispatch DEFERRED to follow-up gap-closure plan (private-API runtime workaround reverted post-review — App Store 2.5.1 rejection risk); decided URL logged for telemetry only, completionHandler(.close) always fires
   - 5 SHL-03 unit tests green (previously XCTSkip)
 affects: [04-05 device-verification, future local-push-fallback plan]
 
@@ -23,7 +23,7 @@ tech-stack:
   added: []
   patterns:
     - "Pure-decision struct pattern: extension keeps glue-only; decision logic in XCTest-unit-testable struct source-shared via project.yml"
-    - "Objective-C runtime selector workaround for extension URL open (ShieldActionDelegate has no extensionContext property)"
+    - "Dispatch deferral: decision struct computes target URL but extension only logs it — no dispatch path shipped (ShieldActionDelegate has no extensionContext; private-API workaround rejected as App Store risk)"
     - "Unconditional completionHandler in switch — fire-and-forget URL open outside the switch so the shield process is always released (T-04-03-02 mitigation)"
 
 key-files:
@@ -193,5 +193,26 @@ Zero FamilyControls / SwiftUI / Combine / UIKit imports — RAM discipline prese
 - [x] All acceptance criteria verified via grep / xcodebuild above
 
 ---
+
+## Post-Review Correction (2026-04-20, commit `3060296`)
+
+The original deviation shipped in commit `1e2fb8e` used an Objective-C runtime selector workaround (`NSClassFromString("UIApplication")` → `sharedApplication` → `openURL:` via `perform(_:)`) to bypass the extension `UIApplication.shared` compile-time ban. This is a known App Store rejection pattern (Guideline 2.5.1).
+
+**Correction:** `openURLFromExtension(_:)` helper removed. The call site now logs the decided URL for telemetry only; `completionHandler(.close)` still fires unconditionally. Shield → main-app dispatch is deferred to a follow-up gap-closure plan (local-push-notification fallback — `UNNotificationRequest` delivered from the extension, tap-handler in `HomeViewModel.handleDeepLink`).
+
+**What still works:**
+- Decision logic (`ShieldActionHandler.decide`) fully unit-tested (5 tests).
+- All 3 `ShieldActionDelegate` overrides delegate to the shared handler.
+- `completionHandler` invariant preserved — shield process always released.
+- No private API, no runtime-selector tricks.
+
+**What's deferred to the follow-up plan:**
+- Actual dispatch of the decided URL back to the main app.
+- This will be scheduled post-Plan 04-05 as Phase 04.1 (or a Phase 5 plan).
+
+Test suite remains green: 144 passed / 3 skipped / 0 failed.
+
+---
 *Phase: 04-shield-customization*
 *Completed: 2026-04-20*
+*Post-review correction: 2026-04-20 (commit `3060296`)*
