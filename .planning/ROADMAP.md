@@ -122,7 +122,7 @@ Plans:
 - [x] 04-02-PLAN.md — project.yml URL scheme + source-shares; ShieldConfigurationBuilder + ActiveSessionEnvelope; ShieldConfigurationExtension wired (SHL-01, SHL-02)
 - [x] 04-03-PLAN.md — ShieldActionHandler pure decision + ShieldActionExtension wired with extensionContext.open (SHL-03)
 - [x] 04-04-PLAN.md — HomeViewModel.handleDeepLink + AppRootView.onOpenURL (SHL-04)
-- [ ] 04-05-PLAN.md — Human device verification (full SHL-01..SHL-04 walkthrough)
+- [x] 04-05-PLAN.md — Human device verification (full SHL-01..SHL-04 walkthrough)
 **UI hint**: yes
 
 ### Phase 5: Scheduled Blocking
