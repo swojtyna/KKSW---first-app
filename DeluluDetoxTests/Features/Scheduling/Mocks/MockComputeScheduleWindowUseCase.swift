@@ -1,23 +1,27 @@
 import Foundation
 @testable import DeluluDetox
 
-/// Mock for Plan 05-04. `ComputeScheduleWindowUseCase` protocol body is
-/// empty today; this mock exposes a stubbable return value + call counter
-/// that Plan 05-04 tests (SelfHeal / Sync) will drive.
+/// Plan 05-04 — production-aligned mock. `ComputeScheduleWindowUseCase` is a
+/// pure function; the mock exposes a stubbable `ScheduleWindow` plus call
+/// counters so `SelfHealSchedulesUseCaseTests` can drive the
+/// "shouldBeActive" branch without constructing real time math.
 final class MockComputeScheduleWindowUseCase: ComputeScheduleWindowUseCase, @unchecked Sendable {
-    /// Plan 05-04 introduces the actual ScheduleWindowState enum — the mock
-    /// stores the stubbed result as `Any?` until then so Plan 05-04 tests
-    /// can cast / replace without recompiling this file for the existing
-    /// skip-stub Plan 05-01 baseline.
-    var stubbedResult: Any?
+    var stubbedResult: ScheduleWindow = ScheduleWindow(state: .inactive, currentWeekday: 0)
+    /// Per-scheduleId override so tests can configure different outcomes
+    /// across multiple schedules in a single invocation.
+    var stubbedResultsByScheduleId: [UUID: ScheduleWindow] = [:]
+
     private(set) var callCount = 0
     private(set) var lastInputSchedule: Schedule?
     private(set) var lastInputNow: Date?
 
-    func compute(schedule: Schedule, now: Date) -> Any? {
+    func callAsFunction(schedule: Schedule, now: Date, calendar: Calendar) -> ScheduleWindow {
         callCount += 1
         lastInputSchedule = schedule
         lastInputNow = now
+        if let specific = stubbedResultsByScheduleId[schedule.id] {
+            return specific
+        }
         return stubbedResult
     }
 }

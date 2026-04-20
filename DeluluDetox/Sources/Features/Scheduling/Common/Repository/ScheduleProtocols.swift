@@ -59,21 +59,57 @@ enum ScheduleActivityMonitoringError: Error {
     case startFailed(Error)
 }
 
-protocol ObserveScheduleUseCase: Sendable {}
+protocol ObserveScheduleUseCase: Sendable {
+    func callAsFunction() -> AnyPublisher<[Schedule], Never>
+}
 
 protocol CreateOrUpdateScheduleUseCase: Sendable {
     func callAsFunction(_ schedule: Schedule) async throws
 }
 
-protocol ToggleScheduleUseCase: Sendable {}
+protocol ToggleScheduleUseCase: Sendable {
+    func callAsFunction(scheduleId: UUID, enabled: Bool) async throws
+}
 
 protocol SyncScheduleWithSystemUseCase: Sendable {
     func callAsFunction(schedule: Schedule) async throws
 }
 
-protocol SelfHealSchedulesUseCase: Sendable {}
+protocol SelfHealSchedulesUseCase: Sendable {
+    /// Reconciles persisted schedules with the current shield state on app
+    /// foreground (CONTEXT §D-18). Returns the number of shield operations
+    /// (apply/clear) actually performed — zero when every schedule's
+    /// computed window matches its last-applied flag.
+    @discardableResult
+    func callAsFunction(now: Date) async throws -> Int
+}
 
-protocol ComputeScheduleWindowUseCase: Sendable {}
+protocol ComputeScheduleWindowUseCase: Sendable {
+    func callAsFunction(schedule: Schedule, now: Date, calendar: Calendar) -> ScheduleWindow
+}
+
+/// Pure value emitted by `ComputeScheduleWindowUseCase`. Encodes "is this
+/// schedule supposed to be blocking right now, and if so until when?" so
+/// `SelfHealSchedulesUseCase` can decide apply/clear without re-deriving
+/// time math.
+struct ScheduleWindow: Equatable, Sendable {
+    enum State: Equatable, Sendable {
+        case active(endsAt: Date)
+        case upcomingToday(startsAt: Date)
+        case notToday(nextDate: Date?)
+        case inactive
+    }
+
+    let state: State
+    let currentWeekday: Int // 1..7 (Calendar.weekday). 0 when schedule disabled.
+}
+
+/// Errors raised by the coordination UseCases (`ToggleScheduleUseCase`,
+/// `SelfHealSchedulesUseCase`) when pre-conditions fail.
+enum ScheduleUseCaseError: Error {
+    case scheduleNotFound
+    case blocklistMissing
+}
 
 protocol ConsumeScheduleEventMarkerUseCase: Sendable {
     /// Count of markers consumed (appended to events.json + deleted).
