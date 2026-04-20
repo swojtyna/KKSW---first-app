@@ -149,7 +149,7 @@ targets:
       - path: DeluluDetox/Sources/Features/Session/Repository/Models/SessionPaths.swift
       - path: DeluluDetox/Sources/Features/Shield/Builder/ActiveSessionEnvelope.swift
       - path: DeluluDetox/Sources/Features/Shield/ActionHandler/ShieldActionHandler.swift
-      - path: DeluluDetox/Sources/Features/Shield/Notification/ShieldNotificationDispatcher.swift
+      - path: DeluluDetox/Sources/Features/Shield/Repository/ShieldNotificationRepository.swift
     settings:
       groups: [shared-ios]
       base:

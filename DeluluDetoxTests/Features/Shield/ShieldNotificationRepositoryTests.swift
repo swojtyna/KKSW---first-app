@@ -2,7 +2,7 @@ import XCTest
 import UserNotifications
 @testable import DeluluDetox
 
-/// SHL-03 — pure request-builder unit tests for `ShieldNotificationDispatcher`.
+/// SHL-03 — pure request-builder unit tests for `LiveShieldNotificationRepository`.
 ///
 /// Scope: ONLY the synchronous `makeRequest(url:)` path that builds a
 /// `UNNotificationRequest` with the `userInfo["url"]` string + identifier
@@ -10,13 +10,13 @@ import UserNotifications
 /// unit-tested here because it just forwards to
 /// `UNUserNotificationCenter.current().add(...)` — the contract under test
 /// is "the request iOS sees is correct", not "our wrapper calls add".
-final class ShieldNotificationDispatcherTests: XCTestCase {
+final class ShieldNotificationRepositoryTests: XCTestCase {
 
-    private let sut = ShieldNotificationDispatcher()
+    private let sut = LiveShieldNotificationRepository()
 
     // MARK: - userInfo payload
 
-    func testDispatcher_buildRequest_sessionActiveURL_hasCorrectUserInfo() {
+    func testRepository_buildRequest_sessionActiveURL_hasCorrectUserInfo() {
         let url = URL(string: "deluludetox://session/active")!
         let request = sut.makeRequest(url: url)
 
@@ -45,7 +45,7 @@ final class ShieldNotificationDispatcherTests: XCTestCase {
         )
     }
 
-    func testDispatcher_buildRequest_rootURL_hasCorrectUserInfo() {
+    func testRepository_buildRequest_rootURL_hasCorrectUserInfo() {
         let url = URL(string: "deluludetox://")!
         let request = sut.makeRequest(url: url)
 
@@ -62,7 +62,7 @@ final class ShieldNotificationDispatcherTests: XCTestCase {
 
     // MARK: - Identifier uniqueness
 
-    func testDispatcher_identifier_isUniquePerCall() {
+    func testRepository_identifier_isUniquePerCall() {
         let url = URL(string: "deluludetox://session/active")!
         let a = sut.makeRequest(url: url)
         let b = sut.makeRequest(url: url)
@@ -72,5 +72,12 @@ final class ShieldNotificationDispatcherTests: XCTestCase {
             b.identifier,
             "Unique UUID suffix prevents iOS from coalescing rapid shield re-taps into a single notification (T-04-06-04)."
         )
+    }
+
+    // MARK: - Constants contract
+
+    func testConstants_matchSharedContract() {
+        XCTAssertEqual(ShieldNotificationConstants.identifierPrefix, "com.kksw.DeluluDetox.shield-deeplink.")
+        XCTAssertEqual(ShieldNotificationConstants.userInfoURLKey, "url")
     }
 }

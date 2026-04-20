@@ -69,7 +69,7 @@ final class ShieldActionExtension: ShieldActionDelegate {
         // await it — completionHandler(.close) fires unconditionally below so
         // the shield process is always released (T-04-03-02 mitigation retained).
         if let url = decision.urlToOpen {
-            ShieldNotificationDispatcher().dispatch(url: url, log: Self.log)
+            LiveShieldNotificationRepository().dispatch(url: url, log: Self.log)
         }
 
         // Always respond — even if open(_:) fails, completionHandler must fire

@@ -333,16 +333,16 @@ final class HomeViewModelTests: XCTestCase {
     // renames `userInfoURLKey` or `identifierPrefix` without updating the other
     // side, this test catches it in CI before the device surfaces a silent failure.
 
-    func testShieldNotificationDispatcher_userInfoURLKeyContract() {
+    func testShieldNotificationConstants_userInfoURLKeyContract() {
         XCTAssertEqual(
-            ShieldNotificationDispatcher.userInfoURLKey,
+            ShieldNotificationConstants.userInfoURLKey,
             "url",
-            "Delegate reads userInfo[\"url\"] — dispatcher must write to the same key."
+            "Delegate reads userInfo[\"url\"] — repository must write to the same key."
         )
         XCTAssertEqual(
-            ShieldNotificationDispatcher.identifierPrefix,
+            ShieldNotificationConstants.identifierPrefix,
             "com.kksw.DeluluDetox.shield-deeplink.",
-            "Delegate filters identifier by this prefix — dispatcher must produce identifiers with this exact prefix."
+            "Delegate filters identifier by this prefix — repository must produce identifiers with this exact prefix."
         )
     }
 }

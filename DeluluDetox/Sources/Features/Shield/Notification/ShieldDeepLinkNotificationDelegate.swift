@@ -9,7 +9,7 @@ import os
 /// to reach `homeModel.handleDeepLink`.
 ///
 /// Safety: only acts on notifications whose identifier starts with
-/// `ShieldNotificationDispatcher.identifierPrefix` — other notification sources
+/// `ShieldNotificationConstants.identifierPrefix` — other notification sources
 /// (future: Phase 6 NTF-01/NTF-02) are ignored here, letting the system pass
 /// them through to the default handler.
 @MainActor
@@ -35,7 +35,7 @@ final class ShieldDeepLinkNotificationDelegate: NSObject, UNUserNotificationCent
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        guard notification.request.identifier.hasPrefix(ShieldNotificationDispatcher.identifierPrefix) else {
+        guard notification.request.identifier.hasPrefix(ShieldNotificationConstants.identifierPrefix) else {
             completionHandler([])
             return
         }
@@ -60,10 +60,10 @@ final class ShieldDeepLinkNotificationDelegate: NSObject, UNUserNotificationCent
         // calling it here keeps the handler non-escaping from our perspective.
         defer { completionHandler() }
 
-        guard identifier.hasPrefix(ShieldNotificationDispatcher.identifierPrefix) else {
+        guard identifier.hasPrefix(ShieldNotificationConstants.identifierPrefix) else {
             return
         }
-        guard let urlString = userInfo[ShieldNotificationDispatcher.userInfoURLKey] as? String,
+        guard let urlString = userInfo[ShieldNotificationConstants.userInfoURLKey] as? String,
               let url = URL(string: urlString),
               url.scheme == "deluludetox" else {
             Task { @MainActor [log] in
