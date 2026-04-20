@@ -97,6 +97,12 @@ targets:
       - path: DeluluDetox/Sources/Features/Session/Repository/Models/SessionPaths.swift
       - path: DeluluDetox/Sources/Features/Session/Repository/Models/SessionFinalizeMarker.swift
       - path: DeluluDetox/Sources/Features/Session/Repository/Models/SessionActivityNames.swift
+      - path: DeluluDetox/Sources/Features/Scheduling/Common/Repository/Models/Schedule.swift
+      - path: DeluluDetox/Sources/Features/Scheduling/Common/Repository/Models/ScheduleSegment.swift
+      - path: DeluluDetox/Sources/Features/Scheduling/Common/Repository/Models/ScheduleActivityNames.swift
+      - path: DeluluDetox/Sources/Features/Scheduling/Common/Repository/Models/SchedulePaths.swift
+      - path: DeluluDetox/Sources/Features/Scheduling/Common/Repository/Models/ScheduleEventMarker.swift
+      - path: DeluluDetox/Sources/Features/Scheduling/Common/Repository/Models/ManagedSettingsStoreNames.swift
     settings:
       groups: [shared-ios]
       base:
