@@ -940,8 +940,8 @@ The UCaseImpl should also expose a helper `static func lastAppliedKey(scheduleId
   <acceptance_criteria>
     - `grep -c "consumeScheduleMarker" DeluluDetox/Sources/Features/Root/ViewModel/AppRootViewModel.swift` >= 2 (property + eager capture + await call — typically 3)
     - `grep -c "selfHealSchedules" DeluluDetox/Sources/Features/Root/ViewModel/AppRootViewModel.swift` >= 2
-    - `grep -c "com.kksw.DeluluDetox.scheduleStarted" DeluluDetox/Sources/Features/Root/ViewModel/AppRootViewModel.swift` == 1
-    - `grep -c "com.kksw.DeluluDetox.scheduleEnded" DeluluDetox/Sources/Features/Root/ViewModel/AppRootViewModel.swift` == 1
+    - `grep -c "com.kksw.DeluluDetox.scheduleStarted" DeluluDetox/Sources/Features/Root/ViewModel/AppRootViewModel.swift` >= 1
+    - `grep -c "com.kksw.DeluluDetox.scheduleEnded" DeluluDetox/Sources/Features/Root/ViewModel/AppRootViewModel.swift` >= 1
     - The consumeScheduleMarker await appears BEFORE selfHealSchedules await in the Task body: `awk '/try await consumeScheduleMarker/{c=NR} /try await selfHealSchedules/{s=NR} END{exit !(c>0 && s>0 && c<s)}' DeluluDetox/Sources/Features/Root/ViewModel/AppRootViewModel.swift` exits 0
     - `grep -c "testRefreshStatusCallsAllSevenUseCases\|testRefreshStatusCallsScheduleUCsAfterSessionUCs" DeluluDetoxTests/Features/Root/AppRootViewModelTests.swift` >= 1
     - `grep -c "testScheduleDarwinNotificationTriggersRefresh" DeluluDetoxTests/Features/Root/AppRootViewModelTests.swift` == 1
@@ -999,3 +999,14 @@ The UCaseImpl should also expose a helper `static func lastAppliedKey(scheduleId
 <output>
 After completion, create `.planning/phases/05-scheduled-blocking/05-04-SUMMARY.md`. List the 10 DI registrations, confirm AppRoot insertion order (session before schedule), and any resolution-race issues encountered.
 </output>
+
+<risks>
+## Planning Log — Borderline Scope (2026-04-20, planning iteration 1)
+
+Checker flagged this plan as borderline scope (4 tasks vs the 2-3 task guideline). Deferred W5 per revision instructions:
+
+- **Accepted as known scope** — 4 tasks remain: ComputeScheduleWindowUseCase, Sync/Toggle/Observe UCs, SelfHealSchedulesUseCase + SchedulingInjection, AppRootViewModel wiring.
+- **Rationale for not splitting:** the TDD rhythm is consistent across tasks (RED→GREEN→REFACTOR per UC), each task produces a testable UC chunk, and splitting would introduce cross-plan coupling (Sync UC lives in Task 2 but is consumed by SelfHeal in Task 3 and AppRoot in Task 4 — they must land atomically to keep the suite green).
+- **Risk accepted:** context budget may trend higher than the ~50% target. Executor should `/clear` between Task 2 and Task 3 if context telemetry reports > 50%.
+- **Escalation trigger:** if executor context exceeds 70% mid-plan, halt and surface to planner for a split into 05-04a (Compute + Sync + Toggle + Observe) and 05-04b (SelfHeal + DI + AppRoot wiring).
+</risks>

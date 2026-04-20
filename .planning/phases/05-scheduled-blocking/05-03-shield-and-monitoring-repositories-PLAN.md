@@ -22,7 +22,7 @@ must_haves:
     - "ScheduleActivityMonitoringRepository.startMonitoring registers 1 DAS for single-day schedules and 2 DAS (evening+morning) for cross-midnight schedules (D-03, D-13)"
     - "ScheduleActivityMonitoringRepository.stopMonitoring(scheduleId:) removes BOTH .main AND .evening AND .morning segment activities so no stale DAS persists across schedule edits (pitfall from D-14 point 1)"
     - "Schedule.buildDeviceActivitySchedules() is an extension helper producing `[(name: DeviceActivityName, schedule: DeviceActivitySchedule)]` covering single-day + cross-midnight split per RESEARCH Example 1"
-    - "Shield parity (SCH-04) delivered by zero-code — ShieldConfigurationExtension from Phase 4 reads the same branded shield regardless of which named store posts tokens"
+    - "Shield displayed during an active schedule window is visually identical to the Phase 4 quick-session shield (same branding, same fallback design, same icon) — user-observable parity per SCH-04."
   artifacts:
     - path: "DeluluDetox/Sources/Features/Scheduling/Common/Repository/ScheduleShieldRepository.swift"
       provides: "ScheduleShieldRepository protocol + LiveScheduleShieldRepository wrapping a ManagedSettingsStoreWriter (reuse Phase 4 seam) constructed with ManagedSettingsStoreNames.schedule"
