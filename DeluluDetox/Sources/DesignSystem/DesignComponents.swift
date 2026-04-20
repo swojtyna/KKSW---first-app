@@ -10,15 +10,11 @@ struct GlassIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .overlay(Circle().stroke(Color.separator, lineWidth: 0.5))
-                Image(systemName: systemName)
-                    .font(.system(size: iconSize, weight: .semibold))
-                    .foregroundStyle(Color.textSecondary)
-            }
-            .frame(width: size, height: size)
+            Image(systemName: systemName)
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundStyle(Color.textSecondary)
+                .frame(width: size, height: size)
+                .glassEffect(.regular.interactive(), in: Circle())
         }
         .buttonStyle(.plain)
     }
@@ -254,10 +250,7 @@ struct DesignTabBar: View {
         }
         .padding(.horizontal, Theme.Spacing.md)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
-            Capsule().stroke(Color.separator, lineWidth: 0.5)
-        )
+        .glassEffect(.regular, in: Capsule())
         .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
     }
 }
