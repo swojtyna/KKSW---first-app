@@ -139,6 +139,62 @@ final class HomeViewModel: @unchecked Sendable {
         logger.info("gotoCountdown bridge fired id=\(record.id.uuidString, privacy: .public)")
     }
 
+    // MARK: - SHL-04 deep-link routing
+
+    /// Handle an incoming `deluludetox://` URL delivered by SwiftUI's
+    /// `.onOpenURL` modifier on `AppRootView`. Per CONTEXT §D-09 / §D-10:
+    ///   - `deluludetox://session/active` + active session present → countdown.
+    ///   - `deluludetox://session/active` + no active session → silent home (destination = nil).
+    ///   - `deluludetox://` (root / fallback shield) → destination = nil.
+    ///   - Any other scheme → no-op (defensive guard).
+    ///
+    /// The "session just completed, success not yet shown" branch in D-10 is
+    /// handled automatically by the existing `handleHistory()` observer
+    /// (Plan 03-06 deliverable) — handleDeepLink only needs to clear destination
+    /// in the "no active session" branch and let the observer pick up.
+    func handleDeepLink(_ url: URL) async {
+        guard url.scheme == "deluludetox" else {
+            logger.info("deeplink ignored scheme=\(url.scheme ?? "nil", privacy: .public)")
+            return
+        }
+
+        // Root URL (or any non-session host) → clear destination.
+        guard url.host == "session", url.path == "/active" else {
+            logger.info("deeplink root path=\(url.path, privacy: .public)")
+            destination = nil
+            return
+        }
+
+        // session/active path — check current active session.
+        let active = await currentActiveSession()
+        if let active {
+            logger.info("deeplink → countdown id=\(active.id.uuidString, privacy: .public)")
+            // Reuse handleActive() routing logic to avoid double-instantiating
+            // CountdownViewModel when one already exists for this id.
+            handleActive(active)
+        } else {
+            logger.info("deeplink session/active but no active session — silent home")
+            destination = nil
+        }
+    }
+
+    /// Synchronous-style read of the current active session value via
+    /// `withCheckedContinuation` over `observeActive().first()`. Mirrors the
+    /// pattern in `FinalizeSessionFromMarkerUseCase.currentActive()`
+    /// (Phase 3 Plan 03-03 deliverable). Used by `handleDeepLink` to decide
+    /// routing without subscribing twice to the publisher.
+    private func currentActiveSession() async -> SessionRecord? {
+        await withCheckedContinuation { continuation in
+            var cancellable: AnyCancellable?
+            cancellable = observeActive()
+                .first()
+                .sink { value in
+                    continuation.resume(returning: value)
+                    cancellable?.cancel()
+                }
+        }
+    }
+
     // MARK: - Active session routing
 
     private func handleActive(_ active: SessionRecord?) {
