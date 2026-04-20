@@ -68,13 +68,15 @@ struct HomeView: View {
         Group {
             switch selectedTab {
             case 1:
-                BlockedView(model: blockedModel)
+                listaContent
             case 2:
                 ScheduleListView(model: scheduleListModel)
             case 3:
                 StatsView()
             default:
-                dzisiajContent
+                HomeDashboardView {
+                    model.startSessionTapped()
+                }
             }
         }
         .background(Color.surfaceGrouped)
@@ -91,11 +93,11 @@ struct HomeView: View {
         }
     }
 
-    /// "Dzisiaj" tab content — Phase 6 will replace this with a streak
-    /// dashboard. For now mirrors the prior Home body: empty hero when the
-    /// blocklist has no records, else the list itself.
+    /// "Lista" tab content — empty hero when the blocklist has no records,
+    /// else the full BlockedView. This was the Dzisiaj body until Phase 6's
+    /// dashboard landed on tab 0.
     @ViewBuilder
-    private var dzisiajContent: some View {
+    private var listaContent: some View {
         if model.snapshot.records.isEmpty {
             emptyHero
                 .navigationTitle("DeluluDetox")
