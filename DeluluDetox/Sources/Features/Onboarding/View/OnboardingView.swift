@@ -102,9 +102,10 @@ struct OnboardingView: View {
                 )
                 .shadow(color: Color.brandViolet.opacity(0.4), radius: 40, x: 0, y: 20)
 
-            Image(systemName: "hand.raised.fill")
-                .font(.system(size: 66, weight: .semibold))
-                .foregroundStyle(.white)
+            Image("logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 100, height: 100)
         }
         .frame(width: 120, height: 120)
     }
