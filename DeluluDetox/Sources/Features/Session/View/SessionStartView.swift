@@ -139,19 +139,24 @@ struct SessionStartView: View {
                 .foregroundStyle(Color.textSecondary)
 
             VStack(spacing: 0) {
-                HStack {
-                    Image(systemName: model.selectedPresetMinutes == nil ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(Color.brandViolet)
-                    Text("Ustaw samodzielnie")
-                        .foregroundStyle(Color.textPrimary)
-                    Spacer()
-                    Text(customDurationLabel)
-                        .foregroundStyle(Color.textSecondary)
-                        .monospacedDigit()
+                Button {
+                    model.switchToCustom()
+                } label: {
+                    HStack {
+                        Image(systemName: model.selectedPresetMinutes == nil ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(Color.brandViolet)
+                        Text("Ustaw samodzielnie")
+                            .foregroundStyle(Color.textPrimary)
+                        Spacer()
+                        Text(customDurationLabel)
+                            .foregroundStyle(Color.textSecondary)
+                            .monospacedDigit()
+                    }
+                    .contentShape(Rectangle())
+                    .padding(Theme.Spacing.lg)
                 }
-                .contentShape(Rectangle())
-                .onTapGesture { model.switchToCustom() }
-                .padding(Theme.Spacing.lg)
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(model.selectedPresetMinutes == nil ? [.isSelected] : [])
 
                 if model.selectedPresetMinutes == nil {
                     Divider()
