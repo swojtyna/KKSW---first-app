@@ -97,9 +97,16 @@ final class ScheduleEditorViewModel: @unchecked Sendable {
         }
 
         // Resolve the implicit single blocklist id from Phase 2 on init.
-        // MockObserveBlocklistUseCase + ObserveBlocklistUseCaseImpl both emit a
-        // CurrentValueSubject, so the seed arrives synchronously on subscribe.
+        // `.receive(on: .main)` is REQUIRED: BlocklistRepository emits from
+        // whatever thread invoked `send(...)` — when AppRootViewModel.refreshStatus
+        // triggers `reconcileBlocklist()` in its non-isolated Task, the subject
+        // sends on the cooperative thread pool. Without this hop, the sink
+        // closure would mutate a `@MainActor` property off-main, tripping
+        // Swift 6's `swift_task_isCurrentExecutorWithFlagsImpl` assertion
+        // (observed on device: `dispatch_assert_queue_fail` after a Darwin
+        // scheduleStarted cascade while the Editor was still alive post-save).
         observeBlocklist()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] blocklist in
                 guard let self else { return }
                 if self.blocklistId == nil {

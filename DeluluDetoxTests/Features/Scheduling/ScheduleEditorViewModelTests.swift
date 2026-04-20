@@ -113,8 +113,11 @@ final class ScheduleEditorViewModelTests: XCTestCase {
 
     // MARK: - Save success
 
-    func testSaveTappedCallsCreateOrUpdateUseCase() async {
+    func testSaveTappedCallsCreateOrUpdateUseCase() async throws {
         let vm = ScheduleEditorViewModel()
+        // `.receive(on: .main)` defers the CurrentValueSubject seed onto the
+        // next runloop tick; sleep so the sink lands before we exercise save.
+        try await Task.sleep(nanoseconds: 20_000_000) // 20 ms
         vm.daysOfWeek = [2, 3, 4, 5, 6]
         vm.startHour = 9
         vm.startMinute = 0
@@ -136,10 +139,12 @@ final class ScheduleEditorViewModelTests: XCTestCase {
 
     // MARK: - Save failure
 
-    func testSaveTappedFailureSetsErrorAlertDestination() async {
+    func testSaveTappedFailureSetsErrorAlertDestination() async throws {
         mockCreateOrUpdate.createOrUpdateError = TestError()
 
         let vm = ScheduleEditorViewModel()
+        // Let the `.receive(on: .main)` seed land before invoking save.
+        try await Task.sleep(nanoseconds: 20_000_000) // 20 ms
         vm.daysOfWeek = [1]
 
         let didSave = await vm.saveTapped()
