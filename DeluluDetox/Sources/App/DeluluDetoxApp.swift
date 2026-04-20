@@ -4,11 +4,14 @@ import UserNotifications
 @main
 struct DeluluDetoxApp: App {
     @State private var rootModel: AppRootViewModel
-    private let notificationDelegate: ShieldDeepLinkNotificationDelegate
+    private let notificationDelegate: AppNotificationDelegate
 
     init() {
         let container = DIContainer.shared
-        // Kolejność: feature-ownerzy najpierw.
+        // Notifications first — shared facade consumed by Session / Scheduling
+        // / Stats via @LazyInjected / init-injected UCs.
+        NotificationsInjection.register(in: container)
+        // Feature-ownerzy w kolejności DI dep chains.
         // Onboarding owns ScreenTimeAuth* (D-17, Phase 01.1).
         // AppSelection owns Blocklist + TokenRecord (Phase 02).
         // Session owns SessionRecord + SessionEnforcer + Session UCs (Phase 03).
@@ -21,27 +24,22 @@ struct DeluluDetoxApp: App {
         HomeInjection.register(in: container)
         RootInjection.register(in: container)
 
-        // SHL-03 fallback: notification delegate (main thread at app launch).
-        // Capture rootModel weakly via a holder so the delegate does NOT retain
-        // the VM; rootModel owns the publisher the View subscribes to.
+        // Phase 6: composite notification delegate replaces the Phase 4
+        // shield-only deep-link delegate. Dispatches by identifier prefix:
+        //   shield-deeplink.* → SHL-03 deep-link (handler below, byte-identical
+        //                        to the Phase 4 closure)
+        //   session.end.*    → NTF-01 (silent in foreground)
+        //   schedule.start.* → NTF-02 (banner + sound)
+        //
+        // CONTEXT §D-13: the launch-time permission prompt has been REMOVED.
+        // The lazy permission prompt now fires from SchedulePermissionPromptUseCase
+        // on the first `.completed` session (Plan 03 wires the hook).
         let model = AppRootViewModel()
         self._rootModel = State(wrappedValue: model)
-        self.notificationDelegate = ShieldDeepLinkNotificationDelegate { [weak model] url in
+        self.notificationDelegate = AppNotificationDelegate { [weak model] url in
             await MainActor.run { model?.ingestShieldDeepLink(url) }
         }
         UNUserNotificationCenter.current().delegate = self.notificationDelegate
-
-        // Lazy authorization — only prompt on .notDetermined. Denial is
-        // acceptable: the shield still logs the decided URL (telemetry) and
-        // the primary button still dismisses cleanly. A denied user simply
-        // loses the banner affordance; we never re-prompt silently.
-        Task.detached {
-            let center = UNUserNotificationCenter.current()
-            let settings = await center.notificationSettings()
-            if settings.authorizationStatus == .notDetermined {
-                _ = try? await center.requestAuthorization(options: [.alert, .badge])
-            }
-        }
     }
 
     var body: some Scene {
