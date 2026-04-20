@@ -259,4 +259,22 @@ final class HomeViewModelTests: XCTestCase {
 
         XCTAssertNil(vm.destination)
     }
+
+    // MARK: - SHL-04 deep link routing (Plan 04 implements; Plan 01 scaffolds)
+
+    func testHandleDeepLink_sessionActiveURL_routesToCountdown() async throws {
+        try XCTSkipIf(true, "Plan 04 will add HomeViewModel.handleDeepLink(_:). Expected: handleDeepLink(URL(string: \"deluludetox://session/active\")!) with active session present sets destination to .countdown.")
+    }
+
+    func testHandleDeepLink_sessionActiveURL_noActiveSession_clearsDestination() async throws {
+        try XCTSkipIf(true, "Plan 04 will add HomeViewModel.handleDeepLink(_:). Expected: handleDeepLink with no active session sets destination to nil (silent route per D-10).")
+    }
+
+    func testHandleDeepLink_rootURL_clearsDestination() async throws {
+        try XCTSkipIf(true, "Plan 04 will add HomeViewModel.handleDeepLink(_:). Expected: handleDeepLink(URL(string: \"deluludetox://\")!) sets destination to nil.")
+    }
+
+    func testHandleDeepLink_unknownScheme_isIgnored() async throws {
+        try XCTSkipIf(true, "Plan 04 will add HomeViewModel.handleDeepLink(_:). Expected: handleDeepLink(URL(string: \"https://example.com\")!) leaves destination unchanged (early-return on scheme guard).")
+    }
 }
