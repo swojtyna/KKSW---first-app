@@ -16,6 +16,7 @@ struct DeluluDetoxApp: App {
         OnboardingInjection.register(in: container)
         AppSelectionInjection.register(in: container)
         SessionInjection.register(in: container)
+        SchedulingInjection.register(in: container)
         DenialInjection.register(in: container)
         HomeInjection.register(in: container)
         RootInjection.register(in: container)
