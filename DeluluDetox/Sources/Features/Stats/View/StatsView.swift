@@ -140,7 +140,8 @@ struct StatsView: View {
             }
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
-                ForEach(["P", "W", "Ś", "C", "P", "S", "N"], id: \.self) { letter in
+                // Weekday headers — indices (not letters) as IDs since "P" repeats (Pn + Pt).
+                ForEach(Array(["P", "W", "Ś", "C", "P", "S", "N"].enumerated()), id: \.offset) { _, letter in
                     Text(letter)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.textSecondary)
@@ -148,7 +149,8 @@ struct StatsView: View {
                         .padding(.bottom, Theme.Spacing.xs)
                 }
 
-                ForEach(0..<leadingEmptyCells, id: \.self) { _ in
+                // Leading empty cells before day 1. String IDs avoid colliding with the Int day IDs below.
+                ForEach((0..<leadingEmptyCells).map { "empty-\($0)" }, id: \.self) { _ in
                     Color.clear.aspectRatio(1, contentMode: .fit)
                 }
 
