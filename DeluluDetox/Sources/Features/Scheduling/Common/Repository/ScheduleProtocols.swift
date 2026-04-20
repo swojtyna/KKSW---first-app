@@ -38,7 +38,26 @@ protocol ScheduleShieldRepository: Sendable {
     func clearShield() async
 }
 
-protocol ScheduleActivityMonitoringRepository: Sendable {}
+protocol ScheduleActivityMonitoringRepository: Sendable {
+    /// Register 1 (single-day) or 2 (cross-midnight) `DeviceActivitySchedule`s
+    /// for the supplied schedule. Uses `ScheduleActivityNames` + `ScheduleSegment`
+    /// so DAM callbacks can parse back to `(scheduleId, segment)`.
+    /// Throws `ScheduleActivityMonitoringError.startFailed` on DAC failure.
+    func startMonitoring(schedule: Schedule) async throws
+
+    /// Defensively stops ALL three segment variants (.main / .evening / .morning)
+    /// so edits that flip single-day ↔ cross-midnight never leave a stale
+    /// segment consuming the 20-activity budget (pitfall D-14 #1). iOS ignores
+    /// names that were never registered.
+    func stopMonitoring(scheduleId: UUID) async
+}
+
+/// Errors raised by `ScheduleActivityMonitoringRepository.startMonitoring`.
+/// Plan 05-04 `SyncScheduleWithSystemUseCase` unwraps `startFailed` to roll
+/// back the JSON write and surface a sarcastic error toast (D-14).
+enum ScheduleActivityMonitoringError: Error {
+    case startFailed(Error)
+}
 
 protocol ObserveScheduleUseCase: Sendable {}
 
