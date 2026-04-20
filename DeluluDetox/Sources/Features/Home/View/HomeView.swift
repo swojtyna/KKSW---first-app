@@ -6,6 +6,7 @@ struct HomeView: View {
     @Bindable var model: HomeViewModel
     @State private var blockedModel = BlockedViewModel()
     @State private var scheduleListModel = ScheduleListViewModel()
+    @State private var statsTabModel = StatsViewModel()
     @State private var selectedTab: Int = 0
 
     var body: some View {
@@ -75,7 +76,7 @@ struct HomeView: View {
             case 2:
                 ScheduleListView(model: scheduleListModel)
             case 3:
-                StatsView(model: StatsViewModel())
+                StatsView(model: statsTabModel)
             default:
                 HomeDashboardView(
                     statsCard: model.statsCard,
