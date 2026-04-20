@@ -217,40 +217,54 @@ struct DesignTabBar: View {
     let activeIndex: Int
     var onSelect: (Int) -> Void = { _ in }
 
-    private let tabs: [(symbol: String, label: String)] = [
-        ("house.fill", "Dzisiaj"),
-        ("list.bullet", "Lista"),
-        ("calendar", "Plan"),
-        ("chart.bar.fill", "Staty"),
+    @Namespace private var tabAnimation
+
+    private struct Tab: Identifiable {
+        let id: String
+        let symbol: String
+        let label: String
+    }
+
+    private let tabs: [Tab] = [
+        Tab(id: "dzisiaj", symbol: "house.fill", label: "Dzisiaj"),
+        Tab(id: "lista", symbol: "list.bullet", label: "Lista"),
+        Tab(id: "plan", symbol: "calendar", label: "Plan"),
+        Tab(id: "staty", symbol: "chart.bar.fill", label: "Staty"),
     ]
 
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(Array(tabs.enumerated()), id: \.offset) { index, tab in
-                let isActive = index == activeIndex
-                Button {
-                    onSelect(index)
-                } label: {
-                    VStack(spacing: 2) {
-                        Image(systemName: tab.symbol)
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(isActive ? .white : Color.textSecondary)
-                        Text(tab.label)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(isActive ? .white : Color.textSecondary)
+        GlassEffectContainer(spacing: 4) {
+            HStack(spacing: 4) {
+                ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
+                    let isActive = index == activeIndex
+                    Button {
+                        onSelect(index)
+                    } label: {
+                        VStack(spacing: 2) {
+                            Image(systemName: tab.symbol)
+                                .font(.system(size: 22, weight: .semibold))
+                            Text(tab.label)
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .foregroundStyle(isActive ? .white : Color.textSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule().fill(isActive ? Color.brandViolet : .clear)
+                    .buttonStyle(.plain)
+                    .glassEffect(
+                        isActive
+                            ? .regular.tint(Color.brandViolet).interactive()
+                            : .regular.interactive(),
+                        in: .capsule
                     )
+                    .glassEffectID(isActive ? "selected-tab" : "tab-\(tab.id)", in: tabAnimation)
+                    .accessibilityLabel(tab.label)
+                    .accessibilityAddTraits(isActive ? [.isSelected] : [])
                 }
-                .buttonStyle(.plain)
             }
+            .padding(4)
         }
-        .padding(.horizontal, Theme.Spacing.md)
-        .padding(.vertical, 10)
-        .glassEffect(.regular, in: Capsule())
+        .animation(.smooth(duration: 0.35), value: activeIndex)
         .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
     }
 }
