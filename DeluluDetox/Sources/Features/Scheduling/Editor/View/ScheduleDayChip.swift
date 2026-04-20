@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Single day-of-week toggle chip for the Schedule Editor (D-09).
-/// Filled = selected (electric violet), outlined = deselected.
+/// Circular badge — filled brandViolet when selected, neutral fill otherwise.
 struct ScheduleDayChip: View {
     let label: String
     let isSelected: Bool
@@ -9,19 +9,14 @@ struct ScheduleDayChip: View {
 
     var body: some View {
         Button(action: action) {
-            Text(label)
-                .font(.subheadline.weight(.semibold))
-                .frame(width: 40, height: 40)
-                .background(isSelected ? Theme.dayChipFilledBackground : Theme.dayChipBackground)
-                .foregroundStyle(isSelected ? Theme.dayChipFilledForeground : Theme.dayChipOutlineForeground)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(
-                            isSelected ? Color.clear : Theme.dayChipOutlineForeground,
-                            lineWidth: 1.5
-                        )
-                )
+            ZStack {
+                Circle()
+                    .fill(isSelected ? Color.brandViolet : Color(.tertiarySystemFill))
+                Text(label)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(isSelected ? .white : Color.textPrimary)
+            }
+            .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)

@@ -76,21 +76,16 @@ struct BlockedView: View {
         .navigationTitle("Zablokowane")
         .navigationBarTitleDisplayMode(.large)
         .safeAreaInset(edge: .bottom) {
-            Button {
-                model.changeSelectionTapped()
-            } label: {
-                Text("Zmień wybór")
-                    .font(.body)
-                    .bold()
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
+            VStack(spacing: Theme.Spacing.sm) {
+                PrimaryButton(title: "Szybka sesja", systemIcon: "bolt.fill") {
+                    model.startSessionTapped()
+                }
+                SecondaryButton(title: "Zmień wybór", systemIcon: "slider.horizontal.3") {
+                    model.changeSelectionTapped()
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.accent)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
+            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.vertical, Theme.Spacing.lg)
         }
     }
 }

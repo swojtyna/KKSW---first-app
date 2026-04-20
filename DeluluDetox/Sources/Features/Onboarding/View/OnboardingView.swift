@@ -3,77 +3,137 @@ import SwiftUI
 struct OnboardingView: View {
     @Bindable var model: OnboardingViewModel
 
+    private let bullets: [(String, String)] = [
+        ("Ty wybierasz co blokować.", "Apki, strony, całe kategorie."),
+        ("Apple pilnuje — my klikamy.", "Screen Time robi robotę w tle."),
+        ("Nic nie leci nigdzie.", "Twoje dane zostają na telefonie."),
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
-            Spacer()
+            heroIcon
+                .padding(.top, 60)
+                .padding(.bottom, 36)
 
-            VStack(spacing: 0) {
-                Image(systemName: "lock.iphone")
-                    .font(.system(size: 72))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Theme.accent)
-                    .accessibilityLabel("Phone with lock")
+            Text("Zanim zaczniemy — damy Ci spokój.")
+                .font(.dduLargeTitle)
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.xxl)
+                .padding(.bottom, Theme.Spacing.md)
 
-                Spacer().frame(height: 16)
+            Text(screenTimeExplanation)
+                .font(.dduBody)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.xxxl)
+                .padding(.bottom, 36)
 
-                Text("Your Phone Is Winning")
-                    .font(.largeTitle)
-                    .bold()
-                    .foregroundStyle(Theme.primaryText)
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 14) {
+                ForEach(Array(bullets.enumerated()), id: \.offset) { index, item in
+                    bulletRow(index: index + 1, heading: item.0, sub: item.1)
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.xxl)
 
-                Spacer().frame(height: 8)
+            Spacer(minLength: Theme.Spacing.xl)
 
-                Text("DeluluDetox needs Screen Time access to block distracting apps. No data leaves your device \u{2014} ever.")
-                    .font(.body)
-                    .foregroundStyle(Theme.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
-                Spacer().frame(height: 32)
-
+            VStack(spacing: Theme.Spacing.md) {
                 Button {
                     Task { await model.grantAccessTapped() }
                 } label: {
-                    Group {
+                    HStack(spacing: Theme.Spacing.sm) {
                         if model.isRequesting {
-                            ProgressView()
-                                .tint(.white)
+                            ProgressView().tint(.white)
                         } else {
-                            Text("Grant Access")
-                                .font(.body)
-                                .bold()
+                            Text("Włącz Screen Time")
+                                .font(.dduHeadline)
                         }
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
+                    .frame(height: 54)
+                    .background(Color.brandViolet)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
+                    .shadow(color: Color.brandViolet.opacity(0.35), radius: 16, x: 0, y: 4)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .buttonStyle(.plain)
                 .disabled(model.isRequesting)
-                .padding(.horizontal, 24)
 
                 if let errorMessage = model.error {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(.dduFootnote)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 12)
+                } else {
+                    Text("Odmówione? Ustawienia → Screen Time → Zezwól.")
+                        .font(.dduCaption1)
+                        .foregroundStyle(Color.textTertiary)
                 }
+            }
+            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.bottom, 40)
+        }
+        .background(Color.surfaceGrouped.ignoresSafeArea())
+    }
+
+    private var screenTimeExplanation: AttributedString {
+        var lead = AttributedString("Potrzebujemy dostępu do ")
+        lead.foregroundColor = .textSecondary
+
+        var emphasis = AttributedString("Screen Time")
+        emphasis.foregroundColor = .textPrimary
+        emphasis.font = .dduBody.weight(.semibold)
+
+        var tail = AttributedString(". Bez niego umiemy co najwyżej życzyć Ci powodzenia.")
+        tail.foregroundColor = .textSecondary
+
+        return lead + emphasis + tail
+    }
+
+    private var heroIcon: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [.brandViolet, .brandVioletInk],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: Color.brandViolet.opacity(0.4), radius: 40, x: 0, y: 20)
+
+            Image(systemName: "hand.raised.fill")
+                .font(.system(size: 66, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: 120, height: 120)
+    }
+
+    private func bulletRow(index: Int, heading: String, sub: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            ZStack {
+                Circle().fill(Color.brandVioletTint)
+                Text("\(index)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.brandVioletInk)
+            }
+            .frame(width: 28, height: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(heading)
+                    .font(.dduHeadline)
+                    .foregroundStyle(Color.textPrimary)
+                Text(sub)
+                    .font(.dduFootnote)
+                    .foregroundStyle(Color.textSecondary)
             }
 
             Spacer()
         }
-        .background(Theme.background)
     }
 }
 
 #Preview {
-    // Preview requires DIContainer to have RequestScreenTimeAuthUseCase registered.
-    // Finalized in 01.1-04 with proper mock registration; for Wave 3 we register inline.
     let container = DIContainer.shared
     container.reset()
     OnboardingInjection.register(in: container)

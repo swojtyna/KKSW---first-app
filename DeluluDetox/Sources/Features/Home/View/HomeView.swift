@@ -8,6 +8,12 @@ struct HomeView: View {
 
     var body: some View {
         contentLayer
+            .safeAreaInset(edge: .bottom) {
+                DesignTabBar(activeIndex: 0) { index in
+                    handleTabSelect(index)
+                }
+                .padding(.bottom, Theme.Spacing.xs)
+            }
             .sheet(item: $model.destination.picker) { session in
                 PickerHostView(
                     initialSession: session,
@@ -30,6 +36,14 @@ struct HomeView: View {
             }
             .navigationDestination(item: $model.destination.scheduleList) { listModel in
                 scheduleListDestination(listModel: listModel)
+            }
+            .navigationDestination(
+                isPresented: Binding(
+                    get: { if case .stats = model.destination { return true } else { return false } },
+                    set: { if !$0, case .stats = model.destination { model.destination = nil } }
+                )
+            ) {
+                StatsView()
             }
             .alert(
                 "Coś się popsuło",
@@ -62,36 +76,31 @@ struct HomeView: View {
                 BlockedView(model: blockedModel)
             }
         }
-        .background(Theme.background)
+        .background(Color.surfaceGrouped)
         .navigationTitle("DeluluDetox")
         .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    model.scheduleListTapped()
-                } label: {
-                    Image(systemName: "calendar")
-                        .foregroundStyle(Theme.accent)
-                }
-                .accessibilityLabel("Harmonogram")
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    model.startSessionTapped()
-                } label: {
-                    Image(systemName: "play.circle.fill")
-                        .foregroundStyle(Theme.accent)
-                }
-                .accessibilityLabel("Uruchom sesję")
-                .disabled(model.snapshot.records.isEmpty)
-            }
-        }
         .onAppear {
-            // Wire BlockedView's "Zmień wybór" up to the VM that owns the picker Destination.
-            // Captured weakly so BlockedView's closure lifetime does not retain HomeViewModel.
+            // Wire BlockedView's CTAs up to the VM that owns the picker /
+            // session destinations. Captured weakly so BlockedView's closure
+            // lifetime does not retain HomeViewModel.
             blockedModel.onChangeSelection = { [weak model] in
                 model?.chooseAppsTapped()
             }
+            blockedModel.onStartSession = { [weak model] in
+                model?.startSessionTapped()
+            }
+        }
+    }
+
+    /// DesignTabBar tap router. Dzisiaj (0) and Lista (1) both resolve to the
+    /// current home content for now — Phase 6 will split Dzisiaj into a streak
+    /// dashboard and keep Lista as the full BlockedView. Plan (2) and Staty (3)
+    /// push their destinations via HomeViewModel.
+    private func handleTabSelect(_ index: Int) {
+        switch index {
+        case 2: model.scheduleListTapped()
+        case 3: model.statsTapped()
+        default: break
         }
     }
 
@@ -129,48 +138,44 @@ struct HomeView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            VStack(spacing: 0) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [.brandViolet, .brandVioletInk],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.brandViolet.opacity(0.4), radius: 40, x: 0, y: 20)
+
                 Image(systemName: "apps.iphone")
-                    .font(.system(size: 56))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Theme.tertiaryText)
-                    .accessibilityLabel("Phone with apps")
-
-                Spacer().frame(height: 16)
-
-                Text("Jeszcze żadnych wrogów")
-                    .font(.title2)
-                    .bold()
-                    .foregroundStyle(Theme.primaryText)
-                    .multilineTextAlignment(.center)
-
-                Spacer().frame(height: 8)
-
-                Text("Wybierz aplikacje, które kradną Ci czas. Resztą zajmie się DeluluDetox.")
-                    .font(.body)
-                    .foregroundStyle(Theme.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
-                Spacer().frame(height: 32)
-
-                Button {
-                    model.chooseAppsTapped()
-                } label: {
-                    Text("Wybierz aplikacje do blokady")
-                        .font(.body)
-                        .bold()
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 24)
+                    .font(.system(size: 60, weight: .semibold))
+                    .foregroundStyle(.white)
             }
+            .frame(width: 120, height: 120)
+            .padding(.bottom, Theme.Spacing.xxl)
+
+            Text("Jeszcze żadnych wrogów.")
+                .font(.dduLargeTitle)
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.xxl)
+                .padding(.bottom, Theme.Spacing.sm)
+
+            Text("Wybierz aplikacje, które kradną Ci czas. Resztą zajmie się DeluluDetox.")
+                .font(.dduBody)
+                .foregroundStyle(Color.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.xxxl)
 
             Spacer()
+
+            PrimaryButton(title: "Wybierz aplikacje do blokady", systemIcon: "plus") {
+                model.chooseAppsTapped()
+            }
+            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.bottom, 40)
         }
     }
 }

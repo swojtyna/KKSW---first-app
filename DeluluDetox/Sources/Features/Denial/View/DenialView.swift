@@ -7,72 +7,86 @@ struct DenialView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            VStack(spacing: 0) {
-                Image(systemName: "hand.raised.fill")
-                    .font(.system(size: 72))
-                    .foregroundStyle(Theme.accent)
-                    .accessibilityLabel("Raised hand")
+            heroIcon
+                .padding(.bottom, Theme.Spacing.xxl)
 
-                Spacer().frame(height: 16)
+            Text("Bez Screen Time nic z tego nie będzie.")
+                .font(.dduLargeTitle)
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.xxl)
+                .padding(.bottom, Theme.Spacing.md)
 
-                Text("Nice Try")
-                    .font(.largeTitle)
-                    .bold()
-                    .foregroundStyle(Theme.primaryText)
-                    .multilineTextAlignment(.center)
+            Text("To jak zatrudnić bramkarza i nie wpuścić go do klubu. Wróć do Ustawień i włącz dostęp.")
+                .font(.dduBody)
+                .foregroundStyle(Color.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.xxxl)
 
-                Spacer().frame(height: 8)
+            Spacer()
 
-                Text("DeluluDetox literally cannot work without Screen Time access. That\u{2019}s like hiring a bouncer and not letting them in the club.")
-                    .font(.body)
-                    .foregroundStyle(Theme.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
-                Spacer().frame(height: 32)
-
+            VStack(spacing: Theme.Spacing.md) {
                 Button {
                     Task { await model.retryTapped() }
                 } label: {
-                    Group {
+                    HStack(spacing: Theme.Spacing.sm) {
                         if model.isRequesting {
-                            ProgressView()
-                                .tint(.white)
+                            ProgressView().tint(.white)
                         } else {
-                            Text("Let\u{2019}s Try Again")
-                                .font(.body)
-                                .bold()
+                            Text("Spróbuj jeszcze raz")
+                                .font(.dduHeadline)
                         }
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
+                    .frame(height: 54)
+                    .background(Color.brandViolet)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
+                    .shadow(color: Color.brandViolet.opacity(0.35), radius: 16, x: 0, y: 4)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .buttonStyle(.plain)
                 .disabled(model.isRequesting)
-                .padding(.horizontal, 24)
 
                 if let errorMessage = model.error {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(.dduFootnote)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 12)
+                } else {
+                    Text("Ustawienia → Screen Time → Zezwól.")
+                        .font(.dduCaption1)
+                        .foregroundStyle(Color.textTertiary)
                 }
             }
-
-            Spacer()
+            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.bottom, 40)
         }
-        .background(Theme.background)
+        .background(Color.surfaceGrouped.ignoresSafeArea())
+    }
+
+    private var heroIcon: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [.brandAmber, .brandAmberInk],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: Color.brandAmber.opacity(0.4), radius: 40, x: 0, y: 20)
+
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 58, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: 120, height: 120)
     }
 }
 
 #Preview {
     let container = DIContainer.shared
     container.reset()
-    OnboardingInjection.register(in: container)  // Denial konsumuje Request UC z Onboarding registration (D-17)
+    OnboardingInjection.register(in: container)
     return DenialView(model: DenialViewModel())
 }

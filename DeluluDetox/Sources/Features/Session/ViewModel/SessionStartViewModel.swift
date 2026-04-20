@@ -48,6 +48,7 @@ final class SessionStartViewModel: @unchecked Sendable {
     // MARK: Snapshot inputs
 
     private(set) var blocklistHasRecords: Bool = false
+    private(set) var blocklistItemCount: Int = 0
     private(set) var hasActiveSession: Bool = false
     private(set) var isStarting: Bool = false
 
@@ -89,6 +90,7 @@ final class SessionStartViewModel: @unchecked Sendable {
             .sink { [weak self] blocklist in
                 guard let self else { return }
                 self.blocklistHasRecords = !blocklist.records.isEmpty
+                self.blocklistItemCount = blocklist.records.count
                 self.latestBlocklistId = blocklist.id
             }
             .store(in: &cancellables)

@@ -10,17 +10,113 @@ struct ScheduleEditorView: View {
     /// Invoked after `saveTapped()` succeeds so the parent can pop / dismiss.
     var onSaved: () -> Void = {}
 
-    // Display order Monday-first (PL convention); stored as Calendar.weekday values.
+    /// Monday-first display order (PL convention); stored as Calendar.weekday values.
     private static let displayOrder: [(label: String, weekday: Int)] = [
         ("Pn", 2), ("Wt", 3), ("Śr", 4), ("Cz", 5), ("Pt", 6), ("Sb", 7), ("Nd", 1),
     ]
 
+    private enum TimeField { case start, end }
+
+    @State private var editingField: TimeField = .start
+
     var body: some View {
-        Form {
-            daysSection
-            timeSection
-            activitySection
+        ScrollView {
+            VStack(spacing: 0) {
+                SectionLabel(text: "Dni")
+
+                GroupedCard {
+                    VStack(spacing: Theme.Spacing.md) {
+                        HStack(spacing: 6) {
+                            ForEach(Self.displayOrder, id: \.weekday) { item in
+                                ScheduleDayChip(
+                                    label: item.label,
+                                    isSelected: model.daysOfWeek.contains(item.weekday),
+                                    action: { model.toggleDay(item.weekday) }
+                                )
+                            }
+                        }
+
+                        HStack(spacing: Theme.Spacing.sm) {
+                            Button {
+                                model.applyPresetDniRobocze()
+                            } label: {
+                                DesignChip(text: "Dni robocze", isSoft: true)
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                model.applyPresetWeekend()
+                            } label: {
+                                DesignChip(text: "Weekend")
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                model.applyPresetCodziennie()
+                            } label: {
+                                DesignChip(text: "Codziennie")
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer()
+                        }
+                    }
+                    .padding(Theme.Spacing.lg)
+                }
+
+                SectionLabel(text: "Godziny")
+
+                GroupedCard {
+                    timeRow(label: "Od", value: formattedTime(startDate), field: .start, isLast: false)
+                    timeRow(label: "Do", value: formattedTime(endDate), field: .end, isLast: true)
+                }
+
+                GroupedCard {
+                    DatePicker(
+                        "",
+                        selection: editedTimeBinding,
+                        displayedComponents: .hourAndMinute
+                    )
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 180)
+                    .tint(Color.brandViolet)
+                }
+                .padding(.top, Theme.Spacing.sm)
+
+                if model.isCrossMidnight {
+                    Label("Cross-midnight — nocna zmiana, co?", systemImage: "moon.zzz")
+                        .font(.dduFootnote)
+                        .foregroundStyle(Color.textSecondary)
+                        .padding(.horizontal, Theme.Spacing.xxxl)
+                        .padding(.top, Theme.Spacing.md)
+                }
+
+                SectionLabel(text: "Aktywność")
+
+                GroupedCard {
+                    GroupedListRow(
+                        title: "Harmonogram aktywny",
+                        detail: nil,
+                        leading: nil,
+                        trailing: {
+                            DesignToggle(isOn: $model.enabled)
+                        },
+                        isLast: true
+                    )
+                }
+
+                Text("Blokady włączą się automatycznie w wybrane dni o \(formattedTime(startDate)).")
+                    .font(.dduFootnote)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.horizontal, Theme.Spacing.xxxl)
+                    .padding(.top, Theme.Spacing.lg)
+
+                Spacer().frame(height: 40)
+            }
         }
+        .background(Color.surfaceGrouped.ignoresSafeArea())
         .navigationTitle("Harmonogram")
         .safeAreaInset(edge: .bottom) { saveButton }
         .alert(
@@ -34,109 +130,79 @@ struct ScheduleEditorView: View {
         }
     }
 
-    // MARK: - Sections
+    // MARK: - Rows
 
-    @ViewBuilder
-    private var daysSection: some View {
-        Section("Dni tygodnia") {
-            HStack(spacing: 8) {
-                ForEach(Self.displayOrder, id: \.weekday) { item in
-                    ScheduleDayChip(
-                        label: item.label,
-                        isSelected: model.daysOfWeek.contains(item.weekday),
-                        action: { model.toggleDay(item.weekday) }
-                    )
-                }
-            }
-            .padding(.vertical, 4)
-
-            HStack(spacing: 12) {
-                Button("Dni robocze") { model.applyPresetDniRobocze() }
-                    .buttonStyle(.bordered)
-                Button("Weekend") { model.applyPresetWeekend() }
-                    .buttonStyle(.bordered)
-                Button("Codziennie") { model.applyPresetCodziennie() }
-                    .buttonStyle(.bordered)
-            }
+    private func timeRow(label: String, value: String, field: TimeField, isLast: Bool) -> some View {
+        Button {
+            editingField = field
+        } label: {
+            GroupedListRow(
+                title: label,
+                detail: nil,
+                leading: nil,
+                trailing: {
+                    HStack(spacing: Theme.Spacing.sm) {
+                        Text(value)
+                            .font(.dduBody.monospacedDigit())
+                            .foregroundStyle(editingField == field ? Color.brandViolet : Color.textPrimary)
+                        if editingField == field {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color.brandViolet)
+                        }
+                    }
+                },
+                isLast: isLast
+            )
         }
-    }
-
-    @ViewBuilder
-    private var timeSection: some View {
-        Section("Przedział czasu") {
-            DatePicker("Od", selection: startBinding, displayedComponents: .hourAndMinute)
-                .datePickerStyle(.wheel)
-
-            DatePicker("Do", selection: endBinding, displayedComponents: .hourAndMinute)
-                .datePickerStyle(.wheel)
-
-            if model.isCrossMidnight {
-                Label("Cross-midnight — nocna zmiana, co?", systemImage: "moon.zzz")
-                    .font(.caption)
-                    .foregroundStyle(Theme.crossMidnightHintColor)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var activitySection: some View {
-        Section {
-            Toggle("Harmonogram aktywny", isOn: $model.enabled)
-        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
     private var saveButton: some View {
-        Button {
+        PrimaryButton(title: model.isSaving ? "Zapisywanie…" : "Zapisz") {
             Task {
                 let didSave = await model.saveTapped()
                 if didSave { onSaved() }
             }
-        } label: {
-            Text(model.isSaving ? "Zapisywanie…" : "Zapisz")
-                .font(.headline)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, minHeight: 50)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(Theme.dayChipFilledBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .disabled(!model.canSave)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .opacity(model.canSave ? 1.0 : 0.45)
+        .allowsHitTesting(model.canSave)
+        .padding(.horizontal, Theme.Spacing.xxl)
+        .padding(.vertical, Theme.Spacing.lg)
         .background(.regularMaterial)
     }
 
     // MARK: - Bindings
 
-    private var startBinding: Binding<Date> {
-        Binding(
-            get: {
-                var comp = DateComponents()
-                comp.hour = model.startHour
-                comp.minute = model.startMinute
-                return Calendar.current.date(from: comp) ?? Date()
-            },
-            set: { new in
-                let comp = Calendar.current.dateComponents([.hour, .minute], from: new)
-                model.startHour = comp.hour ?? 0
-                model.startMinute = comp.minute ?? 0
-            }
-        )
+    private var startDate: Date {
+        var comp = DateComponents()
+        comp.hour = model.startHour
+        comp.minute = model.startMinute
+        return Calendar.current.date(from: comp) ?? Date()
     }
 
-    private var endBinding: Binding<Date> {
+    private var endDate: Date {
+        var comp = DateComponents()
+        comp.hour = model.endHour
+        comp.minute = model.endMinute
+        return Calendar.current.date(from: comp) ?? Date()
+    }
+
+    private var editedTimeBinding: Binding<Date> {
         Binding(
-            get: {
-                var comp = DateComponents()
-                comp.hour = model.endHour
-                comp.minute = model.endMinute
-                return Calendar.current.date(from: comp) ?? Date()
-            },
-            set: { new in
-                let comp = Calendar.current.dateComponents([.hour, .minute], from: new)
-                model.endHour = comp.hour ?? 0
-                model.endMinute = comp.minute ?? 0
+            get: { editingField == .start ? startDate : endDate },
+            set: { newValue in
+                let comp = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+                let hour = comp.hour ?? 0
+                let minute = comp.minute ?? 0
+                if editingField == .start {
+                    model.startHour = hour
+                    model.startMinute = minute
+                } else {
+                    model.endHour = hour
+                    model.endMinute = minute
+                }
             }
         )
     }
@@ -154,5 +220,11 @@ struct ScheduleEditorView: View {
     private var errorAlertMessage: String? {
         if case .errorAlert(let msg) = model.destination { return msg }
         return nil
+    }
+
+    private func formattedTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 }

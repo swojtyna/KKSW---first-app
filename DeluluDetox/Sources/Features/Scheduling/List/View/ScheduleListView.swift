@@ -12,21 +12,34 @@ struct ScheduleListView: View {
     @Bindable var model: ScheduleListViewModel
 
     var body: some View {
-        Group {
+        ScrollView {
             if model.schedules.isEmpty {
                 emptyState
+                    .frame(minHeight: 520)
             } else {
-                List {
-                    ForEach(model.schedules) { schedule in
-                        scheduleRow(schedule)
+                VStack(spacing: Theme.Spacing.lg) {
+                    SectionLabel(text: "Aktywne harmonogramy")
+                        .padding(.top, Theme.Spacing.sm)
+
+                    GroupedCard {
+                        ForEach(Array(model.schedules.enumerated()), id: \.element.id) { index, schedule in
+                            scheduleRow(schedule, isLast: index == model.schedules.count - 1)
+                        }
                     }
+
+                    PrimaryButton(title: "Dodaj harmonogram", systemIcon: "plus") {
+                        model.createTapped()
+                    }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.sm)
                 }
+                .padding(.bottom, Theme.Spacing.xxxl)
             }
         }
+        .background(Color.surfaceGrouped.ignoresSafeArea())
         .navigationTitle("Harmonogram")
         .navigationDestination(item: $model.destination.scheduleEditor) { editorModel in
             ScheduleEditorView(model: editorModel) {
-                // Editor saved — pop back to list.
                 model.clearDestination()
             }
         }
@@ -45,57 +58,92 @@ struct ScheduleListView: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            Spacer()
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [.brandViolet, .brandVioletInk],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.brandViolet.opacity(0.4), radius: 40, x: 0, y: 20)
+
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 54, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 120, height: 120)
+            .padding(.bottom, Theme.Spacing.xxl)
+
             Text("Nie masz jeszcze harmonogramu.")
-                .font(.headline)
+                .font(.dduTitle2)
+                .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.xxl)
+                .padding(.bottom, Theme.Spacing.sm)
+
             Text("Życie samo się nie zablokuje.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.dduBody)
+                .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
-            Button("Stwórz harmonogram") {
+
+            Spacer()
+
+            PrimaryButton(title: "Stwórz harmonogram", systemIcon: "plus") {
                 model.createTapped()
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.dayChipFilledBackground)
+            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.bottom, 40)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
-    private func scheduleRow(_ schedule: Schedule) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(daysLabel(for: schedule))
-                    .font(.headline)
-                    .foregroundStyle(schedule.enabled ? .primary : .secondary)
-                Text(timeLabel(for: schedule))
-                    .font(.subheadline)
-                    .foregroundStyle(schedule.enabled ? .secondary : .tertiary)
-            }
-            Spacer()
-            Toggle(
-                "",
-                isOn: Binding(
-                    get: { schedule.enabled },
-                    set: { newVal in
-                        Task { await model.toggleSchedule(scheduleId: schedule.id, enabled: newVal) }
-                    }
-                )
+    private func scheduleRow(_ schedule: Schedule, isLast: Bool) -> some View {
+        Button {
+            model.editTapped(schedule)
+        } label: {
+            GroupedListRow(
+                title: daysLabel(for: schedule),
+                detail: timeLabel(for: schedule),
+                leading: {
+                    AnyView(
+                        ZStack {
+                            RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
+                                .fill(schedule.enabled ? Color.brandVioletTint : Color(.tertiarySystemFill))
+                            Image(systemName: "calendar")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(schedule.enabled ? Color.brandViolet : Color.textTertiary)
+                        }
+                        .frame(width: 32, height: 32)
+                    )
+                },
+                trailing: {
+                    Toggle(
+                        "",
+                        isOn: Binding(
+                            get: { schedule.enabled },
+                            set: { newVal in
+                                Task { await model.toggleSchedule(scheduleId: schedule.id, enabled: newVal) }
+                            }
+                        )
+                    )
+                    .labelsHidden()
+                    .tint(Color.brandViolet)
+                },
+                isLast: isLast
             )
-            .labelsHidden()
+            .opacity(schedule.enabled ? 1.0 : 0.6)
         }
-        .contentShape(Rectangle())
-        .onTapGesture { model.editTapped(schedule) }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Label helpers
 
-    // Display order Monday-first (PL convention); stored as Calendar.weekday values.
+    /// Monday-first display order (PL convention); stored as Calendar.weekday values.
     private static let displayOrder: [(label: String, weekday: Int)] = [
         ("Pn", 2), ("Wt", 3), ("Śr", 4), ("Cz", 5), ("Pt", 6), ("Sb", 7), ("Nd", 1),
     ]

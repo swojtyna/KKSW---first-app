@@ -8,7 +8,7 @@ struct SessionStartView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xxl) {
                 header
 
                 if !model.blocklistHasRecords {
@@ -18,29 +18,32 @@ struct SessionStartView: View {
                     customWheelSection
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
+            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.top, Theme.Spacing.xxl)
         }
-        .background(Theme.background)
+        .background(Color.surfaceGrouped.ignoresSafeArea())
         .navigationTitle("Nowa sesja")
         .navigationBarTitleDisplayMode(.large)
         .safeAreaInset(edge: .bottom) {
-            Button {
-                Task { await model.startTapped(now: Date()) }
-            } label: {
-                Text(model.isStarting ? "Startuję…" : "Uruchom sesję")
-                    .font(.body)
-                    .bold()
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
+            VStack(spacing: Theme.Spacing.sm) {
+                if let hint = summaryHint {
+                    Text(hint)
+                        .font(.dduFootnote)
+                        .foregroundStyle(Color.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                PrimaryButton(
+                    title: primaryButtonTitle,
+                    systemIcon: model.isStarting ? nil : "bolt.fill"
+                ) {
+                    Task { await model.startTapped(now: Date()) }
+                }
+                .opacity(model.canStart ? 1.0 : 0.45)
+                .allowsHitTesting(model.canStart)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.accent)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .disabled(!model.canStart)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
+            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.vertical, Theme.Spacing.lg)
         }
         .alert(
             "Coś się popsuło",
@@ -66,107 +69,114 @@ struct SessionStartView: View {
 
     @ViewBuilder
     private var header: some View {
-        VStack(spacing: 8) {
-            Text("Na ile odłączamy świat?")
-                .font(.title2)
-                .bold()
-                .foregroundStyle(Theme.primaryText)
-                .multilineTextAlignment(.center)
-            Text("Wybierz preset albo ustaw własny czas. Kończy się sam — nie musisz patrzeć.")
-                .font(.body)
-                .foregroundStyle(Theme.secondaryText)
-                .multilineTextAlignment(.center)
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            Text("Ile tym razem wytrzymasz?")
+                .font(.dduTitle1)
+                .foregroundStyle(Color.textPrimary)
+            Text("Wybierz preset albo zakręć kółkiem jak w kasynie.")
+                .font(.dduBody)
+                .foregroundStyle(Color.textSecondary)
         }
     }
 
     @ViewBuilder
     private var emptyBlocklistNudge: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: Theme.Spacing.md) {
             Image(systemName: "apps.iphone.badge.plus")
-                .font(.system(size: 40))
-                .foregroundStyle(Theme.tertiaryText)
+                .font(.system(size: 44, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.textTertiary)
+                .padding(.bottom, Theme.Spacing.xs)
             Text("Najpierw wybierz aplikacje do blokady")
-                .font(.body)
-                .bold()
-                .foregroundStyle(Theme.primaryText)
+                .font(.dduHeadline)
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.center)
             Text("Bez tego nie mamy czego blokować.")
-                .font(.footnote)
-                .foregroundStyle(Theme.secondaryText)
+                .font(.dduFootnote)
+                .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
         }
-        .padding(.top, 16)
+        .frame(maxWidth: .infinity)
+        .padding(Theme.Spacing.xxl)
+        .background(Color.surfaceElevGrouped, in: RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
     }
 
     @ViewBuilder
     private var presetChips: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Presety")
-                .font(.headline)
-                .foregroundStyle(Theme.primaryText)
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            Text("PRESETY")
+                .font(.dduFootnote)
+                .kerning(0.4)
+                .foregroundStyle(Color.textSecondary)
+
+            HStack(spacing: Theme.Spacing.sm) {
                 ForEach(Self.presets, id: \.self) { minutes in
-                    chip(for: minutes)
+                    Button {
+                        model.selectPreset(minutes)
+                    } label: {
+                        DesignChip(text: "\(minutes) min", isActive: model.selectedPresetMinutes == minutes)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(minutes) minut preset")
+                    .accessibilityAddTraits(model.selectedPresetMinutes == minutes ? [.isSelected] : [])
                 }
+                Button {
+                    model.switchToCustom()
+                } label: {
+                    DesignChip(text: "własny…", isActive: model.selectedPresetMinutes == nil, isSoft: true)
+                }
+                .buttonStyle(.plain)
             }
         }
-    }
-
-    private func chip(for minutes: Int) -> some View {
-        let isSelected = model.selectedPresetMinutes == minutes
-        return Button {
-            model.selectPreset(minutes)
-        } label: {
-            Text("\(minutes) min")
-                .font(.callout)
-                .bold()
-                .foregroundStyle(isSelected ? .white : Theme.primaryText)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background(isSelected ? Theme.accent : Theme.chipBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(minutes) minutes preset")
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     @ViewBuilder
     private var customWheelSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Albo własny czas")
-                .font(.headline)
-                .foregroundStyle(Theme.primaryText)
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            Text("WŁASNY CZAS")
+                .font(.dduFootnote)
+                .kerning(0.4)
+                .foregroundStyle(Color.textSecondary)
 
-            Button {
-                model.switchToCustom()
-            } label: {
+            VStack(spacing: 0) {
                 HStack {
                     Image(systemName: model.selectedPresetMinutes == nil ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(Theme.accent)
+                        .foregroundStyle(Color.brandViolet)
                     Text("Ustaw samodzielnie")
-                        .foregroundStyle(Theme.primaryText)
+                        .foregroundStyle(Color.textPrimary)
                     Spacer()
                     Text(customDurationLabel)
-                        .foregroundStyle(Theme.secondaryText)
+                        .foregroundStyle(Color.textSecondary)
                         .monospacedDigit()
                 }
                 .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+                .onTapGesture { model.switchToCustom() }
+                .padding(Theme.Spacing.lg)
 
-            if model.selectedPresetMinutes == nil {
-                DatePicker(
-                    "Czas sesji",
-                    selection: customDurationBinding,
-                    displayedComponents: [.hourAndMinute]
-                )
-                .datePickerStyle(.wheel)
-                .labelsHidden()
-                .frame(maxHeight: 160)
+                if model.selectedPresetMinutes == nil {
+                    Divider()
+                        .overlay(Color.separator)
+
+                    DatePicker(
+                        "Czas sesji",
+                        selection: customDurationBinding,
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .tint(Color.brandViolet)
+                    .frame(maxHeight: 180)
+                    .padding(.vertical, Theme.Spacing.sm)
+                }
             }
+            .background(Color.surfaceElevGrouped)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
         }
     }
 
-    /// The DatePicker binds to a Date; we convert to/from seconds inside the hour/minute
+    // MARK: - Bindings & formatting
+
+    /// DatePicker binds to Date; we convert to/from seconds inside the hour/minute
     /// wheel. Reference date is a zeroed-calendar so hour × 3600 + minute × 60 == seconds.
     private var customDurationBinding: Binding<Date> {
         Binding(
@@ -181,7 +191,6 @@ struct SessionStartView: View {
                 let hours = comps.hour ?? 0
                 let minutes = comps.minute ?? 0
                 let seconds = hours * 3600 + minutes * 60
-                // VM clamps out-of-range values in didSet.
                 model.customDurationSeconds = max(seconds, SessionDuration.minSeconds)
             }
         )
@@ -195,6 +204,37 @@ struct SessionStartView: View {
             return String(format: "%d h %02d min", hours, minutes)
         }
         return String(format: "%d min", minutes)
+    }
+
+    private var primaryButtonTitle: String {
+        if model.isStarting { return "Startuję…" }
+        if let preset = model.selectedPresetMinutes {
+            return "Zaczynamy — \(preset) min"
+        }
+        return "Zaczynamy — \(customDurationLabel)"
+    }
+
+    /// "Zablokuje X rzeczy · odblokuje o HH:MM" — hidden until both an active
+    /// blocklist and a resolved duration are available. The unlock time is a
+    /// view-level projection (now + duration); no VM field needed.
+    private var summaryHint: String? {
+        guard model.blocklistItemCount > 0,
+              let duration = model.resolvedDuration
+        else { return nil }
+
+        let unlockTime = Date().addingTimeInterval(TimeInterval(duration.seconds))
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        let unlockLabel = formatter.string(from: unlockTime)
+
+        return "Zablokuje \(model.blocklistItemCount) \(itemsWord(for: model.blocklistItemCount)) · odblokuje o \(unlockLabel)"
+    }
+
+    /// Basic Polish pluralisation for "rzecz / rzeczy / rzeczy".
+    /// 1 → "rzecz", 2–4 (except 12–14) → "rzeczy", everything else → "rzeczy".
+    private func itemsWord(for count: Int) -> String {
+        if count == 1 { return "rzecz" }
+        return "rzeczy"
     }
 }
 
