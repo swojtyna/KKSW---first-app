@@ -37,13 +37,24 @@ final class MockScheduleRepository: ScheduleRepository, @unchecked Sendable {
     private(set) var lastRemovedId: UUID?
     var removeError: Error?
 
-    func remove(scheduleId: UUID) async throws {
+    func remove(id: UUID) async throws {
         removeCallCount += 1
-        lastRemovedId = scheduleId
+        lastRemovedId = id
         if let removeError { throw removeError }
         var current = schedulesSubject.value
-        current.removeAll { $0.id == scheduleId }
+        current.removeAll { $0.id == id }
         schedulesSubject.send(current)
+    }
+
+    // MARK: loadFromDisk (Plan 05-02).
+    var stubbedLoadFromDiskResult: [Schedule] = []
+    var loadFromDiskError: Error?
+    private(set) var loadFromDiskCallCount = 0
+
+    func loadFromDisk() async throws -> [Schedule] {
+        loadFromDiskCallCount += 1
+        if let loadFromDiskError { throw loadFromDiskError }
+        return stubbedLoadFromDiskResult
     }
 
     // MARK: appendEvent (Plan 05-02).

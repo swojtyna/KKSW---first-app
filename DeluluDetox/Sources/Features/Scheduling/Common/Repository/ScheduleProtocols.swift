@@ -13,6 +13,15 @@ import Foundation
 
 protocol ScheduleRepository: Sendable {
     var schedulesPublisher: AnyPublisher<[Schedule], Never> { get }
+    func upsert(_ schedule: Schedule) async throws
+    func remove(id: UUID) async throws
+    func loadFromDisk() async throws -> [Schedule]
+    func appendEvent(_ event: ScheduleEvent) async throws
+    /// RESEARCH OQ#4 — consume all timestamp-suffixed marker files at once.
+    /// Returns them sorted ascending by timestamp; deletes each from disk
+    /// after decoding so cross-midnight (evening-start + morning-end)
+    /// cannot lose an event when the app is not foregrounded between them.
+    func consumeEventMarkers() async throws -> [ScheduleEventMarker]
 }
 
 protocol ScheduleShieldRepository: Sendable {}
