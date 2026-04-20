@@ -7,7 +7,8 @@ final class EndSessionUseCaseTests: XCTestCase {
 
     func testEndSessionHappyPathClearsShieldStopsMonitoringThenFinalizes() async throws {
         let mockRepo = MockSessionRepository()
-        let mockEnforcer = MockSessionEnforcer()
+        let mockShield = MockSessionShieldRepository()
+        let mockMonitoring = MockSessionActivityMonitoringRepository()
         let active = SessionRecord(
             blocklistId: UUID(),
             startedAt: Date(),
@@ -17,12 +18,16 @@ final class EndSessionUseCaseTests: XCTestCase {
         )
         mockRepo.activeSubject.send(active)
 
-        let uc = EndSessionUseCaseImpl(repository: mockRepo, enforcer: mockEnforcer)
+        let uc = EndSessionUseCaseImpl(
+            repository: mockRepo,
+            shield: mockShield,
+            monitoring: mockMonitoring
+        )
         let endDate = Date()
         try await uc(outcome: .completed, actualEndAt: endDate)
 
-        XCTAssertEqual(mockEnforcer.clearShieldCallCount, 1)
-        XCTAssertEqual(mockEnforcer.stopActivityMonitoringCallCount, 1)
+        XCTAssertEqual(mockShield.clearShieldCallCount, 1)
+        XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
         XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 1)
         XCTAssertEqual(mockRepo.finalizeActiveSessionLastOutcome, .completed)
         XCTAssertEqual(mockRepo.finalizeActiveSessionLastActualEndAt, endDate)
@@ -30,23 +35,29 @@ final class EndSessionUseCaseTests: XCTestCase {
 
     func testEndSessionIsNoOpWhenNoActiveSession() async throws {
         let mockRepo = MockSessionRepository()
-        let mockEnforcer = MockSessionEnforcer()
+        let mockShield = MockSessionShieldRepository()
+        let mockMonitoring = MockSessionActivityMonitoringRepository()
         // No active session; make repo throw .noActiveSession.
         mockRepo.finalizeActiveSessionError = SessionStoreError.noActiveSession
 
-        let uc = EndSessionUseCaseImpl(repository: mockRepo, enforcer: mockEnforcer)
+        let uc = EndSessionUseCaseImpl(
+            repository: mockRepo,
+            shield: mockShield,
+            monitoring: mockMonitoring
+        )
         try await uc(outcome: .completed, actualEndAt: Date())
 
         // Defense-in-depth — clearShield/stopMonitoring still called.
-        XCTAssertEqual(mockEnforcer.clearShieldCallCount, 1)
-        XCTAssertEqual(mockEnforcer.stopActivityMonitoringCallCount, 1)
+        XCTAssertEqual(mockShield.clearShieldCallCount, 1)
+        XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
         // Finalize was attempted, threw noActiveSession; UC swallowed it (no throw).
         XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 1)
     }
 
     func testEndSessionPropagatesRepoFinalizeError() async {
         let mockRepo = MockSessionRepository()
-        let mockEnforcer = MockSessionEnforcer()
+        let mockShield = MockSessionShieldRepository()
+        let mockMonitoring = MockSessionActivityMonitoringRepository()
         mockRepo.activeSubject.send(SessionRecord(
             blocklistId: UUID(),
             startedAt: Date(),
@@ -56,13 +67,17 @@ final class EndSessionUseCaseTests: XCTestCase {
         ))
         mockRepo.finalizeActiveSessionError = TestError()
 
-        let uc = EndSessionUseCaseImpl(repository: mockRepo, enforcer: mockEnforcer)
+        let uc = EndSessionUseCaseImpl(
+            repository: mockRepo,
+            shield: mockShield,
+            monitoring: mockMonitoring
+        )
         do {
             try await uc(outcome: .completed, actualEndAt: Date())
             XCTFail("expected throw")
         } catch {
-            XCTAssertEqual(mockEnforcer.clearShieldCallCount, 1)
-            XCTAssertEqual(mockEnforcer.stopActivityMonitoringCallCount, 1)
+            XCTAssertEqual(mockShield.clearShieldCallCount, 1)
+            XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
             XCTAssertTrue(error is TestError)
         }
     }

@@ -3,7 +3,7 @@ import os
 
 /// CONTEXT §D-08 end sequence. Idempotent and defense-in-depth:
 ///
-/// - Always calls `enforcer.clearShield()` + `enforcer.stopActivityMonitoring()`
+/// - Always calls `shield.clearShield()` + `monitoring.stopActivityMonitoring()`
 ///   BEFORE the repository finalize. Even if there is no active session record,
 ///   clearing stale shield state is the safer default (a shield that outlives
 ///   its session is a user-visible bug; a no-op clear is harmless).
@@ -16,23 +16,29 @@ protocol EndSessionUseCase: Sendable {
 
 final class EndSessionUseCaseImpl: EndSessionUseCase, @unchecked Sendable {
     private let repository: SessionRepository
-    private let enforcer: SessionEnforcer
+    private let shield: SessionShieldRepository
+    private let monitoring: SessionActivityMonitoringRepository
 
     private static let log = Logger(
         subsystem: "com.kksw.DeluluDetox",
         category: "EndSessionUC"
     )
 
-    init(repository: SessionRepository, enforcer: SessionEnforcer) {
+    init(
+        repository: SessionRepository,
+        shield: SessionShieldRepository,
+        monitoring: SessionActivityMonitoringRepository
+    ) {
         self.repository = repository
-        self.enforcer = enforcer
+        self.shield = shield
+        self.monitoring = monitoring
     }
 
     func callAsFunction(outcome: SessionOutcome, actualEndAt: Date) async throws {
         // Defense-in-depth: always clear shield + stop monitoring, even if there is
         // no active repo record (stale state recovery). CONTEXT §D-08.
-        await enforcer.clearShield()
-        await enforcer.stopActivityMonitoring()
+        await shield.clearShield()
+        await monitoring.stopActivityMonitoring()
 
         do {
             try await repository.finalizeActiveSession(outcome: outcome, actualEndAt: actualEndAt)

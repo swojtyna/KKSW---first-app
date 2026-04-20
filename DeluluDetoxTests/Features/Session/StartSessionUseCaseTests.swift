@@ -8,7 +8,8 @@ final class StartSessionUseCaseTests: XCTestCase {
 
     func testStartSessionHappyPathInvokesRepoThenShieldThenMonitoring() async throws {
         let mockRepo = MockSessionRepository()
-        let mockEnforcer = MockSessionEnforcer()
+        let mockShield = MockSessionShieldRepository()
+        let mockMonitoring = MockSessionActivityMonitoringRepository()
         let mockObserveBlocklist = MockObserveBlocklistUseCase()
         mockObserveBlocklist.subject.send(Blocklist.empty())
 
@@ -26,7 +27,8 @@ final class StartSessionUseCaseTests: XCTestCase {
 
         let uc = StartSessionUseCaseImpl(
             repository: mockRepo,
-            enforcer: mockEnforcer,
+            shield: mockShield,
+            monitoring: mockMonitoring,
             observeBlocklist: mockObserveBlocklist
         )
         let returned = try await uc(blocklistId: blocklistId, duration: duration, now: now)
@@ -34,19 +36,20 @@ final class StartSessionUseCaseTests: XCTestCase {
         XCTAssertEqual(returned, expected)
         XCTAssertEqual(mockRepo.startSessionCallCount, 1)
         XCTAssertEqual(mockRepo.startSessionLastBlocklistId, blocklistId)
-        XCTAssertEqual(mockEnforcer.applyShieldCallCount, 1)
-        XCTAssertEqual(mockEnforcer.startActivityMonitoringCallCount, 1)
-        XCTAssertEqual(mockEnforcer.clearShieldCallCount, 0)
-        XCTAssertEqual(mockEnforcer.stopActivityMonitoringCallCount, 0)
+        XCTAssertEqual(mockShield.applyShieldCallCount, 1)
+        XCTAssertEqual(mockMonitoring.startActivityMonitoringCallCount, 1)
+        XCTAssertEqual(mockShield.clearShieldCallCount, 0)
+        XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 0)
         XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 0)
     }
 
     func testStartSessionRollsBackWhenApplyShieldThrows() async {
         let mockRepo = MockSessionRepository()
-        let mockEnforcer = MockSessionEnforcer()
+        let mockShield = MockSessionShieldRepository()
+        let mockMonitoring = MockSessionActivityMonitoringRepository()
         let mockObserveBlocklist = MockObserveBlocklistUseCase()
         mockObserveBlocklist.subject.send(Blocklist.empty())
-        mockEnforcer.applyShieldError = TestError()
+        mockShield.applyShieldError = TestError()
 
         let now = Date()
         mockRepo.stubbedStartSessionResult = SessionRecord(
@@ -58,7 +61,8 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         let uc = StartSessionUseCaseImpl(
             repository: mockRepo,
-            enforcer: mockEnforcer,
+            shield: mockShield,
+            monitoring: mockMonitoring,
             observeBlocklist: mockObserveBlocklist
         )
         do {
@@ -66,12 +70,12 @@ final class StartSessionUseCaseTests: XCTestCase {
             XCTFail("expected throw")
         } catch {
             XCTAssertEqual(mockRepo.startSessionCallCount, 1)
-            XCTAssertEqual(mockEnforcer.applyShieldCallCount, 1)
+            XCTAssertEqual(mockShield.applyShieldCallCount, 1)
             // Monitoring should NOT have been started (failed at step 2).
-            XCTAssertEqual(mockEnforcer.startActivityMonitoringCallCount, 0)
+            XCTAssertEqual(mockMonitoring.startActivityMonitoringCallCount, 0)
             // Rollback: clear + stop + finalize as cancelledByUser.
-            XCTAssertEqual(mockEnforcer.clearShieldCallCount, 1)
-            XCTAssertEqual(mockEnforcer.stopActivityMonitoringCallCount, 1)
+            XCTAssertEqual(mockShield.clearShieldCallCount, 1)
+            XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
             XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 1)
             XCTAssertEqual(mockRepo.finalizeActiveSessionLastOutcome, .cancelledByUser)
             XCTAssertTrue(error is TestError)
@@ -80,10 +84,11 @@ final class StartSessionUseCaseTests: XCTestCase {
 
     func testStartSessionRollsBackWhenStartMonitoringThrows() async {
         let mockRepo = MockSessionRepository()
-        let mockEnforcer = MockSessionEnforcer()
+        let mockShield = MockSessionShieldRepository()
+        let mockMonitoring = MockSessionActivityMonitoringRepository()
         let mockObserveBlocklist = MockObserveBlocklistUseCase()
         mockObserveBlocklist.subject.send(Blocklist.empty())
-        mockEnforcer.startActivityMonitoringError = TestError()
+        mockMonitoring.startActivityMonitoringError = TestError()
 
         let now = Date()
         mockRepo.stubbedStartSessionResult = SessionRecord(
@@ -95,17 +100,18 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         let uc = StartSessionUseCaseImpl(
             repository: mockRepo,
-            enforcer: mockEnforcer,
+            shield: mockShield,
+            monitoring: mockMonitoring,
             observeBlocklist: mockObserveBlocklist
         )
         do {
             _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
             XCTFail("expected throw")
         } catch {
-            XCTAssertEqual(mockEnforcer.applyShieldCallCount, 1)
-            XCTAssertEqual(mockEnforcer.startActivityMonitoringCallCount, 1)
-            XCTAssertEqual(mockEnforcer.clearShieldCallCount, 1)
-            XCTAssertEqual(mockEnforcer.stopActivityMonitoringCallCount, 1)
+            XCTAssertEqual(mockShield.applyShieldCallCount, 1)
+            XCTAssertEqual(mockMonitoring.startActivityMonitoringCallCount, 1)
+            XCTAssertEqual(mockShield.clearShieldCallCount, 1)
+            XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
             XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 1)
             XCTAssertEqual(mockRepo.finalizeActiveSessionLastOutcome, .cancelledByUser)
             XCTAssertTrue(error is TestError)
@@ -114,7 +120,8 @@ final class StartSessionUseCaseTests: XCTestCase {
 
     func testStartSessionReadsCurrentBlocklistFromObserveUseCase() async throws {
         let mockRepo = MockSessionRepository()
-        let mockEnforcer = MockSessionEnforcer()
+        let mockShield = MockSessionShieldRepository()
+        let mockMonitoring = MockSessionActivityMonitoringRepository()
         let mockObserveBlocklist = MockObserveBlocklistUseCase()
         let customId = UUID()
         mockObserveBlocklist.subject.send(Blocklist.empty(id: customId))
@@ -129,10 +136,11 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         let uc = StartSessionUseCaseImpl(
             repository: mockRepo,
-            enforcer: mockEnforcer,
+            shield: mockShield,
+            monitoring: mockMonitoring,
             observeBlocklist: mockObserveBlocklist
         )
         _ = try await uc(blocklistId: customId, duration: SessionDuration.preset(30)!, now: now)
-        XCTAssertEqual(mockEnforcer.applyShieldLastBlocklistId, customId)
+        XCTAssertEqual(mockShield.applyShieldLastBlocklistId, customId)
     }
 }

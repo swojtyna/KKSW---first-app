@@ -5,8 +5,8 @@ import os
 /// CONTEXT §D-07 atomic session start.
 ///
 /// Step 1: Persist a new SessionRecord via `SessionRepository.startSession`.
-/// Step 2: Apply ManagedSettings shield via `SessionEnforcer.applyShield(for:)`.
-/// Step 3: Schedule DeviceActivity monitoring via `SessionEnforcer.startActivityMonitoring`.
+/// Step 2: Apply ManagedSettings shield via `SessionShieldRepository.applyShield(for:)`.
+/// Step 3: Schedule DeviceActivity monitoring via `SessionActivityMonitoringRepository.startActivityMonitoring`.
 ///
 /// If step 2 OR step 3 throws, best-effort rollback fires: clearShield +
 /// stopActivityMonitoring + repo.finalizeActiveSession(.cancelledByUser). The
@@ -21,7 +21,8 @@ protocol StartSessionUseCase: Sendable {
 
 final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
     private let repository: SessionRepository
-    private let enforcer: SessionEnforcer
+    private let shield: SessionShieldRepository
+    private let monitoring: SessionActivityMonitoringRepository
     private let observeBlocklist: ObserveBlocklistUseCase
 
     private static let log = Logger(
@@ -31,11 +32,13 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
 
     init(
         repository: SessionRepository,
-        enforcer: SessionEnforcer,
+        shield: SessionShieldRepository,
+        monitoring: SessionActivityMonitoringRepository,
         observeBlocklist: ObserveBlocklistUseCase
     ) {
         self.repository = repository
-        self.enforcer = enforcer
+        self.shield = shield
+        self.monitoring = monitoring
         self.observeBlocklist = observeBlocklist
     }
 
@@ -56,7 +59,7 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
 
         // Step 2: apply shield + system restrictions (CONTEXT §D-07 steps 2 + 4).
         do {
-            try await enforcer.applyShield(for: blocklist)
+            try await shield.applyShield(for: blocklist)
         } catch {
             Self.log.error("applyShield failed: \(String(describing: error), privacy: .public) — rolling back")
             await rollback(recordID: record.id, actualEndAt: now)
@@ -65,7 +68,7 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
 
         // Step 3: start activity monitoring (CONTEXT §D-07 step 3).
         do {
-            try await enforcer.startActivityMonitoring(for: record)
+            try await monitoring.startActivityMonitoring(for: record)
         } catch {
             Self.log.error("startActivityMonitoring failed: \(String(describing: error), privacy: .public) — rolling back")
             await rollback(recordID: record.id, actualEndAt: now)
@@ -91,8 +94,8 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
     }
 
     private func rollback(recordID: UUID, actualEndAt: Date) async {
-        await enforcer.clearShield()
-        await enforcer.stopActivityMonitoring()
+        await shield.clearShield()
+        await monitoring.stopActivityMonitoring()
         // Finalize the just-created record as cancelled (user never saw a live session).
         try? await repository.finalizeActiveSession(
             outcome: .cancelledByUser,

@@ -1,9 +1,10 @@
 // Features/Session/Injection/SessionInjection.swift
 //
 // Distributed DI registration for the Session feature. Feature-owner of
-// `SessionRepository` + `SessionEnforcer` + 9 Session UseCases. Called from
-// `DeluluDetoxApp.init()` BETWEEN `AppSelectionInjection` and `DenialInjection`
-// (feature-owner-first ordering per 02-03 SUMMARY §"Bootstrap ordering").
+// `SessionRepository` + `SessionShieldRepository` + `SessionActivityMonitoringRepository`
+// + 9 Session UseCases. Called from `DeluluDetoxApp.init()` BETWEEN
+// `AppSelectionInjection` and `DenialInjection` (feature-owner-first ordering
+// per 02-03 SUMMARY §"Bootstrap ordering").
 
 enum SessionInjection {
     static func register(in container: DIContainer) {
@@ -12,9 +13,14 @@ enum SessionInjection {
             SessionRepositoryImpl()
         }
 
-        // Enforcer (singleton — one ManagedSettingsStore wrapper per process).
-        container.register(SessionEnforcer.self, scope: .application) { _ in
-            SessionEnforcerImpl()
+        // Shield repository (singleton — one ManagedSettingsStore wrapper per process).
+        container.register(SessionShieldRepository.self, scope: .application) { _ in
+            LiveSessionShieldRepository()
+        }
+
+        // Activity monitoring repository (singleton — one DeviceActivityCenter per process).
+        container.register(SessionActivityMonitoringRepository.self, scope: .application) { _ in
+            LiveSessionActivityMonitoringRepository()
         }
 
         // Observe UCs — stateless pass-through wrappers.
@@ -28,12 +34,17 @@ enum SessionInjection {
         // EndSession MUST register BEFORE the UCs that depend on it
         // (Finalize/SelfHeal/DetectRevocation all resolve EndSessionUseCase).
         container.register(EndSessionUseCase.self, scope: .unique) { c in
-            EndSessionUseCaseImpl(repository: c.resolve(), enforcer: c.resolve())
+            EndSessionUseCaseImpl(
+                repository: c.resolve(),
+                shield: c.resolve(),
+                monitoring: c.resolve()
+            )
         }
         container.register(StartSessionUseCase.self, scope: .unique) { c in
             StartSessionUseCaseImpl(
                 repository: c.resolve(),
-                enforcer: c.resolve(),
+                shield: c.resolve(),
+                monitoring: c.resolve(),
                 observeBlocklist: c.resolve()
             )
         }
