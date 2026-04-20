@@ -36,5 +36,10 @@ enum NotificationsInjection {
                 captions: c.resolve()
             )
         }
+        // Broken-streak home-card copy (Plan 06-05). Honors CLAUDE.md VM→UC
+        // rule so `HomeStatsCardViewModel` never reaches NotificationCaptionLibrary directly.
+        container.register(GetBrokenStreakCopyUseCase.self, scope: .unique) { c in
+            GetBrokenStreakCopyUseCaseImpl(captions: c.resolve())
+        }
     }
 }
