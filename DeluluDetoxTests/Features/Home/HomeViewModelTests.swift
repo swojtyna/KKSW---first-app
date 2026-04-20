@@ -38,6 +38,14 @@ final class HomeViewModelTests: XCTestCase {
         // mocks so any tests that exercise the new intent do not crash in DI.
         DIContainer.shared.register(ObserveScheduleUseCase.self, scope: .unique) { _ in MockObserveScheduleUseCase() }
         DIContainer.shared.register(ToggleScheduleUseCase.self, scope: .unique) { _ in MockToggleScheduleUseCase() }
+
+        // Plan 06-05 — HomeViewModel owns a HomeStatsCardViewModel (constructed
+        // eagerly in its init) AND its statsCardTapped() intent instantiates
+        // StatsViewModel. Both VMs @LazyInject ObserveStatsUseCase; the card
+        // VM also @LazyInjects GetBrokenStreakCopyUseCase. Register mocks so
+        // HomeViewModel construction + statsCardTapped do not crash in DI.
+        DIContainer.shared.register(ObserveStatsUseCase.self, scope: .unique) { _ in MockObserveStatsUseCase() }
+        DIContainer.shared.register(GetBrokenStreakCopyUseCase.self, scope: .unique) { _ in MockGetBrokenStreakCopyUseCase() }
     }
 
     // MARK: - Helpers
@@ -369,5 +377,33 @@ final class HomeViewModelTests: XCTestCase {
             return
         }
         XCTAssertNotNil(listVM)
+    }
+
+    // MARK: - Plan 06-05 Stats navigation
+
+    /// statsCardTapped() routes HomeViewModel.destination to .stats(StatsViewModel)
+    /// — the Plan 06-05 home-card tap → pushed Stats screen binding
+    /// (CONTEXT §D-09 / §D-11).
+    func testStatsCardTapped_setsStatsDestination() async {
+        let vm = HomeViewModel()
+        await yield()
+
+        vm.statsCardTapped()
+
+        guard case .stats(let statsVM) = vm.destination else {
+            XCTFail("Expected .stats destination, got \(String(describing: vm.destination))")
+            return
+        }
+        XCTAssertNotNil(statsVM)
+    }
+
+    /// Two distinct StatsViewModel instances wrapped in `.stats(_)` are != by
+    /// identity (the Destination enum uses `===` identity equality for VM
+    /// payloads — consistent with .sessionStart / .countdown / .scheduleList).
+    func testStatsCardDestination_isIdentityEquatable() {
+        let a = StatsViewModel()
+        let b = StatsViewModel()
+        XCTAssertNotEqual(HomeViewModel.Destination.stats(a), HomeViewModel.Destination.stats(b))
+        XCTAssertEqual(HomeViewModel.Destination.stats(a), HomeViewModel.Destination.stats(a))
     }
 }

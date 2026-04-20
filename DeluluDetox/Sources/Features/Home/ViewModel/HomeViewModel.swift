@@ -17,6 +17,7 @@ final class HomeViewModel: @unchecked Sendable {
         case countdown(CountdownViewModel)
         case sessionSuccess(SessionSuccessViewModel)
         case scheduleList(ScheduleListViewModel)
+        case stats(StatsViewModel)   // NEW (Phase 6 Plan 05 — GAM-01/02 nav push).
 
         // HomeViewModel.Destination cases containing non-Equatable payloads
         // (SessionStartViewModel / CountdownViewModel / SessionSuccessViewModel)
@@ -30,6 +31,7 @@ final class HomeViewModel: @unchecked Sendable {
             case (.countdown(let a), .countdown(let b)): return a === b
             case (.sessionSuccess(let a), .sessionSuccess(let b)): return a === b
             case (.scheduleList(let a), .scheduleList(let b)): return a === b
+            case (.stats(let a), .stats(let b)): return a === b
             default: return false
             }
         }
@@ -49,6 +51,13 @@ final class HomeViewModel: @unchecked Sendable {
 
     var destination: Destination?
     private(set) var snapshot: Blocklist = .empty()
+
+    /// Home-card stats projection (CONTEXT §D-09 + §D-10). Owned by HomeViewModel
+    /// so the card VM's Combine subscription lives for the home tab's lifetime
+    /// (not re-created per tab switch). The same Stats pipeline feeds the
+    /// pushed Stats screen via a SEPARATE StatsViewModel (created on tap).
+    @ObservationIgnored
+    private(set) var statsCard: HomeStatsCardViewModel = HomeStatsCardViewModel()
 
     @ObservationIgnored
     @LazyInjected private var observeBlocklist: ObserveBlocklistUseCase
@@ -149,6 +158,16 @@ final class HomeViewModel: @unchecked Sendable {
     /// contract exercised by HomeViewModelTests.
     func scheduleListTapped() {
         destination = .scheduleList(ScheduleListViewModel())
+    }
+
+    // MARK: - Stats intent (Plan 06-05)
+
+    /// Tapping the home stats card pushes the full Stats screen (GAM-01 + GAM-02).
+    /// Instantiates a dedicated StatsViewModel — separate from `statsCard` because
+    /// the screen needs the full calendar state (displayedMonth + completedDaysSet)
+    /// that the card projection doesn't carry.
+    func statsCardTapped() {
+        destination = .stats(StatsViewModel())
     }
 
     // MARK: - Cross-VM bridge — SessionStartViewModel countdownHandoff → parent countdown

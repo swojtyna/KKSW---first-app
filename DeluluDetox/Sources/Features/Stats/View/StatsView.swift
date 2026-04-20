@@ -1,22 +1,15 @@
 import SwiftUI
 
-/// Stats screen — view-only scaffolding for Phase 6.
-///
-/// Ports the Hi-Fi design from the design handoff. The view currently
-/// renders mock data inline; Phase 6 will introduce StatsViewModel +
-/// ObserveStreak / ObserveSessionHistory use cases and replace the
-/// hardcoded values below with observed state.
+/// Stats screen — VM-driven per Phase 6 Plan 05 (H7).
+/// All dynamic state lives on `StatsViewModel`; only display-constant weekday
+/// labels stay local to the View.
 struct StatsView: View {
-    // MARK: - Mock data (Phase 6 will move these to StatsViewModel)
+    @Bindable var model: StatsViewModel
 
-    private let markedDays: Set<Int> = [1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-    private let today: Int = 18
-    private let leadingEmptyCells: Int = 2
-    private let daysInMonth: Int = 30
-    private let currentStreak: Int = 7
-    private let recordStreak: Int = 12
-    private let sessionsThisMonth: Int = 23
-
+    // Weekday headers — Monday-first. Kept as View-local display constant
+    // (CONTEXT §Claude's Discretion — no localization variation in MVP).
+    // String IDs since "P" repeats (Pn + Pt) and raw offsets would collide
+    // with the Int day IDs in the grid below.
     private struct WeekdayHeader: Identifiable {
         let id: String
         let letter: String
@@ -47,7 +40,7 @@ struct StatsView: View {
                         icon: "flame.fill",
                         iconColor: .brandAmber,
                         label: "AKTUALNY",
-                        value: "\(currentStreak)",
+                        value: "\(model.stats.currentStreak)",
                         valueColor: .textPrimary,
                         showHot: false
                     )
@@ -55,7 +48,7 @@ struct StatsView: View {
                         icon: nil,
                         iconColor: .clear,
                         label: "REKORD",
-                        value: "\(recordStreak)",
+                        value: "\(model.stats.longestStreak)",
                         valueColor: .brandAmber,
                         showHot: true
                     )
@@ -65,7 +58,7 @@ struct StatsView: View {
                 calendarCard
                     .padding(.horizontal, Theme.Spacing.lg)
 
-                Text("\(sessionsThisMonth) sesje w tym miesiącu. Ktoś tu rośnie.")
+                Text("Łącznie ukończonych sesji: \(model.stats.totalCount).")
                     .font(.dduFootnote)
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -133,31 +126,35 @@ struct StatsView: View {
         .shadow(color: .black.opacity(0.06), radius: 24, x: 0, y: 8)
     }
 
-    // MARK: - Calendar card
+    // MARK: - Calendar card — VM-driven
 
     private var calendarCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Kwiecień 2026")
+                Text(model.displayedMonthFormatted)
                     .font(.dduHeadline)
                     .foregroundStyle(Color.textPrimary)
                 Spacer()
                 HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.brandViolet)
-                        .frame(width: 28, height: 28)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.brandViolet)
-                        .frame(width: 28, height: 28)
+                    Button(action: { model.prevMonthTapped() }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.brandViolet)
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    Button(action: { model.nextMonthTapped() }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.brandViolet)
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
-                // Weekday headers — "wd-N" string IDs since "P" repeats (Pn + Pt)
-                // and raw offsets would collide with the Int day IDs below.
-                ForEach(weekdayHeaders, id: \.id) { header in
+                ForEach(weekdayHeaders) { header in
                     Text(header.letter)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.textSecondary)
@@ -166,11 +163,11 @@ struct StatsView: View {
                 }
 
                 // Leading empty cells before day 1. String IDs avoid colliding with the Int day IDs below.
-                ForEach((0..<leadingEmptyCells).map { "empty-\($0)" }, id: \.self) { _ in
+                ForEach((0..<model.leadingEmptyCells).map { "empty-\($0)" }, id: \.self) { _ in
                     Color.clear.aspectRatio(1, contentMode: .fit)
                 }
 
-                ForEach(1...daysInMonth, id: \.self) { day in
+                ForEach(1...max(model.daysInMonth, 1), id: \.self) { day in
                     dayCell(day: day)
                 }
             }
@@ -183,8 +180,9 @@ struct StatsView: View {
     }
 
     private func dayCell(day: Int) -> some View {
-        let isMarked = markedDays.contains(day)
-        let isToday = day == today
+        let date = model.date(forDayOfMonth: day) ?? Date()
+        let isMarked = model.isMarked(day: date)
+        let isToday = model.isToday(day: date)
 
         return ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -204,14 +202,14 @@ struct StatsView: View {
 
 #Preview("Light") {
     NavigationStack {
-        StatsView()
+        StatsView(model: StatsViewModel())
     }
     .preferredColorScheme(.light)
 }
 
 #Preview("Dark") {
     NavigationStack {
-        StatsView()
+        StatsView(model: StatsViewModel())
     }
     .preferredColorScheme(.dark)
 }

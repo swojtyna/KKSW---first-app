@@ -1,28 +1,29 @@
 import SwiftUI
 
-/// "Dzisiaj" tab landing — view-only scaffolding for Phase 6.
+/// "Dzisiaj" tab landing — VM-driven for the stats section (Phase 6 Plan 05).
 ///
 /// Ports the Hi-Fi dashboard from the design handoff (streak hero + quick
-/// stats + next-block card + Szybka sesja CTA). Every metric rendered
-/// here is mock data; Phase 6 will introduce HomeDashboardViewModel backed
-/// by ObserveStreak / ObserveSessionHistory / ObserveSchedule and replace
-/// the hardcoded values.
+/// stats + next-block card + Szybka sesja CTA). Stats-related data is fed by
+/// `HomeStatsCardViewModel`; the greeting + next-block card remain mock in
+/// MVP (out of Phase 6 scope — they are not stats bindings).
 ///
-/// The "Szybka sesja" button forwards up to the parent (HomeView) via
-/// `onQuickSessionTap` so this view stays view-model-free.
+/// Tapping the streak hero forwards up via `onStatsCardTap` (HomeView routes
+/// that to `HomeViewModel.statsCardTapped()` → `.stats` destination). The
+/// "Szybka sesja" button forwards via `onQuickSessionTap`.
 struct HomeDashboardView: View {
+    @Bindable var statsCard: HomeStatsCardViewModel
     let onQuickSessionTap: () -> Void
+    let onStatsCardTap: () -> Void
 
-    // MARK: - Mock data (Phase 6 will move these to a dashboard VM)
+    // Keep dayLabels as View-local display constant (no locale variance in MVP).
+    private let dayLabels: [String] = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"]
 
+    // KEPT as mock (out-of-scope for Phase 6 — greeting is not a stats binding).
     private let greetingName: String = "mistrzu"
     private let greetingSubtitle: String = "Sobota, 18 kwietnia — dzień 7."
-    private let streakDays: Int = 7
-    private let dayLabels: [String] = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"]
-    private let streakFlags: [Bool] = [true, true, true, true, true, true, true]
-    private let todayIndex: Int = 6
-    private let completedCount: Int = 23
-    private let recordCount: Int = 12
+
+    // KEPT as mock (next-block card is Phase 5 territory; Plan 05 leaves this intact
+    // — not part of GAM-01/02 scope).
     private let nextBlockTitle: String = "Dni robocze · 9–17"
     private let nextBlockSubtitle: String = "Aktywny · 12 blokad"
     @State private var nextBlockEnabled: Bool = true
@@ -43,12 +44,22 @@ struct HomeDashboardView: View {
                 .padding(.bottom, Theme.Spacing.md)
 
                 VStack(spacing: 14) {
-                    streakHeroCard
-                        .padding(.horizontal, Theme.Spacing.lg)
+                    // Phase 6 D-10: branch on broken-streak copy.
+                    if let shame = statsCard.brokenStreakCopy {
+                        brokenStreakHeroCard(shame: shame)
+                            .padding(.horizontal, Theme.Spacing.lg)
+                            .contentShape(Rectangle())
+                            .onTapGesture { onStatsCardTap() }
+                    } else {
+                        regularStreakHeroCard
+                            .padding(.horizontal, Theme.Spacing.lg)
+                            .contentShape(Rectangle())
+                            .onTapGesture { onStatsCardTap() }
+                    }
 
                     HStack(spacing: 10) {
-                        quickStat(label: "UKOŃCZONYCH", value: "\(completedCount)", tint: Color.textPrimary)
-                        quickStat(label: "REKORD", value: "\(recordCount)", tint: Color.brandAmber, showHot: true)
+                        quickStat(label: "UKOŃCZONYCH", value: "\(statsCard.stats.totalCount)", tint: Color.textPrimary)
+                        quickStat(label: "REKORD", value: "\(statsCard.stats.longestStreak)", tint: Color.brandAmber, showHot: true)
                     }
                     .padding(.horizontal, Theme.Spacing.lg)
 
@@ -67,9 +78,9 @@ struct HomeDashboardView: View {
         .background(Color.surfaceGrouped.ignoresSafeArea())
     }
 
-    // MARK: - Streak hero
+    // MARK: - Regular streak hero (violet flame)
 
-    private var streakHeroCard: some View {
+    private var regularStreakHeroCard: some View {
         ZStack(alignment: .topTrailing) {
             LinearGradient(
                 colors: [.brandViolet, .brandVioletInk],
@@ -86,7 +97,7 @@ struct HomeDashboardView: View {
                             .foregroundStyle(.white.opacity(0.8))
 
                         HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
-                            Text("\(streakDays)")
+                            Text("\(statsCard.stats.currentStreak)")
                                 .font(.system(size: 54, weight: .bold))
                                 .foregroundStyle(.white)
 
@@ -115,9 +126,9 @@ struct HomeDashboardView: View {
                 }
 
                 HStack(spacing: 6) {
-                    ForEach(Array(streakFlags.enumerated()), id: \.offset) { index, isOn in
+                    ForEach(Array(statsCard.stats.last7DaysFlags.enumerated()), id: \.offset) { index, isOn in
                         VStack(spacing: 2) {
-                            Text(dayLabels[index])
+                            Text(dayLabels[safe: index] ?? "")
                                 .font(.system(size: 10, weight: .regular))
                                 .foregroundStyle(.white.opacity(0.75))
 
@@ -135,7 +146,7 @@ struct HomeDashboardView: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
-                                .stroke(index == todayIndex ? Color.white : .clear, lineWidth: 1.5)
+                                .stroke(index == statsCard.stats.todayWeekdayIndex ? Color.white : .clear, lineWidth: 1.5)
                         )
                     }
                 }
@@ -145,6 +156,42 @@ struct HomeDashboardView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.xl, style: .continuous))
         .shadow(color: Color.brandViolet.opacity(0.3), radius: 40, x: 0, y: 16)
+    }
+
+    // MARK: - Broken streak hero (gray flame — D-10)
+
+    private func brokenStreakHeroCard(shame: String) -> some View {
+        ZStack(alignment: .topTrailing) {
+            LinearGradient(
+                colors: [Color.gray.opacity(0.6), Color.gray.opacity(0.8)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("SERIA ZERWANA")
+                    .font(.dduFootnote).kerning(0.5)
+                    .foregroundStyle(.white.opacity(0.8))
+                Text("0 dni")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundStyle(.white)
+                Text(shame)
+                    .font(.dduCallout)
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Theme.Spacing.xl)
+
+            ZStack {
+                Circle().fill(Color.gray.opacity(0.5))
+                Image(systemName: "flame")
+                    .font(.system(size: 26, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            .frame(width: 48, height: 48)
+            .padding(Theme.Spacing.md)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.xl, style: .continuous))
     }
 
     // MARK: - Quick stat card
@@ -181,7 +228,7 @@ struct HomeDashboardView: View {
         .shadow(color: .black.opacity(0.06), radius: 24, x: 0, y: 8)
     }
 
-    // MARK: - Next-block card
+    // MARK: - Next-block card (kept mock — Phase 5 territory)
 
     private var nextBlockCard: some View {
         HStack(spacing: Theme.Spacing.md) {
@@ -215,12 +262,28 @@ struct HomeDashboardView: View {
     }
 }
 
+// MARK: - Collection safe subscript (defensive against malformed last7DaysFlags)
+
+private extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
+
 #Preview("Light") {
-    HomeDashboardView(onQuickSessionTap: {})
-        .preferredColorScheme(.light)
+    HomeDashboardView(
+        statsCard: HomeStatsCardViewModel(),
+        onQuickSessionTap: {},
+        onStatsCardTap: {}
+    )
+    .preferredColorScheme(.light)
 }
 
 #Preview("Dark") {
-    HomeDashboardView(onQuickSessionTap: {})
-        .preferredColorScheme(.dark)
+    HomeDashboardView(
+        statsCard: HomeStatsCardViewModel(),
+        onQuickSessionTap: {},
+        onStatsCardTap: {}
+    )
+    .preferredColorScheme(.dark)
 }

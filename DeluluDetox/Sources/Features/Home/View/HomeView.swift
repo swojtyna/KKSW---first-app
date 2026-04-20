@@ -36,6 +36,9 @@ struct HomeView: View {
             .navigationDestination(item: $model.destination.countdown) { countdownModel in
                 CountdownView(model: countdownModel)
             }
+            .navigationDestination(item: $model.destination.stats) { statsModel in
+                StatsView(model: statsModel)
+            }
             .alert(
                 "Coś się popsuło",
                 isPresented: Binding(
@@ -72,11 +75,13 @@ struct HomeView: View {
             case 2:
                 ScheduleListView(model: scheduleListModel)
             case 3:
-                StatsView()
+                StatsView(model: StatsViewModel())
             default:
-                HomeDashboardView {
-                    model.startSessionTapped()
-                }
+                HomeDashboardView(
+                    statsCard: model.statsCard,
+                    onQuickSessionTap: { model.startSessionTapped() },
+                    onStatsCardTap: { model.statsCardTapped() }
+                )
             }
         }
         .background(Color.surfaceGrouped)
@@ -211,10 +216,12 @@ private struct PickerHostView: View {
 #Preview {
     let container = DIContainer.shared
     container.reset()
+    NotificationsInjection.register(in: container)
     OnboardingInjection.register(in: container)
     AppSelectionInjection.register(in: container)
     SessionInjection.register(in: container)
     SchedulingInjection.register(in: container)
+    StatsInjection.register(in: container)
     return NavigationStack {
         HomeView(model: HomeViewModel())
     }

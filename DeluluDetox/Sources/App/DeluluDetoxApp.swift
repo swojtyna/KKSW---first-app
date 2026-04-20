@@ -20,6 +20,9 @@ struct DeluluDetoxApp: App {
         AppSelectionInjection.register(in: container)
         SessionInjection.register(in: container)
         SchedulingInjection.register(in: container)
+        // Stats (Plan 06-05) — MUST register AFTER SessionInjection because
+        // ObserveStatsUseCase resolves ObserveSessionHistoryUseCase from the container.
+        StatsInjection.register(in: container)
         DenialInjection.register(in: container)
         HomeInjection.register(in: container)
         RootInjection.register(in: container)
