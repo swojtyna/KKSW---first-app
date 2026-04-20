@@ -55,7 +55,7 @@ final class AppNotificationDelegateTests: XCTestCase {
 
         await sut.dispatchResponse(
             identifier: "com.kksw.DeluluDetox.shield-deeplink.ABC",
-            userInfo: ["url": "deluludetox://shield"]
+            urlString: "deluludetox://shield"
         )
 
         XCTAssertEqual(spy.receivedURLs.map(\.absoluteString), ["deluludetox://shield"])
@@ -66,7 +66,7 @@ final class AppNotificationDelegateTests: XCTestCase {
 
         await sut.dispatchResponse(
             identifier: "com.kksw.DeluluDetox.shield-deeplink.ABC",
-            userInfo: ["url": "https://example.com"]
+            urlString: "https://example.com"
         )
 
         XCTAssertTrue(spy.receivedURLs.isEmpty)
@@ -77,7 +77,7 @@ final class AppNotificationDelegateTests: XCTestCase {
 
         await sut.dispatchResponse(
             identifier: "com.kksw.DeluluDetox.shield-deeplink.ABC",
-            userInfo: [:]
+            urlString: nil
         )
 
         XCTAssertTrue(spy.receivedURLs.isEmpty)
@@ -88,7 +88,7 @@ final class AppNotificationDelegateTests: XCTestCase {
 
         await sut.dispatchResponse(
             identifier: "session.end.ABC",
-            userInfo: ["url": "deluludetox://session"]
+            urlString: "deluludetox://session"
         )
 
         XCTAssertTrue(spy.receivedURLs.isEmpty, "engagement notifications MUST NOT go through shield handler")
@@ -99,7 +99,7 @@ final class AppNotificationDelegateTests: XCTestCase {
 
         await sut.dispatchResponse(
             identifier: "schedule.start.ABC.2",
-            userInfo: [:]
+            urlString: nil
         )
 
         XCTAssertTrue(spy.receivedURLs.isEmpty)

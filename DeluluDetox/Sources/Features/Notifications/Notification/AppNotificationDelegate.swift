@@ -43,16 +43,24 @@ final class AppNotificationDelegate: NSObject, UNUserNotificationCenterDelegate 
     }
 
     /// Pure tap-response dispatch used by tests. The public `didReceive` forwards
-    /// to this when called from iOS. Shield deep-link prefix validates `userInfo["url"]`
-    /// has scheme `deluludetox` before forwarding to the handler. Other prefixes
-    /// (NTF-01 / NTF-02) are no-ops — iOS auto-foregrounds the app on tap.
-    func dispatchResponse(identifier: String, userInfo: [AnyHashable: Any]) async {
+    /// to this when called from iOS. Shield deep-link prefix validates the
+    /// extracted `urlString` has scheme `deluludetox` before forwarding to the
+    /// handler. Other prefixes (NTF-01 / NTF-02) are no-ops — iOS
+    /// auto-foregrounds the app on tap.
+    ///
+    /// Takes a pre-extracted `urlString: String?` (Sendable) rather than the raw
+    /// `[AnyHashable: Any]` userInfo dictionary. iOS can place non-Sendable
+    /// reference types (NSNumber, NSDate, CFType bridges) inside userInfo, so
+    /// the caller (`didReceive`) extracts the single String value we need on
+    /// the nonisolated queue before hopping actors — no `@unchecked Sendable`
+    /// box required.
+    func dispatchResponse(identifier: String, urlString: String?) async {
         guard identifier.hasPrefix(ShieldNotificationConstants.identifierPrefix) else {
             // Phase 6 engagement notification taps just foreground the app
             // (iOS does that automatically). No routing in MVP.
             return
         }
-        guard let urlString = userInfo[ShieldNotificationConstants.userInfoURLKey] as? String,
+        guard let urlString,
               let url = URL(string: urlString),
               url.scheme == "deluludetox" else {
             log.error("shield deeplink notif tap: invalid userInfo")
@@ -82,25 +90,23 @@ final class AppNotificationDelegate: NSObject, UNUserNotificationCenterDelegate 
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let id = response.notification.request.identifier
-        let userInfo = response.notification.request.content.userInfo
+        // Extract the single String value we care about synchronously on the
+        // nonisolated queue BEFORE hopping actors. This avoids boxing the raw
+        // `[AnyHashable: Any]` userInfo dictionary in an `@unchecked Sendable`
+        // wrapper — iOS can place non-Sendable reference types inside userInfo
+        // and a blanket `@unchecked Sendable` promise silently masks future
+        // regressions if any call-site writes non-String values.
+        let urlString = response.notification.request.content.userInfo[
+            ShieldNotificationConstants.userInfoURLKey
+        ] as? String
         // Fire completionHandler synchronously so iOS releases the
         // notification handling resources immediately (T-04-03-02 pattern).
         defer { completionHandler() }
 
         // Forward to the @MainActor seam. Fire-and-forget — we don't block
         // the iOS callback on our async work.
-        let sendableUserInfo = _SendableUserInfo(userInfo)
         Task { @MainActor [self] in
-            await dispatchResponse(identifier: id, userInfo: sendableUserInfo.value)
+            await dispatchResponse(identifier: id, urlString: urlString)
         }
     }
-}
-
-/// Narrow Sendable box for `userInfo` payload. iOS hands us a
-/// `[AnyHashable: Any]` that isn't `Sendable`; tests only use `String`
-/// values so this box is safe in practice for MVP. Future: validate the
-/// dictionary shape before boxing.
-private struct _SendableUserInfo: @unchecked Sendable {
-    let value: [AnyHashable: Any]
-    init(_ value: [AnyHashable: Any]) { self.value = value }
 }
