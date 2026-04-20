@@ -136,7 +136,16 @@ Plans:
   2. User can enable or disable their schedule with a toggle
   3. When a schedule is active, the DeviceActivityMonitor extension automatically applies blocks during the scheduled window
   4. Shield overlay during scheduled blocks behaves identically to quick session shields
-**Plans**: TBD
+**Plans:** 8 plans
+Plans:
+- [ ] 05-01-wave0-spike-scaffolds-PLAN.md — Wave 0 physical-device spike (DAS repeats=true) + scheduling feature scaffold (Models/Paths/Injection skeleton) + 11 XCTest scaffolds with XCTSkipIf stubs + 10 mocks + project.yml DAM source-shares
+- [ ] 05-02-schedule-repository-PLAN.md — ScheduleRepository (App Group atomic JSON) + CreateOrUpdateScheduleUseCase + ConsumeScheduleEventMarkerUseCase (multi-marker timestamp-suffixed — resolves RESEARCH OQ#4) + 12 tests
+- [ ] 05-03-shield-and-monitoring-repositories-PLAN.md — ScheduleShieldRepository (deluludetox.schedule named store) + ScheduleActivityMonitoringRepository (1 or 2 DAS per cross-midnight split) + Schedule+DeviceActivity extension + 10 tests
+- [ ] 05-04-usecases-and-di-PLAN.md — ComputeScheduleWindowUseCase (pure) + Sync/Toggle/Observe/SelfHeal UCs + SchedulingInjection body (3 repos .application + 7 UCs .unique) + AppRootViewModel schedule foreground hook + 2 Darwin observers + 19 tests
+- [ ] 05-05-dam-extension-handlers-PLAN.md — DAM extension intervalDidStart + intervalDidEnd schedule paths with prefix dispatch + weekday filter + multi-marker writes + Darwin posts (SCH-03 core; SCH-04 delivered by Phase 4 shield parity — zero new shield code)
+- [ ] 05-06-editor-viewmodel-and-view-PLAN.md — ScheduleEditorViewModel (@Observable, draft state, Destination.errorAlert) + ScheduleEditorView (7 day chips + 3 presets + 2 wheel DatePickers + cross-midnight marker + enabled Toggle + Save CTA) + ScheduleDayChip subview + Theme+Scheduling extension + 8 VM tests
+- [ ] 05-07-list-viewmodel-and-navigation-PLAN.md — ScheduleListViewModel (@Observable, observes publisher, Destination.scheduleEditor + errorAlert) + ScheduleListView (List rows + row Toggle + empty state + navigationDestination to editor) + HomeViewModel.scheduleList destination case + HomeView toolbar button + 5 tests
+- [ ] 05-08-device-uat-PLAN.md — Human verification on physical iOS 26+ device — 7 scenarios: SCH-01 basic fire, SCH-02 disable, SCH-03 weekday filter, SCH-03 cross-midnight, SCH-04 shield parity, marker consumption, session×schedule coexistence
 **UI hint**: yes
 
 ### Phase 6: Engagement Layer
@@ -164,5 +173,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. App Selection | 0/? | Not started | - |
 | 3. Quick Sessions | 0/7 | Not started | - |
 | 4. Shield Customization | 0/? | Not started | - |
-| 5. Scheduled Blocking | 0/? | Not started | - |
+| 5. Scheduled Blocking | 0/8 | Not started | - |
 | 6. Engagement Layer | 0/? | Not started | - |
