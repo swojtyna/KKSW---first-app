@@ -1,5 +1,6 @@
 import Foundation
 import ManagedSettings
+import UserNotifications
 import os
 
 /// SHL-03 — shield action handler. All overrides delegate to
@@ -8,8 +9,10 @@ import os
 /// via project.yml) so it can be XCTest-unit-tested.
 ///
 /// Read-only against App Group files (D-16). Imports limited to
-/// Foundation + ManagedSettings + os to respect the 6 MB extension RAM
-/// ceiling (D-17, PROJECT.md Hard Constraint §8).
+/// Foundation + ManagedSettings + UserNotifications + os to respect the
+/// 6 MB extension RAM ceiling (D-17, PROJECT.md Hard Constraint §8).
+/// UserNotifications is a system framework needed for the SHL-03 local-push
+/// fallback (ShieldNotificationDispatcher.dispatch).
 final class ShieldActionExtension: ShieldActionDelegate {
 
     private static let log = Logger(
@@ -55,23 +58,18 @@ final class ShieldActionExtension: ShieldActionDelegate {
             "decide kind=\(String(describing: kind), privacy: .public) hasActive=\(hasActive, privacy: .public) urlPresent=\(decision.urlToOpen != nil, privacy: .public)"
         )
 
-        // SHL-03 shield → main-app routing is deferred to a follow-up gap-closure
-        // plan (likely 04.1) that implements a local-push-notification fallback.
+        // SHL-03: dispatch via local notification fallback. `ShieldActionDelegate`
+        // has no extensionContext and UIApplication workarounds are App Store 2.5.1
+        // risk (see 04-03-SUMMARY.md §Post-Review Correction). A silent-ish
+        // UNNotificationRequest (no sound, generic copy, no PII) is scheduled
+        // immediately; the main app's UNUserNotificationCenterDelegate converts
+        // a banner tap into HomeViewModel.handleDeepLink(_:).
         //
-        // Background: `ShieldActionDelegate` inherits from `NSObject` (not
-        // UIViewController) and does NOT expose `extensionContext` — verified
-        // against ManagedSettings.swiftinterface. The private-API workaround
-        // (NSClassFromString("UIApplication") → sharedApplication → openURL:
-        // via perform(_:)) is a known App Store rejection pattern (Guideline
-        // 2.5.1) and is not shipped.
-        //
-        // For now: log the decided URL for telemetry and return .close. The
-        // decision logic (ShieldActionHandler) remains fully unit-tested so
-        // the fallback plan only needs to wire the dispatch mechanism.
+        // Fire-and-forget: UNUserNotificationCenter.add is async but we do NOT
+        // await it — completionHandler(.close) fires unconditionally below so
+        // the shield process is always released (T-04-03-02 mitigation retained).
         if let url = decision.urlToOpen {
-            Self.log.info(
-                "deep-link decided but dispatch deferred url=\(url.absoluteString, privacy: .public) — awaiting follow-up plan with local-push fallback"
-            )
+            ShieldNotificationDispatcher().dispatch(url: url, log: Self.log)
         }
 
         // Always respond — even if open(_:) fails, completionHandler must fire
