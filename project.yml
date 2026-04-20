@@ -47,18 +47,30 @@ targets:
       - path: DeluluDetox/Sources
     resources:
       - path: DeluluDetox/Resources
+    info:
+      path: DeluluDetox/Info.plist
+      properties:
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIApplicationSupportsIndirectInputEvents: true
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations~iphone:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleURLTypes:
+          - CFBundleURLName: com.kksw.DeluluDetox
+            CFBundleURLSchemes:
+              - deluludetox
     settings:
       groups: [shared-ios]
       base:
-        GENERATE_INFOPLIST_FILE: true
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
-        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
-        INFOPLIST_KEY_UILaunchScreen_Generation: true
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        INFOPLIST_KEY_CFBundleURLTypes: '[{"CFBundleURLName":"com.kksw.DeluluDetox","CFBundleURLSchemes":["deluludetox"]}]'
         PRODUCT_BUNDLE_IDENTIFIER: com.kksw.DeluluDetox
         SWIFT_EMIT_LOC_STRINGS: true
     dependencies:
@@ -120,7 +132,7 @@ targets:
       path: Extensions/ShieldConfigurationExtension/Info.plist
       properties:
         NSExtension:
-          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-configuration-service
+          NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
     entitlements:
       path: Extensions/ShieldConfigurationExtension/ShieldConfigurationExtension.entitlements
