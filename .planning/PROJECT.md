@@ -15,14 +15,14 @@ A native iOS self-control app that blocks distracting apps, categories, and webs
 - [x] Onboarding + Screen Time authorization (individual) — Phase 01 / 01.1
 - [x] App/category/website selection via FamilyActivityPicker — Phase 02
 - [x] Quick session — instant block for chosen duration (15/30/60/90 min, custom 15 min – 8 h) — Phase 03
+- [x] Custom shield with branding and basic buttons — Phase 04 (SHL-01, SHL-02)
+- [x] Shield deep link to main app for richer UX — Phase 04 (SHL-03 via local-notification fallback + SHL-04)
 
 ### Active
 
 - [ ] Schedules — recurring blocks (e.g. weekdays 9–17)
-- [ ] Custom shield with branding and basic buttons
 - [ ] Minimal gamification — completed sessions count + streak (consecutive days)
 - [ ] Local notifications on session end
-- [ ] Shield deep link to main app for richer UX
 
 ### Out of Scope
 
@@ -104,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-19 after Phase 03 (quick-sessions) completion*
+*Last updated: 2026-04-20 after Phase 04 (shield-customization) completion — SHL-01..04 shipped, banner-tap device UAT recommended via 04-HUMAN-UAT.md*
