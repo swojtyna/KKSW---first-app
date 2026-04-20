@@ -24,6 +24,7 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
     private let shield: SessionShieldRepository
     private let monitoring: SessionActivityMonitoringRepository
     private let observeBlocklist: ObserveBlocklistUseCase
+    private let scheduleEndNotification: ScheduleSessionEndNotificationUseCase
 
     private static let log = Logger(
         subsystem: "com.kksw.DeluluDetox",
@@ -34,12 +35,14 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
         repository: SessionRepository,
         shield: SessionShieldRepository,
         monitoring: SessionActivityMonitoringRepository,
-        observeBlocklist: ObserveBlocklistUseCase
+        observeBlocklist: ObserveBlocklistUseCase,
+        scheduleEndNotification: ScheduleSessionEndNotificationUseCase
     ) {
         self.repository = repository
         self.shield = shield
         self.monitoring = monitoring
         self.observeBlocklist = observeBlocklist
+        self.scheduleEndNotification = scheduleEndNotification
     }
 
     func callAsFunction(
@@ -74,6 +77,16 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
             await rollback(recordID: record.id, actualEndAt: now)
             throw error
         }
+
+        // Phase 6 §H1 (NTF-01) — best-effort schedule AFTER monitoring success.
+        // Never scheduled before success, so rollback paths leave no ghost
+        // (RESEARCH Pitfall 5). Notification is convenience; session is critical.
+        let durationMinutes = max(1, record.plannedDurationSeconds / 60)
+        await scheduleEndNotification(
+            sessionId: record.id,
+            plannedEndAt: record.plannedEndAt,
+            durationMinutes: durationMinutes
+        )
 
         Self.log.info("session started id=\(record.id.uuidString, privacy: .public)")
         return record

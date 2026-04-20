@@ -31,7 +31,7 @@ final class SchedulePermissionPromptUseCaseImpl: SchedulePermissionPromptUseCase
             return
         }
         // RESEARCH A7: include .sound so default sound is honored for NTF-01/02.
-        // Do NOT request .badge — no badge UX in MVP.
+        // Do NOT request the badge option — no badge UX in MVP.
         do {
             let granted = try await repository.requestAuthorization(options: [.alert, .sound])
             Self.log.info("permission prompt result granted=\(granted, privacy: .public)")

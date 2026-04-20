@@ -15,15 +15,21 @@ protocol FinalizeSessionFromMarkerUseCase: Sendable {
 final class FinalizeSessionFromMarkerUseCaseImpl: FinalizeSessionFromMarkerUseCase, @unchecked Sendable {
     private let repository: SessionRepository
     private let endSession: EndSessionUseCase
+    private let schedulePermissionPrompt: SchedulePermissionPromptUseCase
 
     private static let log = Logger(
         subsystem: "com.kksw.DeluluDetox",
         category: "FinalizeFromMarkerUC"
     )
 
-    init(repository: SessionRepository, endSession: EndSessionUseCase) {
+    init(
+        repository: SessionRepository,
+        endSession: EndSessionUseCase,
+        schedulePermissionPrompt: SchedulePermissionPromptUseCase
+    ) {
         self.repository = repository
         self.endSession = endSession
+        self.schedulePermissionPrompt = schedulePermissionPrompt
     }
 
     func callAsFunction(now: Date) async throws -> Bool {
@@ -40,6 +46,16 @@ final class FinalizeSessionFromMarkerUseCaseImpl: FinalizeSessionFromMarkerUseCa
 
         try await endSession(outcome: .completed, actualEndAt: min(now, active.plannedEndAt))
         Self.log.info("finalized via marker id=\(active.id.uuidString, privacy: .public)")
+
+        // CONTEXT §D-13 — locked decision. Fires IN the session-finalization flow,
+        // AFTER `outcome = .completed` is set (endSession above succeeded),
+        // BEFORE this function returns. The success screen is triggered later by
+        // `HomeViewModel.handleHistory` observing the resulting `.completed` record
+        // in the history publisher, so this prompt sequences naturally before the
+        // success sheet appears. The UC is a no-op when status != .notDetermined,
+        // so repeated completions after the first are safe.
+        await schedulePermissionPrompt()
+
         return true
     }
 

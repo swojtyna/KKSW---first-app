@@ -15,5 +15,19 @@ enum NotificationsInjection {
         container.register(NotificationCaptionLibrary.self, scope: .application) { _ in
             NotificationCaptionLibrary()
         }
+        // NTF-01 (Plan 06-03)
+        container.register(ScheduleSessionEndNotificationUseCase.self, scope: .unique) { c in
+            ScheduleSessionEndNotificationUseCaseImpl(
+                repository: c.resolve(),
+                captions: c.resolve()
+            )
+        }
+        container.register(CancelSessionEndNotificationUseCase.self, scope: .unique) { c in
+            CancelSessionEndNotificationUseCaseImpl(repository: c.resolve())
+        }
+        // D-13 lazy prompt (Plan 06-03)
+        container.register(SchedulePermissionPromptUseCase.self, scope: .unique) { c in
+            SchedulePermissionPromptUseCaseImpl(repository: c.resolve())
+        }
     }
 }

@@ -9,18 +9,18 @@ final class ScheduleSessionEndNotificationUseCaseTests: XCTestCase {
     private var captions: NotificationCaptionLibrary!
     private var sut: ScheduleSessionEndNotificationUseCaseImpl!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         repo = MockLocalNotificationRepository()
         captions = NotificationCaptionLibrary()
         sut = ScheduleSessionEndNotificationUseCaseImpl(repository: repo, captions: captions)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         captions = nil
         repo = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testSchedulesRequest_whenAuthorized() async throws {

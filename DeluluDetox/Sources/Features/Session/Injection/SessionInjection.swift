@@ -37,7 +37,8 @@ enum SessionInjection {
             EndSessionUseCaseImpl(
                 repository: c.resolve(),
                 shield: c.resolve(),
-                monitoring: c.resolve()
+                monitoring: c.resolve(),
+                cancelEndNotification: c.resolve()   // Plan 06-03 §H2
             )
         }
         container.register(StartSessionUseCase.self, scope: .unique) { c in
@@ -45,13 +46,15 @@ enum SessionInjection {
                 repository: c.resolve(),
                 shield: c.resolve(),
                 monitoring: c.resolve(),
-                observeBlocklist: c.resolve()
+                observeBlocklist: c.resolve(),
+                scheduleEndNotification: c.resolve()  // Plan 06-03 §H1
             )
         }
         container.register(FinalizeSessionFromMarkerUseCase.self, scope: .unique) { c in
             FinalizeSessionFromMarkerUseCaseImpl(
                 repository: c.resolve(),
-                endSession: c.resolve()
+                endSession: c.resolve(),
+                schedulePermissionPrompt: c.resolve()   // Plan 06-03 D-13
             )
         }
         container.register(SelfHealExpiredSessionUseCase.self, scope: .unique) { c in
