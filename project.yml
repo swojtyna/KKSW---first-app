@@ -58,6 +58,7 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_KEY_CFBundleURLTypes: '[{"CFBundleURLName":"com.kksw.DeluluDetox","CFBundleURLSchemes":["deluludetox"]}]'
         PRODUCT_BUNDLE_IDENTIFIER: com.kksw.DeluluDetox
         SWIFT_EMIT_LOC_STRINGS: true
     dependencies:
@@ -107,6 +108,9 @@ targets:
     platform: iOS
     sources:
       - path: Extensions/ShieldConfigurationExtension
+      - path: DeluluDetox/Sources/Features/Session/Repository/Models/SessionPaths.swift
+      - path: DeluluDetox/Sources/Features/Shield/Builder/ActiveSessionEnvelope.swift
+      - path: DeluluDetox/Sources/Features/Shield/Builder/ShieldConfigurationBuilder.swift
     settings:
       groups: [shared-ios]
       base:
@@ -130,6 +134,8 @@ targets:
     platform: iOS
     sources:
       - path: Extensions/ShieldActionExtension
+      - path: DeluluDetox/Sources/Features/Session/Repository/Models/SessionPaths.swift
+      - path: DeluluDetox/Sources/Features/Shield/Builder/ActiveSessionEnvelope.swift
     settings:
       groups: [shared-ios]
       base:
