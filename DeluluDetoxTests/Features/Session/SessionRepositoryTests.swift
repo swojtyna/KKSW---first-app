@@ -1,18 +1,18 @@
-import XCTest
+import Foundation
 import Combine
+import Testing
 @testable import DeluluDetox
 
+@Suite("SessionRepository")
 @MainActor
-final class SessionRepositoryTests: XCTestCase {
+final class SessionRepositoryTests {
 
-    private var tempDir: URL!
-    private var activeURL: URL!
-    private var historyURL: URL!
-    private var markerURL: URL!
-    private var cancellables: Set<AnyCancellable> = []
+    let tempDir: URL
+    let activeURL: URL
+    let historyURL: URL
+    let markerURL: URL
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() throws {
         tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("session-tests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
@@ -21,121 +21,108 @@ final class SessionRepositoryTests: XCTestCase {
         markerURL = tempDir.appendingPathComponent("session_finalize_marker.json")
     }
 
-    override func tearDown() async throws {
+    deinit {
         try? FileManager.default.removeItem(at: tempDir)
-        cancellables.removeAll()
-        try await super.tearDown()
-    }
-
-    private func makeRepo() -> SessionRepositoryImpl {
-        SessionRepositoryImpl(
-            activeURLProvider: { [activeURL] in activeURL! },
-            historyURLProvider: { [historyURL] in historyURL! },
-            markerURLProvider: { [markerURL] in markerURL! },
-            appVersion: "test"
-        )
     }
 
     // MARK: - Fresh container
 
-    func testInitOnFreshContainerReturnsNilActiveAndEmptyHistoryViaPublishers() async {
+    @Test("init on fresh container returns nil active and empty history via publishers")
+    func initOnFreshContainerReturnsNilActiveAndEmptyHistoryViaPublishers() {
         let repo = makeRepo()
-        // activeSessionPublisher is AnyPublisher<SessionRecord?, Never>.
-        // currentActive is SessionRecord? — the first emission from a CurrentValueSubject.
-        let currentActive = currentActiveSession(from: repo)
-        XCTAssertNil(currentActive)
-        XCTAssertEqual(currentHistory(from: repo).isEmpty, true)
+        #expect(currentActiveSession(from: repo) == nil)
+        #expect(currentHistory(from: repo).isEmpty)
     }
 
     // MARK: - Start
 
-    func testStartSessionWritesBothFilesAtomicallyAndEmitsOnBothPublishers() async throws {
+    @Test("start session writes both files atomically and emits on both publishers")
+    func startSessionWritesBothFilesAtomicallyAndEmitsOnBothPublishers() async throws {
         let repo = makeRepo()
         let blocklistId = UUID()
-        guard let duration = SessionDuration.preset(30) else { return XCTFail("preset 30 nil") }
+        let duration = try #require(SessionDuration.preset(30), "preset 30 nil")
         let now = Date(timeIntervalSince1970: 1_700_000_000)
 
         let record = try await repo.startSession(blocklistId: blocklistId, duration: duration, now: now)
 
-        // File checks.
-        XCTAssertTrue(FileManager.default.fileExists(atPath: activeURL.path))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: historyURL.path))
+        #expect(FileManager.default.fileExists(atPath: activeURL.path))
+        #expect(FileManager.default.fileExists(atPath: historyURL.path))
 
         let activeDecoded = try JSONDecoder().decode(SessionRecord.self, from: Data(contentsOf: activeURL))
-        XCTAssertEqual(activeDecoded, record)
-        XCTAssertTrue(activeDecoded.isActive)
+        #expect(activeDecoded == record)
+        #expect(activeDecoded.isActive)
 
         let historyDecoded = try JSONDecoder().decode([SessionRecord].self, from: Data(contentsOf: historyURL))
-        XCTAssertEqual(historyDecoded.count, 1)
-        XCTAssertEqual(historyDecoded.first, record)
+        #expect(historyDecoded.count == 1)
+        #expect(historyDecoded.first == record)
 
-        // Publisher checks.
-        XCTAssertEqual(currentActiveSession(from: repo), record)
-        XCTAssertEqual(currentHistory(from: repo), [record])
+        #expect(currentActiveSession(from: repo) == record)
+        #expect(currentHistory(from: repo) == [record])
 
-        // plannedEndAt math.
-        XCTAssertEqual(record.plannedEndAt.timeIntervalSince1970 - now.timeIntervalSince1970, TimeInterval(30 * 60))
-        XCTAssertEqual(record.plannedDurationSeconds, 30 * 60)
-        XCTAssertEqual(record.blocklistId, blocklistId)
-        XCTAssertEqual(record.appVersion, "test")
+        #expect(record.plannedEndAt.timeIntervalSince1970 - now.timeIntervalSince1970 == TimeInterval(30 * 60))
+        #expect(record.plannedDurationSeconds == 30 * 60)
+        #expect(record.blocklistId == blocklistId)
+        #expect(record.appVersion == "test")
     }
 
     // MARK: - Finalize
 
-    func testFinalizeActiveSessionUpdatesHistoryRecordAndDeletesActiveFile() async throws {
+    @Test("finalize active session updates history record and deletes active file")
+    func finalizeActiveSessionUpdatesHistoryRecordAndDeletesActiveFile() async throws {
         let repo = makeRepo()
-        guard let duration = SessionDuration.preset(30) else { return XCTFail() }
+        let duration = try #require(SessionDuration.preset(30))
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let started = try await repo.startSession(blocklistId: UUID(), duration: duration, now: now)
 
         let end = Date(timeIntervalSince1970: 1_700_001_800)
         try await repo.finalizeActiveSession(outcome: .completed, actualEndAt: end)
 
-        // active_session.json deleted.
-        XCTAssertFalse(FileManager.default.fileExists(atPath: activeURL.path))
+        #expect(!FileManager.default.fileExists(atPath: activeURL.path))
 
-        // history updated on disk.
         let history = try JSONDecoder().decode([SessionRecord].self, from: Data(contentsOf: historyURL))
-        XCTAssertEqual(history.count, 1)
-        XCTAssertEqual(history.first?.id, started.id)
-        XCTAssertEqual(history.first?.actualEndAt, end)
-        XCTAssertEqual(history.first?.outcome, .completed)
-        XCTAssertFalse(history.first?.isActive ?? true)
+        #expect(history.count == 1)
+        #expect(history.first?.id == started.id)
+        #expect(history.first?.actualEndAt == end)
+        #expect(history.first?.outcome == .completed)
+        #expect(history.first?.isActive == false)
 
-        // Publishers.
-        XCTAssertNil(currentActiveSession(from: repo))
-        XCTAssertEqual(currentHistory(from: repo).count, 1)
+        #expect(currentActiveSession(from: repo) == nil)
+        #expect(currentHistory(from: repo).count == 1)
     }
 
-    func testFinalizeActiveSessionThrowsWhenNoneActive() async {
+    @Test("finalize active session throws when none active")
+    func finalizeActiveSessionThrowsWhenNoneActive() async {
         let repo = makeRepo()
         do {
             try await repo.finalizeActiveSession(outcome: .completed, actualEndAt: Date())
-            XCTFail("expected SessionStoreError.noActiveSession")
+            Issue.record("expected SessionStoreError.noActiveSession")
         } catch let error as SessionStoreError {
-            if case .noActiveSession = error {} else { XCTFail("wrong case \(error)") }
+            guard case .noActiveSession = error else {
+                Issue.record("wrong case: \(error)")
+                return
+            }
         } catch {
-            XCTFail("wrong error type \(error)")
+            Issue.record("wrong error type: \(error)")
         }
     }
 
     // MARK: - Cross-instance persistence
 
-    func testPersistenceAcrossRepoInstances() async throws {
+    @Test("persistence across repo instances")
+    func persistenceAcrossRepoInstances() async throws {
         let repoA = makeRepo()
-        guard let duration = SessionDuration.preset(15) else { return XCTFail() }
+        let duration = try #require(SessionDuration.preset(15))
         let started = try await repoA.startSession(blocklistId: UUID(), duration: duration, now: Date())
 
-        // New instance reading the same files.
         let repoB = makeRepo()
-        let repoBActiveRecord: SessionRecord? = currentActiveSession(from: repoB)
-        XCTAssertEqual(repoBActiveRecord?.id, started.id)
-        XCTAssertEqual(currentHistory(from: repoB).count, 1)
+        #expect(currentActiveSession(from: repoB)?.id == started.id)
+        #expect(currentHistory(from: repoB).count == 1)
     }
 
     // MARK: - Finalize marker
 
-    func testConsumeFinalizeMarkerDeletesMarkerFileAfterReturn() async throws {
+    @Test("consumeFinalizeMarker deletes marker file after return")
+    func consumeFinalizeMarkerDeletesMarkerFileAfterReturn() async throws {
         let repo = makeRepo()
         let marker = SessionFinalizeMarker(
             sessionId: UUID(),
@@ -143,83 +130,69 @@ final class SessionRepositoryTests: XCTestCase {
             source: .damIntervalDidEnd
         )
         try JSONEncoder().encode(marker).write(to: markerURL, options: .atomic)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: markerURL.path))
+        #expect(FileManager.default.fileExists(atPath: markerURL.path))
 
         let returned = try await repo.consumeFinalizeMarker()
-        XCTAssertEqual(returned, marker)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: markerURL.path))
+        #expect(returned == marker)
+        #expect(!FileManager.default.fileExists(atPath: markerURL.path))
     }
 
-    func testConsumeFinalizeMarkerReturnsNilWhenAbsent() async throws {
+    @Test("consumeFinalizeMarker returns nil when absent")
+    func consumeFinalizeMarkerReturnsNilWhenAbsent() async throws {
         let repo = makeRepo()
         let result = try await repo.consumeFinalizeMarker()
-        XCTAssertNil(result)
+        #expect(result == nil)
     }
 
     // MARK: - Disk re-read
 
-    func testLoadActiveSessionFromDiskReturnsCurrentRecordAfterStart() async throws {
+    @Test("loadActiveSessionFromDisk returns current record after start")
+    func loadActiveSessionFromDiskReturnsCurrentRecordAfterStart() async throws {
         let repo = makeRepo()
-        guard let duration = SessionDuration.preset(15) else { return XCTFail() }
+        let duration = try #require(SessionDuration.preset(15))
         let started = try await repo.startSession(blocklistId: UUID(), duration: duration, now: Date())
 
         let onDisk = try await repo.loadActiveSessionFromDisk()
-        XCTAssertEqual(onDisk, started)
+        #expect(onDisk == started)
     }
 
     // MARK: - Container unavailable
 
-    func testContainerUnavailableFallsBackToNilActiveAndEmptyHistory() {
+    @Test("container unavailable falls back to nil active and empty history")
+    func containerUnavailableFallsBackToNilActiveAndEmptyHistory() {
         let repo = SessionRepositoryImpl(
             activeURLProvider: { throw SessionStoreError.containerUnavailable },
             historyURLProvider: { throw SessionStoreError.containerUnavailable },
             markerURLProvider: { throw SessionStoreError.containerUnavailable },
             appVersion: "test"
         )
-        XCTAssertNil(currentActiveSession(from: repo))
-        XCTAssertEqual(currentHistory(from: repo), [])
+        #expect(currentActiveSession(from: repo) == nil)
+        #expect(currentHistory(from: repo) == [])
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension SessionRepositoryTests {
+    func makeRepo() -> SessionRepositoryImpl {
+        SessionRepositoryImpl(
+            activeURLProvider: { [activeURL] in activeURL },
+            historyURLProvider: { [historyURL] in historyURL },
+            markerURLProvider: { [markerURL] in markerURL },
+            appVersion: "test"
+        )
     }
 
-    // MARK: - Typed helpers
-    //
-    // Using typed helpers instead of a generic currentValue<Output> helper avoids
-    // double-optional (SessionRecord??) issues caused by AnyPublisher<SessionRecord?, Never>
-    // being wrapped in Output? by a generic function.
-
-    private func currentActiveSession(
-        from repo: SessionRepositoryImpl,
-        timeout: TimeInterval = 1.0
-    ) -> SessionRecord? {
+    func currentActiveSession(from repo: SessionRepositoryImpl) -> SessionRecord? {
         var captured: SessionRecord?
-        var didReceive = false
-        let exp = XCTestExpectation(description: "activeSession value")
-        let c = repo.activeSessionPublisher.sink { value in
-            captured = value
-            if !didReceive {
-                didReceive = true
-                exp.fulfill()
-            }
-        }
-        _ = XCTWaiter.wait(for: [exp], timeout: timeout)
+        let c = repo.activeSessionPublisher.sink { captured = $0 }
         c.cancel()
         return captured
     }
 
-    private func currentHistory(
-        from repo: SessionRepositoryImpl,
-        timeout: TimeInterval = 1.0
-    ) -> [SessionRecord] {
+    func currentHistory(from repo: SessionRepositoryImpl) -> [SessionRecord] {
         var captured: [SessionRecord] = []
-        var didReceive = false
-        let exp = XCTestExpectation(description: "history value")
-        let c = repo.historyPublisher.sink { value in
-            captured = value
-            if !didReceive {
-                didReceive = true
-                exp.fulfill()
-            }
-        }
-        _ = XCTWaiter.wait(for: [exp], timeout: timeout)
+        let c = repo.historyPublisher.sink { captured = $0 }
         c.cancel()
         return captured
     }
