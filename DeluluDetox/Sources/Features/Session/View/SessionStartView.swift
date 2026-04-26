@@ -23,7 +23,6 @@ struct SessionStartView: View {
         }
         .background(Color.surfaceGrouped.ignoresSafeArea())
         .navigationTitle(String(localized: "sessionStartNavigationTitle"))
-        .navigationBarTitleDisplayMode(.large)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Theme.Spacing.sm) {
                 if let hint = summaryHint {

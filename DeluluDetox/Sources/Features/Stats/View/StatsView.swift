@@ -51,7 +51,6 @@ struct StatsView: View {
         }
         .background(Color.surfaceGrouped.ignoresSafeArea())
         .navigationTitle(String(localized: "statsNavigationTitle"))
-        .navigationBarTitleDisplayMode(.large)
     }
 
     // MARK: - Streak card
