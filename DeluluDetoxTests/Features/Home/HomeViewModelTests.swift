@@ -131,10 +131,9 @@ final class HomeViewModelTests {
     func startSessionTappedRoutesToSessionStartDestination() {
         let vm = HomeViewModel()
         vm.startSessionTapped()
-        if case .sessionStart = vm.destination {
-        } else {
-            Issue.record("expected .sessionStart destination, got \(String(describing: vm.destination))")
-        }
+        var matched = false
+        if case .sessionStart = vm.destination { matched = true }
+        #expect(matched, "expected .sessionStart, got \(String(describing: vm.destination))")
     }
 
     @Test("gotoCountdown sets countdown destination with provided record")
@@ -331,10 +330,9 @@ final class HomeViewModelTests {
 
         vm.scheduleListTapped()
 
-        guard case .scheduleList = vm.destination else {
-            Issue.record("Expected .scheduleList destination, got \(String(describing: vm.destination))")
-            return
-        }
+        var matchedScheduleList = false
+        if case .scheduleList = vm.destination { matchedScheduleList = true }
+        #expect(matchedScheduleList, "expected .scheduleList, got \(String(describing: vm.destination))")
     }
 
     @Test("statsCardTapped sets stats destination")
@@ -344,10 +342,9 @@ final class HomeViewModelTests {
 
         vm.statsCardTapped()
 
-        guard case .stats = vm.destination else {
-            Issue.record("Expected .stats destination, got \(String(describing: vm.destination))")
-            return
-        }
+        var matchedStats = false
+        if case .stats = vm.destination { matchedStats = true }
+        #expect(matchedStats, "expected .stats, got \(String(describing: vm.destination))")
     }
 
     @Test("stats destination is identity equatable")

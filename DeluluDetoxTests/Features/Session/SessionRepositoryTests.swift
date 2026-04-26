@@ -93,16 +93,11 @@ final class SessionRepositoryTests {
     @Test("finalize active session throws when none active")
     func finalizeActiveSessionThrowsWhenNoneActive() async {
         let repo = makeRepo()
-        do {
+        await #expect {
             try await repo.finalizeActiveSession(outcome: .completed, actualEndAt: Date())
-            Issue.record("expected SessionStoreError.noActiveSession")
-        } catch let error as SessionStoreError {
-            guard case .noActiveSession = error else {
-                Issue.record("wrong case: \(error)")
-                return
-            }
-        } catch {
-            Issue.record("wrong error type: \(error)")
+        } throws: { error in
+            guard let e = error as? SessionStoreError, case .noActiveSession = e else { return false }
+            return true
         }
     }
 

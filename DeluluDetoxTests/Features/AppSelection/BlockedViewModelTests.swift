@@ -86,8 +86,11 @@ final class BlockedViewModelTests {
     @Test("changeSelectionTapped when callback nil is no-op")
     func changeSelectionTappedWhenCallbackNilIsNoOp() {
         let vm = BlockedViewModel()
+        var fired = false
+        vm.onChangeSelection = { fired = true }
         vm.onChangeSelection = nil
         vm.changeSelectionTapped()
+        #expect(!fired)
     }
 }
 
