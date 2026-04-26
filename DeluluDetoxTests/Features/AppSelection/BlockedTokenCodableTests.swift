@@ -24,44 +24,6 @@ final class BlockedTokenCodableTests: XCTestCase {
         XCTAssertEqual(original.webDomainTokens, decoded.webDomainTokens)
     }
 
-    // Device-only: simulator has no real FamilyControls tokens — always skipped on sim.
-    // Run manually on physical device to validate round-trip for each token kind.
-    //
-    // func testApplicationTokenExtractedFromSelectionRoundTripsViaJSON() throws {
-    //     let selection = FamilyActivitySelection()
-    //     try XCTSkipIf(
-    //         selection.applicationTokens.isEmpty,
-    //         "A1 application-token test requires a device-seeded selection; simulator has no apps."
-    //     )
-    //     let token = selection.applicationTokens.first!
-    //     let data = try JSONEncoder().encode(token)
-    //     let decoded = try JSONDecoder().decode(ApplicationToken.self, from: data)
-    //     XCTAssertEqual(token, decoded)
-    // }
-    //
-    // func testCategoryTokenExtractedFromSelectionRoundTripsViaJSON() throws {
-    //     let selection = FamilyActivitySelection()
-    //     try XCTSkipIf(
-    //         selection.categoryTokens.isEmpty,
-    //         "A1 category-token test requires a device-seeded selection; simulator has no categories."
-    //     )
-    //     let token = selection.categoryTokens.first!
-    //     let data = try JSONEncoder().encode(token)
-    //     let decoded = try JSONDecoder().decode(ActivityCategoryToken.self, from: data)
-    //     XCTAssertEqual(token, decoded)
-    // }
-    //
-    // func testWebDomainTokenExtractedFromSelectionRoundTripsViaJSON() throws {
-    //     let selection = FamilyActivitySelection()
-    //     try XCTSkipIf(
-    //         selection.webDomainTokens.isEmpty,
-    //         "A1 web-domain-token test requires a device-seeded selection; simulator has none."
-    //     )
-    //     let token = selection.webDomainTokens.first!
-    //     let data = try JSONEncoder().encode(token)
-    //     let decoded = try JSONDecoder().decode(WebDomainToken.self, from: data)
-    //     XCTAssertEqual(token, decoded)
-    // }
 
     /// Regression guard — historically PropertyListEncoder dropped
     /// `includeEntireCategory` on `FamilyActivitySelection` (forum 721973,
