@@ -1,36 +1,41 @@
-import XCTest
 import Foundation
+import Testing
 @testable import DeluluDetox
 
-/// SHL-03 — pure decision logic unit tests.
-final class ShieldActionHandlerTests: XCTestCase {
+@Suite("ShieldActionHandler")
+struct ShieldActionHandlerTests {
 
     private let handler = ShieldActionHandler()
 
-    func testPrimaryAction_returnsClose() {
+    @Test("primary action returns .close")
+    func primaryActionReturnsClose() {
         let decision = handler.decide(action: .primary, hasActiveSession: true)
-        XCTAssertEqual(decision.response, .close)
+        #expect(decision.response == .close)
     }
 
-    func testSecondaryAction_returnsClose() {
+    @Test("secondary action returns .close with no URL")
+    func secondaryActionReturnsClose() {
         let decision = handler.decide(action: .secondary, hasActiveSession: true)
-        XCTAssertEqual(decision.response, .close)
-        XCTAssertNil(decision.urlToOpen, "Secondary action must NOT open a URL.")
+        #expect(decision.response == .close)
+        #expect(decision.urlToOpen == nil)
     }
 
-    func testUnknownAction_returnsClose() {
+    @Test("unknown action returns .close with no URL")
+    func unknownActionReturnsClose() {
         let decision = handler.decide(action: .unknown, hasActiveSession: false)
-        XCTAssertEqual(decision.response, .close)
-        XCTAssertNil(decision.urlToOpen, "Unknown action must NOT open a URL.")
+        #expect(decision.response == .close)
+        #expect(decision.urlToOpen == nil)
     }
 
-    func testPrimaryURL_activeSession_isSessionActive() {
+    @Test("primary URL with active session is session/active")
+    func primaryURLActiveSession() {
         let decision = handler.decide(action: .primary, hasActiveSession: true)
-        XCTAssertEqual(decision.urlToOpen, URL(string: "deluludetox://session/active"))
+        #expect(decision.urlToOpen == URL(string: "deluludetox://session/active"))
     }
 
-    func testPrimaryURL_noSession_isRoot() {
+    @Test("primary URL without session is root")
+    func primaryURLNoSession() {
         let decision = handler.decide(action: .primary, hasActiveSession: false)
-        XCTAssertEqual(decision.urlToOpen, URL(string: "deluludetox://"))
+        #expect(decision.urlToOpen == URL(string: "deluludetox://"))
     }
 }

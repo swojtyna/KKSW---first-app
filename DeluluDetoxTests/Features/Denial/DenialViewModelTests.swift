@@ -1,46 +1,44 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
+@Suite(.serialized)
 @MainActor
-final class DenialViewModelTests: XCTestCase {
-    // IUO safe in XCTest: setUp runs before every test (W16).
-    var mockUseCase: MockRequestScreenTimeAuthUseCase!
+final class DenialViewModelTests {
 
-    override func setUp() async throws {
-        try await super.setUp()
+    let mockUseCase: MockRequestScreenTimeAuthUseCase
+
+    init() {
         DIContainer.shared.reset()
         mockUseCase = MockRequestScreenTimeAuthUseCase()
-        // Denial consumes UC registered by OnboardingInjection (D-17).
-        // In tests we register directly — same protocol ID, same mock instance.
         DIContainer.shared.register(RequestScreenTimeAuthUseCase.self, scope: .unique) { [mockUseCase] _ in
-            mockUseCase!
+            mockUseCase
         }
     }
 
-    func testRetrySuccess() async {
+    @Test("retry success calls use case and clears isRequesting")
+    func retrySuccess() async {
         let vm = DenialViewModel()
-
         await vm.retryTapped()
-
-        XCTAssertEqual(mockUseCase.callCount, 1)
-        XCTAssertFalse(vm.isRequesting)
+        #expect(mockUseCase.callCount == 1)
+        #expect(!vm.isRequesting)
     }
 
-    func testRetryFailure() async {
+    @Test("retry failure calls use case and clears isRequesting")
+    func retryFailure() async {
         mockUseCase.stubbedError = NSError(
             domain: "FamilyControls", code: 3,
             userInfo: [NSLocalizedDescriptionKey: "Prompt dismissed"]
         )
         let vm = DenialViewModel()
-
         await vm.retryTapped()
-
-        XCTAssertEqual(mockUseCase.callCount, 1)
-        XCTAssertFalse(vm.isRequesting)
+        #expect(mockUseCase.callCount == 1)
+        #expect(!vm.isRequesting)
     }
 
-    func testIsRequestingStartsFalse() async {
+    @Test("isRequesting starts false")
+    func isRequestingStartsFalse() async {
         let vm = DenialViewModel()
-        XCTAssertFalse(vm.isRequesting)
+        #expect(!vm.isRequesting)
     }
 }

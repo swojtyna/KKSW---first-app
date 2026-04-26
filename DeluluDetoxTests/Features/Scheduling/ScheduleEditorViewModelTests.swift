@@ -1,57 +1,53 @@
 import Combine
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
-/// Plan 05-06 Task 1 assertions — promoted from Plan 01 XCTSkipIf stubs.
+@Suite(.serialized)
 @MainActor
-final class ScheduleEditorViewModelTests: XCTestCase {
+final class ScheduleEditorViewModelTests {
 
     struct TestError: Error {}
 
-    // Seeded blocklist id the VM picks up from ObserveBlocklistUseCase on init.
     let seededBlocklistId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+    let mockCreateOrUpdate: MockCreateOrUpdateScheduleUseCase
+    let mockObserveBlocklist: MockObserveBlocklistUseCase
 
-    var mockCreateOrUpdate: MockCreateOrUpdateScheduleUseCase!
-    var mockObserveBlocklist: MockObserveBlocklistUseCase!
-
-    override func setUp() async throws {
-        try await super.setUp()
+    init() {
         DIContainer.shared.reset()
 
         mockCreateOrUpdate = MockCreateOrUpdateScheduleUseCase()
+        let blocklistId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
         mockObserveBlocklist = MockObserveBlocklistUseCase(
-            initial: Blocklist.empty(id: seededBlocklistId)
+            initial: Blocklist.empty(id: blocklistId)
         )
 
         DIContainer.shared.register(CreateOrUpdateScheduleUseCase.self, scope: .application) { [mockCreateOrUpdate] _ in
-            mockCreateOrUpdate!
+            mockCreateOrUpdate
         }
         DIContainer.shared.register(ObserveBlocklistUseCase.self, scope: .application) { [mockObserveBlocklist] _ in
-            mockObserveBlocklist!
+            mockObserveBlocklist
         }
-    }
-
-    override func tearDown() async throws {
-        DIContainer.shared.reset()
-        try await super.tearDown()
     }
 
     // MARK: - Initial state
 
-    func testInitialStateHasNoDaysAndDefault09To17Enabled() {
+    @Test("initial state has no days and default 9–17 enabled")
+    func initialStateHasNoDaysAndDefault09To17Enabled() {
         let vm = ScheduleEditorViewModel()
-        XCTAssertTrue(vm.daysOfWeek.isEmpty)
-        XCTAssertEqual(vm.startHour, 9)
-        XCTAssertEqual(vm.startMinute, 0)
-        XCTAssertEqual(vm.endHour, 17)
-        XCTAssertEqual(vm.endMinute, 0)
-        XCTAssertTrue(vm.enabled)
-        XCTAssertNil(vm.destination)
+        #expect(vm.daysOfWeek.isEmpty)
+        #expect(vm.startHour == 9)
+        #expect(vm.startMinute == 0)
+        #expect(vm.endHour == 17)
+        #expect(vm.endMinute == 0)
+        #expect(vm.enabled)
+        #expect(vm.destination == nil)
     }
 
     // MARK: - Init from existing
 
-    func testInitFromExistingSeedsAllFields() {
+    @Test("init from existing seeds all fields")
+    func initFromExistingSeedsAllFields() {
         let existing = Schedule(
             id: UUID(),
             name: nil,
@@ -65,59 +61,62 @@ final class ScheduleEditorViewModelTests: XCTestCase {
             appVersion: "test"
         )
         let vm = ScheduleEditorViewModel(existing: existing)
-        XCTAssertEqual(vm.daysOfWeek, [2, 3, 4])
-        XCTAssertEqual(vm.startHour, 22)
-        XCTAssertEqual(vm.startMinute, 30)
-        XCTAssertEqual(vm.endHour, 6)
-        XCTAssertEqual(vm.endMinute, 0)
-        XCTAssertFalse(vm.enabled)
+        #expect(vm.daysOfWeek == [2, 3, 4])
+        #expect(vm.startHour == 22)
+        #expect(vm.startMinute == 30)
+        #expect(vm.endHour == 6)
+        #expect(vm.endMinute == 0)
+        #expect(!vm.enabled)
     }
 
     // MARK: - Presets
 
-    func testPresetDniRoboczeSetsMonToFriWeekdays() {
+    @Test("preset dni robocze sets Mon–Fri weekdays")
+    func presetDniRoboczeSetsMonToFriWeekdays() {
         let vm = ScheduleEditorViewModel()
         vm.applyPresetDniRobocze()
-        XCTAssertEqual(vm.daysOfWeek, [2, 3, 4, 5, 6])
+        #expect(vm.daysOfWeek == [2, 3, 4, 5, 6])
     }
 
-    func testPresetWeekendSetsSatAndSun() {
+    @Test("preset weekend sets Sat and Sun")
+    func presetWeekendSetsSatAndSun() {
         let vm = ScheduleEditorViewModel()
         vm.applyPresetWeekend()
-        XCTAssertEqual(vm.daysOfWeek, [7, 1])
+        #expect(vm.daysOfWeek == [7, 1])
     }
 
-    func testPresetCodziennieSetsAllSeven() {
+    @Test("preset codziennie sets all seven")
+    func presetCodziennieSetsAllSeven() {
         let vm = ScheduleEditorViewModel()
         vm.applyPresetCodziennie()
-        XCTAssertEqual(vm.daysOfWeek, [1, 2, 3, 4, 5, 6, 7])
+        #expect(vm.daysOfWeek == [1, 2, 3, 4, 5, 6, 7])
     }
 
     // MARK: - Cross-midnight detection
 
-    func testCrossMidnightDetectionWhenEndLessThanStart() {
+    @Test("cross-midnight detection when end less than start")
+    func crossMidnightDetectionWhenEndLessThanStart() {
         let vm = ScheduleEditorViewModel()
 
         vm.startHour = 22
         vm.startMinute = 0
         vm.endHour = 6
         vm.endMinute = 0
-        XCTAssertTrue(vm.isCrossMidnight)
+        #expect(vm.isCrossMidnight)
 
         vm.startHour = 9
         vm.startMinute = 0
         vm.endHour = 17
         vm.endMinute = 0
-        XCTAssertFalse(vm.isCrossMidnight)
+        #expect(!vm.isCrossMidnight)
     }
 
     // MARK: - Save success
 
-    func testSaveTappedCallsCreateOrUpdateUseCase() async throws {
+    @Test("saveTapped calls createOrUpdate use case")
+    func saveTappedCallsCreateOrUpdateUseCase() async throws {
         let vm = ScheduleEditorViewModel()
-        // `.receive(on: .main)` defers the CurrentValueSubject seed onto the
-        // next runloop tick; sleep so the sink lands before we exercise save.
-        try await Task.sleep(nanoseconds: 20_000_000) // 20 ms
+        try await Task.sleep(nanoseconds: 20_000_000)
         vm.daysOfWeek = [2, 3, 4, 5, 6]
         vm.startHour = 9
         vm.startMinute = 0
@@ -127,34 +126,34 @@ final class ScheduleEditorViewModelTests: XCTestCase {
 
         let didSave = await vm.saveTapped()
 
-        XCTAssertTrue(didSave)
-        XCTAssertEqual(mockCreateOrUpdate.callCount, 1)
-        XCTAssertEqual(mockCreateOrUpdate.lastInputSchedule?.daysOfWeek, [2, 3, 4, 5, 6])
-        XCTAssertEqual(mockCreateOrUpdate.lastInputSchedule?.blocklistId, seededBlocklistId)
-        XCTAssertEqual(mockCreateOrUpdate.lastInputSchedule?.startHour, 9)
-        XCTAssertEqual(mockCreateOrUpdate.lastInputSchedule?.endHour, 17)
-        XCTAssertEqual(mockCreateOrUpdate.lastInputSchedule?.enabled, true)
-        XCTAssertNil(vm.destination)
+        #expect(didSave)
+        #expect(mockCreateOrUpdate.callCount == 1)
+        #expect(mockCreateOrUpdate.lastInputSchedule?.daysOfWeek == [2, 3, 4, 5, 6])
+        #expect(mockCreateOrUpdate.lastInputSchedule?.blocklistId == seededBlocklistId)
+        #expect(mockCreateOrUpdate.lastInputSchedule?.startHour == 9)
+        #expect(mockCreateOrUpdate.lastInputSchedule?.endHour == 17)
+        #expect(mockCreateOrUpdate.lastInputSchedule?.enabled == true)
+        #expect(vm.destination == nil)
     }
 
     // MARK: - Save failure
 
-    func testSaveTappedFailureSetsErrorAlertDestination() async throws {
+    @Test("saveTapped failure sets errorAlert destination")
+    func saveTappedFailureSetsErrorAlertDestination() async throws {
         mockCreateOrUpdate.createOrUpdateError = TestError()
 
         let vm = ScheduleEditorViewModel()
-        // Let the `.receive(on: .main)` seed land before invoking save.
-        try await Task.sleep(nanoseconds: 20_000_000) // 20 ms
+        try await Task.sleep(nanoseconds: 20_000_000)
         vm.daysOfWeek = [1]
 
         let didSave = await vm.saveTapped()
 
-        XCTAssertFalse(didSave)
-        XCTAssertEqual(mockCreateOrUpdate.callCount, 1)
+        #expect(!didSave)
+        #expect(mockCreateOrUpdate.callCount == 1)
         if case .errorAlert(let msg) = vm.destination {
-            XCTAssertEqual(msg, "iOS się zbuntował, spróbuj jeszcze raz.")
+            #expect(msg == "iOS się zbuntował, spróbuj jeszcze raz.")
         } else {
-            XCTFail("Expected destination == .errorAlert(String), got \(String(describing: vm.destination))")
+            Issue.record("Expected destination == .errorAlert(String), got \(String(describing: vm.destination))")
         }
     }
 }

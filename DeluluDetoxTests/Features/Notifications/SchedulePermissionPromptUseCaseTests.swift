@@ -1,45 +1,51 @@
-import XCTest
+import Foundation
 import UserNotifications
+import Testing
 @testable import DeluluDetox
 
+@Suite("SchedulePermissionPromptUseCase")
 @MainActor
-final class SchedulePermissionPromptUseCaseTests: XCTestCase {
+struct SchedulePermissionPromptUseCaseTests {
 
-    func testPrompts_whenNotDetermined() async {
+    @Test("prompts when authorization not determined")
+    func prompts_whenNotDetermined() async {
         let repo = MockLocalNotificationRepository()
         repo.stubAuthorizationStatus = .notDetermined
         let sut = SchedulePermissionPromptUseCaseImpl(repository: repo)
 
         await sut()
 
-        XCTAssertEqual(repo.requestAuthorizationCallCount, 1)
+        #expect(repo.requestAuthorizationCallCount == 1)
         let opts = repo.requestedAuthorizationOptions.first ?? []
-        XCTAssertTrue(opts.contains(.alert))
-        XCTAssertTrue(opts.contains(.sound))
+        #expect(opts.contains(.alert))
+        #expect(opts.contains(.sound))
     }
 
-    func testSkips_whenAuthorized() async {
+    @Test("skips when already authorized")
+    func skips_whenAuthorized() async {
         let repo = MockLocalNotificationRepository()
         repo.stubAuthorizationStatus = .authorized
         let sut = SchedulePermissionPromptUseCaseImpl(repository: repo)
         await sut()
-        XCTAssertEqual(repo.requestAuthorizationCallCount, 0)
+        #expect(repo.requestAuthorizationCallCount == 0)
     }
 
-    func testSkips_whenDenied() async {
+    @Test("skips when denied")
+    func skips_whenDenied() async {
         let repo = MockLocalNotificationRepository()
         repo.stubAuthorizationStatus = .denied
         let sut = SchedulePermissionPromptUseCaseImpl(repository: repo)
         await sut()
-        XCTAssertEqual(repo.requestAuthorizationCallCount, 0)
+        #expect(repo.requestAuthorizationCallCount == 0)
     }
 
-    func testDoesNotRequestBadge() async {
+    @Test("does not request badge per MVP spec")
+    func doesNotRequestBadge() async {
         let repo = MockLocalNotificationRepository()
         repo.stubAuthorizationStatus = .notDetermined
         let sut = SchedulePermissionPromptUseCaseImpl(repository: repo)
         await sut()
         let opts = repo.requestedAuthorizationOptions.first ?? []
-        XCTAssertFalse(opts.contains(.badge), "no badge UX in MVP per RESEARCH A7")
+        #expect(!opts.contains(.badge), "no badge UX in MVP per RESEARCH A7")
     }
 }

@@ -1,12 +1,16 @@
-import XCTest
+import Foundation
 import Combine
+import Testing
 @testable import DeluluDetox
 
+@Suite("StartSessionUseCase")
 @MainActor
-final class StartSessionUseCaseTests: XCTestCase {
+struct StartSessionUseCaseTests {
+
     struct TestError: Error, Equatable {}
 
-    func testStartSessionHappyPathInvokesRepoThenShieldThenMonitoring() async throws {
+    @Test("happy path: invokes repo, then shield, then monitoring")
+    func startSessionHappyPathInvokesRepoThenShieldThenMonitoring() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -35,17 +39,18 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         let returned = try await uc(blocklistId: blocklistId, duration: duration, now: now)
 
-        XCTAssertEqual(returned, expected)
-        XCTAssertEqual(mockRepo.startSessionCallCount, 1)
-        XCTAssertEqual(mockRepo.startSessionLastBlocklistId, blocklistId)
-        XCTAssertEqual(mockShield.applyShieldCallCount, 1)
-        XCTAssertEqual(mockMonitoring.startActivityMonitoringCallCount, 1)
-        XCTAssertEqual(mockShield.clearShieldCallCount, 0)
-        XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 0)
-        XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 0)
+        #expect(returned == expected)
+        #expect(mockRepo.startSessionCallCount == 1)
+        #expect(mockRepo.startSessionLastBlocklistId == blocklistId)
+        #expect(mockShield.applyShieldCallCount == 1)
+        #expect(mockMonitoring.startActivityMonitoringCallCount == 1)
+        #expect(mockShield.clearShieldCallCount == 0)
+        #expect(mockMonitoring.stopActivityMonitoringCallCount == 0)
+        #expect(mockRepo.finalizeActiveSessionCallCount == 0)
     }
 
-    func testStartSessionRollsBackWhenApplyShieldThrows() async {
+    @Test("rolls back when applyShield throws")
+    func startSessionRollsBackWhenApplyShieldThrows() async {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -71,22 +76,21 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         do {
             _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
-            XCTFail("expected throw")
+            Issue.record("expected throw")
         } catch {
-            XCTAssertEqual(mockRepo.startSessionCallCount, 1)
-            XCTAssertEqual(mockShield.applyShieldCallCount, 1)
-            // Monitoring should NOT have been started (failed at step 2).
-            XCTAssertEqual(mockMonitoring.startActivityMonitoringCallCount, 0)
-            // Rollback: clear + stop + finalize as cancelledByUser.
-            XCTAssertEqual(mockShield.clearShieldCallCount, 1)
-            XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
-            XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 1)
-            XCTAssertEqual(mockRepo.finalizeActiveSessionLastOutcome, .cancelledByUser)
-            XCTAssertTrue(error is TestError)
+            #expect(mockRepo.startSessionCallCount == 1)
+            #expect(mockShield.applyShieldCallCount == 1)
+            #expect(mockMonitoring.startActivityMonitoringCallCount == 0)
+            #expect(mockShield.clearShieldCallCount == 1)
+            #expect(mockMonitoring.stopActivityMonitoringCallCount == 1)
+            #expect(mockRepo.finalizeActiveSessionCallCount == 1)
+            #expect(mockRepo.finalizeActiveSessionLastOutcome == .cancelledByUser)
+            #expect(error is TestError)
         }
     }
 
-    func testStartSessionRollsBackWhenStartMonitoringThrows() async {
+    @Test("rolls back when startMonitoring throws")
+    func startSessionRollsBackWhenStartMonitoringThrows() async {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -112,19 +116,20 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         do {
             _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
-            XCTFail("expected throw")
+            Issue.record("expected throw")
         } catch {
-            XCTAssertEqual(mockShield.applyShieldCallCount, 1)
-            XCTAssertEqual(mockMonitoring.startActivityMonitoringCallCount, 1)
-            XCTAssertEqual(mockShield.clearShieldCallCount, 1)
-            XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
-            XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 1)
-            XCTAssertEqual(mockRepo.finalizeActiveSessionLastOutcome, .cancelledByUser)
-            XCTAssertTrue(error is TestError)
+            #expect(mockShield.applyShieldCallCount == 1)
+            #expect(mockMonitoring.startActivityMonitoringCallCount == 1)
+            #expect(mockShield.clearShieldCallCount == 1)
+            #expect(mockMonitoring.stopActivityMonitoringCallCount == 1)
+            #expect(mockRepo.finalizeActiveSessionCallCount == 1)
+            #expect(mockRepo.finalizeActiveSessionLastOutcome == .cancelledByUser)
+            #expect(error is TestError)
         }
     }
 
-    func testStartSessionReadsCurrentBlocklistFromObserveUseCase() async throws {
+    @Test("reads current blocklist from ObserveBlocklistUseCase")
+    func startSessionReadsCurrentBlocklistFromObserveUseCase() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -149,12 +154,13 @@ final class StartSessionUseCaseTests: XCTestCase {
             scheduleEndNotification: mockScheduleNotification
         )
         _ = try await uc(blocklistId: customId, duration: SessionDuration.preset(30)!, now: now)
-        XCTAssertEqual(mockShield.applyShieldLastBlocklistId, customId)
+        #expect(mockShield.applyShieldLastBlocklistId == customId)
     }
 
-    // MARK: - Plan 06-03 (NTF-01 §H1) extensions
+    // MARK: - Notification scheduling
 
-    func testSchedulesNotification_afterMonitoringSuccess() async throws {
+    @Test("schedules notification after monitoring success")
+    func schedulesNotification_afterMonitoringSuccess() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -182,13 +188,14 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         _ = try await uc(blocklistId: blocklistId, duration: SessionDuration.preset(30)!, now: now)
 
-        XCTAssertEqual(mockScheduleNotification.calls.count, 1)
-        XCTAssertEqual(mockScheduleNotification.calls.first?.sessionId, expected.id)
-        XCTAssertEqual(mockScheduleNotification.calls.first?.plannedEndAt, expected.plannedEndAt)
-        XCTAssertEqual(mockScheduleNotification.calls.first?.durationMinutes, 30)
+        #expect(mockScheduleNotification.calls.count == 1)
+        #expect(mockScheduleNotification.calls.first?.sessionId == expected.id)
+        #expect(mockScheduleNotification.calls.first?.plannedEndAt == expected.plannedEndAt)
+        #expect(mockScheduleNotification.calls.first?.durationMinutes == 30)
     }
 
-    func testDoesNotScheduleNotification_whenShieldFails() async {
+    @Test("does NOT schedule notification when shield fails")
+    func doesNotScheduleNotification_whenShieldFails() async {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -214,13 +221,14 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         do {
             _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
-            XCTFail("expected throw")
+            Issue.record("expected throw")
         } catch {
-            XCTAssertTrue(mockScheduleNotification.calls.isEmpty, "must not schedule notification on rollback path")
+            #expect(mockScheduleNotification.calls.isEmpty, "must not schedule notification on rollback path")
         }
     }
 
-    func testDoesNotScheduleNotification_whenMonitoringFails() async {
+    @Test("does NOT schedule notification when monitoring fails")
+    func doesNotScheduleNotification_whenMonitoringFails() async {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -246,15 +254,14 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         do {
             _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
-            XCTFail("expected throw")
+            Issue.record("expected throw")
         } catch {
-            XCTAssertTrue(mockScheduleNotification.calls.isEmpty, "must not schedule notification on rollback path")
+            #expect(mockScheduleNotification.calls.isEmpty, "must not schedule notification on rollback path")
         }
     }
 
-    func testScheduleNotificationFailure_doesNotPropagate() async throws {
-        // The mock cannot throw; this test asserts the SEMANTIC contract: the UC
-        // returns the record AFTER a best-effort schedule call, without rollback.
+    @Test("notification failure does NOT propagate (best-effort)")
+    func scheduleNotificationFailure_doesNotPropagate() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -281,10 +288,9 @@ final class StartSessionUseCaseTests: XCTestCase {
         )
         let returned = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
 
-        // Returned record matches expected — no rollback triggered by the best-effort notification hop.
-        XCTAssertEqual(returned, expected)
-        XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 0)
-        XCTAssertEqual(mockShield.clearShieldCallCount, 0)
-        XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 0)
+        #expect(returned == expected)
+        #expect(mockRepo.finalizeActiveSessionCallCount == 0)
+        #expect(mockShield.clearShieldCallCount == 0)
+        #expect(mockMonitoring.stopActivityMonitoringCallCount == 0)
     }
 }

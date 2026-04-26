@@ -1,19 +1,21 @@
-import XCTest
+import Foundation
 import Combine
 import FamilyControls
+import Testing
 @testable import DeluluDetox
 
+@Suite(.serialized)
 @MainActor
-final class HomeViewModelTests: XCTestCase {
-    var mockObserve: MockObserveBlocklistUseCase!
-    var mockUpdate: MockUpdateBlocklistUseCase!
-    var mockObserveActive: MockObserveActiveSessionUseCase!
-    var mockObserveHistory: MockObserveSessionHistoryUseCase!
-    var mockMarkSuccessShown: MockMarkSuccessShownUseCase!
-    var mockCheckSuccessShown: MockCheckSuccessShownUseCase!
+final class HomeViewModelTests {
 
-    override func setUp() async throws {
-        try await super.setUp()
+    let mockObserve: MockObserveBlocklistUseCase
+    let mockUpdate: MockUpdateBlocklistUseCase
+    let mockObserveActive: MockObserveActiveSessionUseCase
+    let mockObserveHistory: MockObserveSessionHistoryUseCase
+    let mockMarkSuccessShown: MockMarkSuccessShownUseCase
+    let mockCheckSuccessShown: MockCheckSuccessShownUseCase
+
+    init() {
         DIContainer.shared.reset()
         mockObserve = MockObserveBlocklistUseCase(initial: .empty())
         mockUpdate = MockUpdateBlocklistUseCase()
@@ -22,67 +24,31 @@ final class HomeViewModelTests: XCTestCase {
         mockMarkSuccessShown = MockMarkSuccessShownUseCase()
         mockCheckSuccessShown = MockCheckSuccessShownUseCase()
         DIContainer.shared.register(ObserveBlocklistUseCase.self, scope: .unique) { [mockObserve] _ in
-            mockObserve!
+            mockObserve
         }
         DIContainer.shared.register(UpdateBlocklistUseCase.self, scope: .unique) { [mockUpdate] _ in
-            mockUpdate!
+            mockUpdate
         }
-        DIContainer.shared.register(ObserveActiveSessionUseCase.self, scope: .application) { [mockObserveActive] _ in mockObserveActive! }
-        DIContainer.shared.register(ObserveSessionHistoryUseCase.self, scope: .application) { [mockObserveHistory] _ in mockObserveHistory! }
-        DIContainer.shared.register(MarkSuccessShownUseCase.self, scope: .application) { [mockMarkSuccessShown] _ in mockMarkSuccessShown! }
-        DIContainer.shared.register(CheckSuccessShownUseCase.self, scope: .application) { [mockCheckSuccessShown] _ in mockCheckSuccessShown! }
-
-        // Plan 05-07 — HomeViewModel.scheduleListTapped() now instantiates
-        // ScheduleListViewModel (which resolves ObserveScheduleUseCase +
-        // ToggleScheduleUseCase via @LazyInjected). Register lightweight
-        // mocks so any tests that exercise the new intent do not crash in DI.
+        DIContainer.shared.register(ObserveActiveSessionUseCase.self, scope: .application) { [mockObserveActive] _ in mockObserveActive }
+        DIContainer.shared.register(ObserveSessionHistoryUseCase.self, scope: .application) { [mockObserveHistory] _ in mockObserveHistory }
+        DIContainer.shared.register(MarkSuccessShownUseCase.self, scope: .application) { [mockMarkSuccessShown] _ in mockMarkSuccessShown }
+        DIContainer.shared.register(CheckSuccessShownUseCase.self, scope: .application) { [mockCheckSuccessShown] _ in mockCheckSuccessShown }
         DIContainer.shared.register(ObserveScheduleUseCase.self, scope: .unique) { _ in MockObserveScheduleUseCase() }
         DIContainer.shared.register(ToggleScheduleUseCase.self, scope: .unique) { _ in MockToggleScheduleUseCase() }
-
-        // Plan 06-05 — HomeViewModel owns a HomeStatsCardViewModel (constructed
-        // eagerly in its init) AND its statsCardTapped() intent instantiates
-        // StatsViewModel. Both VMs @LazyInject ObserveStatsUseCase; the card
-        // VM also @LazyInjects GetBrokenStreakCopyUseCase. Register mocks so
-        // HomeViewModel construction + statsCardTapped do not crash in DI.
         DIContainer.shared.register(ObserveStatsUseCase.self, scope: .unique) { _ in MockObserveStatsUseCase() }
         DIContainer.shared.register(GetBrokenStreakCopyUseCase.self, scope: .unique) { _ in MockGetBrokenStreakCopyUseCase() }
     }
 
-    // MARK: - Helpers
-
-    private func yield() async {
-        await Task.yield()
-        await Task.yield()
-    }
-
-    private func makeSession(
-        id: UUID = UUID(),
-        outcome: SessionOutcome? = nil,
-        actualEndAt: Date? = nil
-    ) -> SessionRecord {
-        let now = Date(timeIntervalSince1970: 1_700_000_000)
-        return SessionRecord(
-            id: id,
-            blocklistId: UUID(),
-            startedAt: now,
-            plannedEndAt: now.addingTimeInterval(1800),
-            plannedDurationSeconds: 1800,
-            actualEndAt: actualEndAt,
-            outcome: outcome,
-            appVersion: "test"
-        )
-    }
-
-    // MARK: - Existing tests (preserved unchanged)
-
-    func testInitSubscribesToBlocklistPublisher() async {
+    @Test("init subscribes to blocklist publisher")
+    func initSubscribesToBlocklistPublisher() async {
         let vm = HomeViewModel()
         await Task.yield()
-        XCTAssertEqual(mockObserve.callCount, 1)
-        XCTAssertTrue(vm.snapshot.records.isEmpty)
+        #expect(mockObserve.callCount == 1)
+        #expect(vm.snapshot.records.isEmpty)
     }
 
-    func testEmissionUpdatesSnapshot() async {
+    @Test("emission updates snapshot")
+    func emissionUpdatesSnapshot() async {
         let vm = HomeViewModel()
         await Task.yield()
 
@@ -93,58 +59,61 @@ final class HomeViewModelTests: XCTestCase {
         mockObserve.subject.send(seeded)
         await Task.yield()
 
-        XCTAssertEqual(vm.snapshot.records.count, 1)
+        #expect(vm.snapshot.records.count == 1)
     }
 
-    func testChooseAppsTappedSetsPickerDestination() async {
+    @Test("chooseAppsTapped sets picker destination")
+    func chooseAppsTappedSetsPickerDestination() async {
         let vm = HomeViewModel()
         await Task.yield()
 
         vm.chooseAppsTapped()
 
-        XCTAssertNotNil(vm.destination)
+        #expect(vm.destination != nil)
         guard case .picker = vm.destination else {
-            XCTFail("Expected .picker destination, got \(String(describing: vm.destination))")
+            Issue.record("Expected .picker destination, got \(String(describing: vm.destination))")
             return
         }
     }
 
-    func testChooseAppsTappedSeedsPickerWithCurrentLastSelection() async {
+    @Test("chooseAppsTapped seeds picker with current lastSelection")
+    func chooseAppsTappedSeedsPickerWithCurrentLastSelection() async {
         let vm = HomeViewModel()
         await Task.yield()
 
         vm.chooseAppsTapped()
 
         if case .picker(let session) = vm.destination {
-            // Simulator cannot synthesize real tokens; assert the seeded selection
-            // equals the current snapshot.lastSelection (empty <-> empty).
-            XCTAssertEqual(session.selection, vm.snapshot.lastSelection)
+            #expect(session.selection == vm.snapshot.lastSelection)
         } else {
-            XCTFail("Expected .picker destination with PickerSession")
+            Issue.record("Expected .picker destination with PickerSession")
         }
     }
 
-    func testPickerDismissedInvokesUpdateUseCase() async {
+    @Test("pickerDismissed invokes update use case")
+    func pickerDismissedInvokesUpdateUseCase() async {
         let vm = HomeViewModel()
         let selection = FamilyActivitySelection()
 
         await vm.pickerDismissed(committed: selection)
 
-        XCTAssertEqual(mockUpdate.callCount, 1)
-        XCTAssertEqual(mockUpdate.capturedSelection, selection)
+        #expect(mockUpdate.callCount == 1)
+        #expect(mockUpdate.capturedSelection == selection)
     }
 
-    func testPickerDismissedSuccessClearsDestination() async {
+    @Test("pickerDismissed success clears destination")
+    func pickerDismissedSuccessClearsDestination() async {
         let vm = HomeViewModel()
         vm.chooseAppsTapped()
-        XCTAssertNotNil(vm.destination)
+        #expect(vm.destination != nil)
 
         await vm.pickerDismissed(committed: FamilyActivitySelection())
 
-        XCTAssertNil(vm.destination)
+        #expect(vm.destination == nil)
     }
 
-    func testPickerDismissedFailureSetsErrorAlertDestination() async {
+    @Test("pickerDismissed failure sets errorAlert destination")
+    func pickerDismissedFailureSetsErrorAlertDestination() async {
         enum TestError: Error { case boom }
         mockUpdate.stubbedError = TestError.boom
 
@@ -152,49 +121,50 @@ final class HomeViewModelTests: XCTestCase {
         await vm.pickerDismissed(committed: FamilyActivitySelection())
 
         guard case .errorAlert(let message) = vm.destination else {
-            XCTFail("Expected .errorAlert destination, got \(String(describing: vm.destination))")
+            Issue.record("Expected .errorAlert destination, got \(String(describing: vm.destination))")
             return
         }
-        XCTAssertEqual(message, "Nie udało się zapisać wyboru. Spróbuj ponownie.")
+        #expect(message == "Nie udało się zapisać wyboru. Spróbuj ponownie.")
     }
 
-    // MARK: - New tests (Task 2 additions)
-
-    func testStartSessionTappedRoutesToSessionStartDestination() {
+    @Test("startSessionTapped routes to sessionStart destination")
+    func startSessionTappedRoutesToSessionStartDestination() {
         let vm = HomeViewModel()
         vm.startSessionTapped()
         if case .sessionStart = vm.destination {
-            // pass
         } else {
-            XCTFail("expected .sessionStart destination, got \(String(describing: vm.destination))")
+            Issue.record("expected .sessionStart destination, got \(String(describing: vm.destination))")
         }
     }
 
-    func testGotoCountdownBridgeSetsCountdownDestinationWithProvidedRecord() {
+    @Test("gotoCountdown sets countdown destination with provided record")
+    func gotoCountdownBridgeSetsCountdownDestinationWithProvidedRecord() {
         let vm = HomeViewModel()
         let record = makeSession()
         vm.gotoCountdown(record)
         if case .countdown(let cvm) = vm.destination {
-            XCTAssertEqual(cvm.session.id, record.id)
+            #expect(cvm.session.id == record.id)
         } else {
-            XCTFail("expected .countdown destination after gotoCountdown")
+            Issue.record("expected .countdown destination after gotoCountdown")
         }
     }
 
-    func testActiveSessionEmissionRoutesToCountdown() async {
+    @Test("active session emission routes to countdown")
+    func activeSessionEmissionRoutesToCountdown() async {
         let vm = HomeViewModel()
         let session = makeSession()
         mockObserveActive.subject.send(session)
         await yield()
 
         if case .countdown(let cvm) = vm.destination {
-            XCTAssertEqual(cvm.session.id, session.id)
+            #expect(cvm.session.id == session.id)
         } else {
-            XCTFail("expected .countdown destination")
+            Issue.record("expected .countdown destination")
         }
     }
 
-    func testActiveSessionBecomingNilClearsCountdownDestination() async {
+    @Test("active session becoming nil clears countdown destination")
+    func activeSessionBecomingNilClearsCountdownDestination() async {
         let vm = HomeViewModel()
         let session = makeSession()
         mockObserveActive.subject.send(session)
@@ -202,10 +172,11 @@ final class HomeViewModelTests: XCTestCase {
         mockObserveActive.subject.send(nil)
         await yield()
 
-        XCTAssertNil(vm.destination)
+        #expect(vm.destination == nil)
     }
 
-    func testCompletedSessionInHistoryShowsSuccessDestinationOnceWhenNoActive() async {
+    @Test("completed session in history shows success destination once when no active")
+    func completedSessionInHistoryShowsSuccessDestinationOnceWhenNoActive() async {
         let vm = HomeViewModel()
         let now = Date()
         let record = SessionRecord(
@@ -217,24 +188,23 @@ final class HomeViewModelTests: XCTestCase {
             outcome: .completed,
             appVersion: "test"
         )
-        // mockCheckSuccessShown.stubbedShownIds empty (default) — record NOT yet shown.
         mockObserveActive.subject.send(nil)
         mockObserveHistory.subject.send([record])
         await yield()
 
         if case .sessionSuccess(let svm) = vm.destination {
-            XCTAssertEqual(svm.sessionId, record.id)
+            #expect(svm.sessionId == record.id)
         } else {
-            XCTFail("expected .sessionSuccess destination, got \(String(describing: vm.destination))")
+            Issue.record("expected .sessionSuccess destination, got \(String(describing: vm.destination))")
         }
-        XCTAssertEqual(mockMarkSuccessShown.callCount, 1)
-        XCTAssertEqual(mockMarkSuccessShown.lastSessionId, record.id)
-        XCTAssertTrue(mockMarkSuccessShown.allMarked.contains(record.id))
+        #expect(mockMarkSuccessShown.callCount == 1)
+        #expect(mockMarkSuccessShown.lastSessionId == record.id)
+        #expect(mockMarkSuccessShown.allMarked.contains(record.id))
     }
 
-    func testCompletedSessionAlreadyMarkedShownDoesNotReshow() async {
+    @Test("completed session already marked shown does not re-show")
+    func completedSessionAlreadyMarkedShownDoesNotReshow() async {
         let recordId = UUID()
-        // Pre-mark via mock: CheckSuccessShownUseCase returns true for this id.
         mockCheckSuccessShown.stubbedShownIds = [recordId]
 
         let vm = HomeViewModel()
@@ -252,11 +222,12 @@ final class HomeViewModelTests: XCTestCase {
         mockObserveHistory.subject.send([record])
         await yield()
 
-        XCTAssertNil(vm.destination)
-        XCTAssertEqual(mockMarkSuccessShown.callCount, 0)
+        #expect(vm.destination == nil)
+        #expect(mockMarkSuccessShown.callCount == 0)
     }
 
-    func testCancelledByUserOrBrokenByRevokeDoesNotShowSuccess() async {
+    @Test("cancelled or broken-by-revoke session does not show success")
+    func cancelledByUserOrBrokenByRevokeDoesNotShowSuccess() async {
         let vm = HomeViewModel()
         let r1 = SessionRecord(
             blocklistId: UUID(), startedAt: Date(),
@@ -272,45 +243,47 @@ final class HomeViewModelTests: XCTestCase {
         mockObserveHistory.subject.send([r1, r2])
         await yield()
 
-        XCTAssertNil(vm.destination)
+        #expect(vm.destination == nil)
     }
 
     // MARK: - SHL-04 deep link routing
 
-    func testHandleDeepLink_sessionActiveURL_routesToCountdown() async throws {
+    @Test("handleDeepLink session/active URL routes to countdown")
+    func handleDeepLink_sessionActiveURL_routesToCountdown() async throws {
         let vm = HomeViewModel()
         await yield()
 
         let session = makeSession()
         mockObserveActive.subject.send(session)
-        // Wait for handleActive observer to install initial countdown destination.
         await yield()
 
         await vm.handleDeepLink(URL(string: "deluludetox://session/active")!)
         await yield()
 
         guard case .countdown(let cvm) = vm.destination else {
-            return XCTFail("Expected .countdown, got \(String(describing: vm.destination))")
+            Issue.record("Expected .countdown, got \(String(describing: vm.destination))")
+            return
         }
-        XCTAssertEqual(cvm.session.id, session.id)
+        #expect(cvm.session.id == session.id)
     }
 
-    func testHandleDeepLink_sessionActiveURL_noActiveSession_clearsDestination() async throws {
+    @Test("handleDeepLink session/active URL with no active session clears destination")
+    func handleDeepLink_sessionActiveURL_noActiveSession_clearsDestination() async throws {
         let vm = HomeViewModel()
         await yield()
         mockObserveActive.subject.send(nil)
         await yield()
 
-        // Pre-condition: pollute destination so we can prove handleDeepLink clears it.
         vm.destination = .errorAlert("preexisting")
 
         await vm.handleDeepLink(URL(string: "deluludetox://session/active")!)
         await yield()
 
-        XCTAssertNil(vm.destination, "handleDeepLink with no active session must clear destination (D-10 silent home).")
+        #expect(vm.destination == nil, "handleDeepLink with no active session must clear destination")
     }
 
-    func testHandleDeepLink_rootURL_clearsDestination() async throws {
+    @Test("handleDeepLink root URL clears destination")
+    func handleDeepLink_rootURL_clearsDestination() async throws {
         let vm = HomeViewModel()
         await yield()
 
@@ -319,10 +292,11 @@ final class HomeViewModelTests: XCTestCase {
         await vm.handleDeepLink(URL(string: "deluludetox://")!)
         await yield()
 
-        XCTAssertNil(vm.destination)
+        #expect(vm.destination == nil)
     }
 
-    func testHandleDeepLink_unknownScheme_isIgnored() async throws {
+    @Test("handleDeepLink unknown scheme is ignored")
+    func handleDeepLink_unknownScheme_isIgnored() async throws {
         let vm = HomeViewModel()
         await yield()
 
@@ -331,79 +305,83 @@ final class HomeViewModelTests: XCTestCase {
         await vm.handleDeepLink(URL(string: "https://example.com")!)
         await yield()
 
-        // Destination must be UNCHANGED — early-return guard on scheme.
         guard case .errorAlert(let msg) = vm.destination else {
-            return XCTFail("Expected destination to remain .errorAlert, got \(String(describing: vm.destination))")
+            Issue.record("Expected destination to remain .errorAlert, got \(String(describing: vm.destination))")
+            return
         }
-        XCTAssertEqual(msg, "preserve")
+        #expect(msg == "preserve")
     }
 
-    // MARK: - SHL-03 dispatcher contract smoke test
-    //
-    // Cases A/B/C (session-active → countdown, no-active → clears, root → clears)
-    // are already covered by the four `testHandleDeepLink_*` tests above (Plan 04-04
-    // deliverable). Rather than inflate test count with duplicates, we add ONE
-    // contract smoke test asserting the string keys the ShieldActionExtension
-    // dispatcher and the ShieldDeepLinkNotificationDelegate agree on — if anyone
-    // renames `userInfoURLKey` or `identifierPrefix` without updating the other
-    // side, this test catches it in CI before the device surfaces a silent failure.
-
-    func testShieldNotificationConstants_userInfoURLKeyContract() {
-        XCTAssertEqual(
-            ShieldNotificationConstants.userInfoURLKey,
-            "url",
+    @Test("ShieldNotification userInfoURLKey contract is stable")
+    func shieldNotificationConstants_userInfoURLKeyContract() {
+        #expect(
+            ShieldNotificationConstants.userInfoURLKey == "url",
             "Delegate reads userInfo[\"url\"] — repository must write to the same key."
         )
-        XCTAssertEqual(
-            ShieldNotificationConstants.identifierPrefix,
-            "com.kksw.DeluluDetox.shield-deeplink.",
+        #expect(
+            ShieldNotificationConstants.identifierPrefix == "com.kksw.DeluluDetox.shield-deeplink.",
             "Delegate filters identifier by this prefix — repository must produce identifiers with this exact prefix."
         )
     }
 
-    // MARK: - Plan 05-07 schedule navigation entry
-
-    /// scheduleListTapped() routes HomeViewModel.destination to .scheduleList(ScheduleListViewModel).
-    /// Required by Plan 05-07 — Home is the nav graph entry for the Schedule feature
-    /// (CONTEXT §D-22 amendment).
-    func testScheduleListTappedRoutesToScheduleListDestination() async {
+    @Test("scheduleListTapped routes to scheduleList destination")
+    func scheduleListTappedRoutesToScheduleListDestination() async {
         let vm = HomeViewModel()
         await yield()
 
         vm.scheduleListTapped()
 
-        guard case .scheduleList(let listVM) = vm.destination else {
-            XCTFail("Expected .scheduleList destination, got \(String(describing: vm.destination))")
+        guard case .scheduleList = vm.destination else {
+            Issue.record("Expected .scheduleList destination, got \(String(describing: vm.destination))")
             return
         }
-        XCTAssertNotNil(listVM)
     }
 
-    // MARK: - Plan 06-05 Stats navigation
-
-    /// statsCardTapped() routes HomeViewModel.destination to .stats(StatsViewModel)
-    /// — the Plan 06-05 home-card tap → pushed Stats screen binding
-    /// (CONTEXT §D-09 / §D-11).
-    func testStatsCardTapped_setsStatsDestination() async {
+    @Test("statsCardTapped sets stats destination")
+    func statsCardTapped_setsStatsDestination() async {
         let vm = HomeViewModel()
         await yield()
 
         vm.statsCardTapped()
 
-        guard case .stats(let statsVM) = vm.destination else {
-            XCTFail("Expected .stats destination, got \(String(describing: vm.destination))")
+        guard case .stats = vm.destination else {
+            Issue.record("Expected .stats destination, got \(String(describing: vm.destination))")
             return
         }
-        XCTAssertNotNil(statsVM)
     }
 
-    /// Two distinct StatsViewModel instances wrapped in `.stats(_)` are != by
-    /// identity (the Destination enum uses `===` identity equality for VM
-    /// payloads — consistent with .sessionStart / .countdown / .scheduleList).
-    func testStatsCardDestination_isIdentityEquatable() {
+    @Test("stats destination is identity equatable")
+    func statsCardDestination_isIdentityEquatable() {
         let a = StatsViewModel()
         let b = StatsViewModel()
-        XCTAssertNotEqual(HomeViewModel.Destination.stats(a), HomeViewModel.Destination.stats(b))
-        XCTAssertEqual(HomeViewModel.Destination.stats(a), HomeViewModel.Destination.stats(a))
+        #expect(HomeViewModel.Destination.stats(a) != HomeViewModel.Destination.stats(b))
+        #expect(HomeViewModel.Destination.stats(a) == HomeViewModel.Destination.stats(a))
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension HomeViewModelTests {
+    func yield() async {
+        await Task.yield()
+        await Task.yield()
+    }
+
+    func makeSession(
+        id: UUID = UUID(),
+        outcome: SessionOutcome? = nil,
+        actualEndAt: Date? = nil
+    ) -> SessionRecord {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        return SessionRecord(
+            id: id,
+            blocklistId: UUID(),
+            startedAt: now,
+            plannedEndAt: now.addingTimeInterval(1800),
+            plannedDurationSeconds: 1800,
+            actualEndAt: actualEndAt,
+            outcome: outcome,
+            appVersion: "test"
+        )
     }
 }

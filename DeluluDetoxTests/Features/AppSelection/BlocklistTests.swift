@@ -1,99 +1,99 @@
-import XCTest
+import Foundation
 import FamilyControls
+import Testing
 @testable import DeluluDetox
 
-@MainActor
-final class BlocklistTests: XCTestCase {
+@Suite("Blocklist")
+struct BlocklistTests {
 
-    func testEmptyBlocklistHasNoRecordsAndEmptySelection() {
+    @Test("empty blocklist has no records and empty selection")
+    func emptyBlocklistHasNoRecordsAndEmptySelection() {
         let list = Blocklist.empty()
-        XCTAssertTrue(list.records.isEmpty)
-        XCTAssertTrue(list.lastSelection.applicationTokens.isEmpty)
-        XCTAssertTrue(list.lastSelection.categoryTokens.isEmpty)
-        XCTAssertTrue(list.lastSelection.webDomainTokens.isEmpty)
-        XCTAssertFalse(list.needsRepair)
-        XCTAssertNil(list.name)
+        #expect(list.records.isEmpty)
+        #expect(list.lastSelection.applicationTokens.isEmpty)
+        #expect(list.lastSelection.categoryTokens.isEmpty)
+        #expect(list.lastSelection.webDomainTokens.isEmpty)
+        #expect(!list.needsRepair)
+        #expect(list.name == nil)
     }
 
-    func testBlocklistJSONRoundTripPreservesCoreFields() throws {
+    @Test("JSON round-trip preserves core fields")
+    func blocklistJSONRoundTripPreservesCoreFields() throws {
         let id = UUID()
         var original = Blocklist.empty(id: id)
         original.name = "Work"
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(Blocklist.self, from: data)
-        XCTAssertEqual(decoded.id, original.id)
-        XCTAssertEqual(decoded.name, "Work")
-        XCTAssertEqual(decoded.records.count, 0)
-        XCTAssertEqual(decoded.needsRepair, false)
+        #expect(decoded.id == original.id)
+        #expect(decoded.name == "Work")
+        #expect(decoded.records.count == 0)
+        #expect(decoded.needsRepair == false)
     }
 
-    func testMergingWithEmptySelectionYieldsEmptyRecordsAndCachesSelection() {
+    @Test("merging with empty selection yields empty records and caches selection")
+    func mergingWithEmptySelectionYieldsEmptyRecordsAndCachesSelection() {
         let selection = FamilyActivitySelection()
         let result = Blocklist.empty().merging(selection: selection)
-        XCTAssertTrue(result.records.isEmpty)
-        XCTAssertEqual(result.lastSelection, selection)
-        XCTAssertFalse(result.needsRepair)
+        #expect(result.records.isEmpty)
+        #expect(result.lastSelection == selection)
+        #expect(!result.needsRepair)
     }
 
-    func testMergingPreservesExistingRecordUUIDForIdenticalEncodedToken() {
-        // Synthesize a pre-existing record with a stable encodedToken.
+    @Test("merging drops records not present in new selection")
+    func mergingPreservesExistingRecordUUIDForIdenticalEncodedToken() {
         let stableTokenBytes = Data([0x01, 0x02, 0x03])
         let fixedUUID = UUID()
         var original = Blocklist.empty()
         original.records = [
             TokenRecord(id: fixedUUID, kind: .application, encodedToken: stableTokenBytes, lastSeenAt: Date(timeIntervalSince1970: 0))
         ]
-
-        // Inject a "selection" whose applicationTokens encoding will match stableTokenBytes
-        // by stubbing: since we cannot synthesize real ApplicationTokens on simulator,
-        // this case is asserted against a direct merging-logic helper surface.
-        // Assert the merging branch: identity-preservation path.
-        // Simulator cannot exercise the true Apple-token path; we assert negative:
-        // an empty selection → existing record is dropped.
         let next = FamilyActivitySelection()
         let result = original.merging(selection: next)
-        XCTAssertTrue(result.records.isEmpty, "Records not present in new selection must be dropped.")
+        #expect(result.records.isEmpty, "Records not present in new selection must be dropped.")
     }
 
-    func testMergingDropsRecordsWhoseTokenIsNotInNewSelection() {
+    @Test("merging drops records whose token is not in new selection")
+    func mergingDropsRecordsWhoseTokenIsNotInNewSelection() {
         var original = Blocklist.empty()
         original.records = [
             TokenRecord(id: UUID(), kind: .application, encodedToken: Data([0xAA]), lastSeenAt: Date()),
             TokenRecord(id: UUID(), kind: .category, encodedToken: Data([0xBB]), lastSeenAt: Date()),
         ]
         let result = original.merging(selection: FamilyActivitySelection())
-        XCTAssertTrue(result.records.isEmpty)
+        #expect(result.records.isEmpty)
     }
 
-    func testTokenRecordJSONRoundTripPreservesIdAndKind() throws {
+    @Test("TokenRecord JSON round-trip preserves id and kind")
+    func tokenRecordJSONRoundTripPreservesIdAndKind() throws {
         let original = TokenRecord(
             id: UUID(), kind: .webDomain,
             encodedToken: Data([0xDE, 0xAD]), lastSeenAt: Date()
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(TokenRecord.self, from: data)
-        XCTAssertEqual(decoded.id, original.id)
-        XCTAssertEqual(decoded.kind, original.kind)
-        XCTAssertEqual(decoded.encodedToken, original.encodedToken)
+        #expect(decoded.id == original.id)
+        #expect(decoded.kind == original.kind)
+        #expect(decoded.encodedToken == original.encodedToken)
     }
 
-    func testTokenRecordCategoryTokenReturnsNilForApplicationKind() {
+    @Test("application-kind TokenRecord returns nil for category/web tokens")
+    func tokenRecordCategoryTokenReturnsNilForApplicationKind() {
         let rec = TokenRecord(id: UUID(), kind: .application, encodedToken: Data(), lastSeenAt: Date())
-        XCTAssertNil(rec.categoryToken())
-        XCTAssertNil(rec.webDomainToken())
+        #expect(rec.categoryToken() == nil)
+        #expect(rec.webDomainToken() == nil)
     }
 
-    func testReconcileTokenPointersBumpsUpdatedAtButKeepsRecords() {
+    @Test("reconcileTokenPointers bumps updatedAt and keeps records")
+    func reconcileTokenPointersBumpsUpdatedAtButKeepsRecords() {
         var original = Blocklist.empty()
         original.records = [
             TokenRecord(id: UUID(), kind: .application, encodedToken: Data([0x01]), lastSeenAt: Date()),
         ]
         let initialUpdatedAt = original.updatedAt
-        // Introduce a tiny delay to ensure updatedAt bumps.
         Thread.sleep(forTimeInterval: 0.01)
         let result = original.reconcileTokenPointers()
-        XCTAssertGreaterThan(result.updatedAt, initialUpdatedAt)
-        XCTAssertEqual(result.records.count, 1)
-        XCTAssertEqual(result.records.first?.id, original.records.first?.id)
+        #expect(result.updatedAt > initialUpdatedAt)
+        #expect(result.records.count == 1)
+        #expect(result.records.first?.id == original.records.first?.id)
     }
 }

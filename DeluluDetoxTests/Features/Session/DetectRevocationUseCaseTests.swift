@@ -1,21 +1,14 @@
-import XCTest
+import Foundation
 @preconcurrency import FamilyControls
+import Testing
 @testable import DeluluDetox
 
+@Suite("DetectRevocationUseCase")
 @MainActor
-final class DetectRevocationUseCaseTests: XCTestCase {
+struct DetectRevocationUseCaseTests {
 
-    private func makeActive() -> SessionRecord {
-        SessionRecord(
-            blocklistId: UUID(),
-            startedAt: Date(),
-            plannedEndAt: Date().addingTimeInterval(1800),
-            plannedDurationSeconds: 1800,
-            appVersion: "test"
-        )
-    }
-
-    func testDetectRevocationFinalizesWhenActiveAndNotApproved() async throws {
+    @Test("finalizes session with brokenByRevoke when active and not approved")
+    func detectRevocationFinalizesWhenActiveAndNotApproved() async throws {
         let mockRepo = MockSessionRepository()
         let mockEnd = MockEndSessionUseCase()
         mockRepo.activeSubject.send(makeActive())
@@ -28,13 +21,14 @@ final class DetectRevocationUseCaseTests: XCTestCase {
         let now = Date(timeIntervalSince1970: 1_700_000_500)
         let finalized = try await uc(now: now)
 
-        XCTAssertTrue(finalized)
-        XCTAssertEqual(mockEnd.callCount, 1)
-        XCTAssertEqual(mockEnd.lastOutcome, .brokenByRevoke)
-        XCTAssertEqual(mockEnd.lastActualEndAt, now)
+        #expect(finalized)
+        #expect(mockEnd.callCount == 1)
+        #expect(mockEnd.lastOutcome == .brokenByRevoke)
+        #expect(mockEnd.lastActualEndAt == now)
     }
 
-    func testDetectRevocationIsNoOpWhenActiveAndApproved() async throws {
+    @Test("no-op when active and approved")
+    func detectRevocationIsNoOpWhenActiveAndApproved() async throws {
         let mockRepo = MockSessionRepository()
         let mockEnd = MockEndSessionUseCase()
         mockRepo.activeSubject.send(makeActive())
@@ -46,14 +40,14 @@ final class DetectRevocationUseCaseTests: XCTestCase {
         )
         let finalized = try await uc(now: Date())
 
-        XCTAssertFalse(finalized)
-        XCTAssertEqual(mockEnd.callCount, 0)
+        #expect(!finalized)
+        #expect(mockEnd.callCount == 0)
     }
 
-    func testDetectRevocationIsNoOpWhenNoActiveSession() async throws {
+    @Test("no-op when no active session")
+    func detectRevocationIsNoOpWhenNoActiveSession() async throws {
         let mockRepo = MockSessionRepository()
         let mockEnd = MockEndSessionUseCase()
-        // No active session.
 
         let uc = DetectRevocationUseCaseImpl(
             repository: mockRepo,
@@ -62,7 +56,21 @@ final class DetectRevocationUseCaseTests: XCTestCase {
         )
         let finalized = try await uc(now: Date())
 
-        XCTAssertFalse(finalized)
-        XCTAssertEqual(mockEnd.callCount, 0)
+        #expect(!finalized)
+        #expect(mockEnd.callCount == 0)
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension DetectRevocationUseCaseTests {
+    func makeActive() -> SessionRecord {
+        SessionRecord(
+            blocklistId: UUID(),
+            startedAt: Date(),
+            plannedEndAt: Date().addingTimeInterval(1800),
+            plannedDurationSeconds: 1800,
+            appVersion: "test"
+        )
     }
 }

@@ -1,19 +1,13 @@
-import XCTest
+import Foundation
 @preconcurrency import DeviceActivity
+import Testing
 @testable import DeluluDetox
 
-/// Plan 05-03 Task 2 — scheduled-blocking DAS registration lives on the
-/// repository; the Phase 4 DeviceActivityCenterRunner seam is reused.
-///
-/// Wave 0 Outcome A assumed (see 05-DISCUSSION-LOG.md) — happy path uses
-/// `repeats: true` for every segment; NO daily re-register fallback code.
+@Suite("LiveScheduleActivityMonitoringRepository")
 @MainActor
-final class ScheduleActivityMonitoringRepositoryTests: XCTestCase {
-
-    // MARK: - Fake runner
+struct ScheduleActivityMonitoringRepositoryTests {
 
     final class FakeCenter: DeviceActivityCenterRunner, @unchecked Sendable {
-        /// Captures `(name, schedule)` pairs in registration order.
         var startedActivities: [(name: DeviceActivityName, schedule: DeviceActivitySchedule)] = []
         var stoppedActivities: [DeviceActivityName] = []
         var startError: Error?
@@ -29,56 +23,38 @@ final class ScheduleActivityMonitoringRepositoryTests: XCTestCase {
 
     struct TestError: Error, Equatable {}
 
-    // MARK: - Helpers
-
-    private func makeSchedule(
-        startHour: Int, startMinute: Int,
-        endHour: Int, endMinute: Int,
-        id: UUID = UUID()
-    ) -> Schedule {
-        Schedule(
-            id: id,
-            name: nil,
-            daysOfWeek: [2, 3, 4, 5, 6],       // Mon..Fri
-            startHour: startHour, startMinute: startMinute,
-            endHour: endHour, endMinute: endMinute,
-            enabled: true,
-            blocklistId: UUID(),
-            appVersion: "test"
-        )
-    }
-
     // MARK: - startMonitoring (single-day)
 
-    func testStartMonitoringSingleDayUsesMainSegmentAndOneDAS() async throws {
+    @Test("single-day schedule uses .main segment and one DAS")
+    func startMonitoringSingleDayUsesMainSegmentAndOneDAS() async throws {
         let fake = FakeCenter()
         let repo = LiveScheduleActivityMonitoringRepository(runner: fake)
         let schedule = makeSchedule(startHour: 9, startMinute: 0, endHour: 17, endMinute: 0)
 
         try await repo.startMonitoring(schedule: schedule)
 
-        XCTAssertEqual(fake.startedActivities.count, 1)
-        let (name, das) = try XCTUnwrap(fake.startedActivities.first)
-        XCTAssertTrue(name.rawValue.hasSuffix(".\(ScheduleSegment.main.rawValue)"),
-                      "Single-day schedule MUST register the .main segment name — got \(name.rawValue)")
-        XCTAssertTrue(das.repeats, "D-13 happy-path — DAS.repeats == true (Wave 0 Outcome A).")
-        XCTAssertEqual(das.intervalStart.hour, 9)
-        XCTAssertEqual(das.intervalStart.minute, 0)
-        XCTAssertEqual(das.intervalEnd.hour, 17)
-        XCTAssertEqual(das.intervalEnd.minute, 0)
+        #expect(fake.startedActivities.count == 1)
+        let (name, das) = try #require(fake.startedActivities.first)
+        #expect(name.rawValue.hasSuffix(".\(ScheduleSegment.main.rawValue)"),
+                "Single-day schedule MUST register the .main segment name — got \(name.rawValue)")
+        #expect(das.repeats, "D-13 happy-path — DAS.repeats == true (Wave 0 Outcome A).")
+        #expect(das.intervalStart.hour == 9)
+        #expect(das.intervalStart.minute == 0)
+        #expect(das.intervalEnd.hour == 17)
+        #expect(das.intervalEnd.minute == 0)
     }
 
     // MARK: - startMonitoring (cross-midnight split)
 
-    func testStartMonitoringCrossMidnightSplitsIntoEveningAndMorningTwoDAS() async throws {
+    @Test("cross-midnight schedule splits into .evening and .morning DAS entries")
+    func startMonitoringCrossMidnightSplitsIntoEveningAndMorningTwoDAS() async throws {
         let fake = FakeCenter()
         let repo = LiveScheduleActivityMonitoringRepository(runner: fake)
-        // 22:00 → 06:00 sleep-block: endMin(360) <= startMin(1320) ⇒ crossesMidnight.
         let schedule = makeSchedule(startHour: 22, startMinute: 0, endHour: 6, endMinute: 0)
 
         try await repo.startMonitoring(schedule: schedule)
 
-        XCTAssertEqual(fake.startedActivities.count, 2)
+        #expect(fake.startedActivities.count == 2)
 
         let eveningEntry = fake.startedActivities.first(where: {
             $0.name.rawValue.hasSuffix(".\(ScheduleSegment.evening.rawValue)")
@@ -86,64 +62,61 @@ final class ScheduleActivityMonitoringRepositoryTests: XCTestCase {
         let morningEntry = fake.startedActivities.first(where: {
             $0.name.rawValue.hasSuffix(".\(ScheduleSegment.morning.rawValue)")
         })
-        let evening = try XCTUnwrap(eveningEntry, "Missing .evening DAS for cross-midnight schedule.")
-        let morning = try XCTUnwrap(morningEntry, "Missing .morning DAS for cross-midnight schedule.")
+        let evening = try #require(eveningEntry, "Missing .evening DAS for cross-midnight schedule.")
+        let morning = try #require(morningEntry, "Missing .morning DAS for cross-midnight schedule.")
 
-        // .evening: 22:00 → 23:59:59
-        XCTAssertEqual(evening.schedule.intervalStart.hour, 22)
-        XCTAssertEqual(evening.schedule.intervalStart.minute, 0)
-        XCTAssertEqual(evening.schedule.intervalEnd.hour, 23)
-        XCTAssertEqual(evening.schedule.intervalEnd.minute, 59)
-        XCTAssertEqual(evening.schedule.intervalEnd.second, 59)
+        #expect(evening.schedule.intervalStart.hour == 22)
+        #expect(evening.schedule.intervalStart.minute == 0)
+        #expect(evening.schedule.intervalEnd.hour == 23)
+        #expect(evening.schedule.intervalEnd.minute == 59)
+        #expect(evening.schedule.intervalEnd.second == 59)
 
-        // .morning: 00:00:00 → 06:00
-        XCTAssertEqual(morning.schedule.intervalStart.hour, 0)
-        XCTAssertEqual(morning.schedule.intervalStart.minute, 0)
-        XCTAssertEqual(morning.schedule.intervalEnd.hour, 6)
-        XCTAssertEqual(morning.schedule.intervalEnd.minute, 0)
+        #expect(morning.schedule.intervalStart.hour == 0)
+        #expect(morning.schedule.intervalStart.minute == 0)
+        #expect(morning.schedule.intervalEnd.hour == 6)
+        #expect(morning.schedule.intervalEnd.minute == 0)
     }
 
     // MARK: - repeats=true (Wave 0 Outcome A)
 
-    func testStartMonitoringUsesRepeatsTruePerD13() async throws {
+    @Test("all DAS entries use repeats=true per D-13")
+    func startMonitoringUsesRepeatsTruePerD13() async throws {
         let fake = FakeCenter()
         let repo = LiveScheduleActivityMonitoringRepository(runner: fake)
-        // Exercise both single-day and cross-midnight to cover all branches.
         let singleDay = makeSchedule(startHour: 9, startMinute: 0, endHour: 17, endMinute: 0)
         let crossMidnight = makeSchedule(startHour: 22, startMinute: 0, endHour: 6, endMinute: 0)
 
         try await repo.startMonitoring(schedule: singleDay)
         try await repo.startMonitoring(schedule: crossMidnight)
 
-        XCTAssertEqual(fake.startedActivities.count, 3)
+        #expect(fake.startedActivities.count == 3)
         for entry in fake.startedActivities {
-            XCTAssertTrue(entry.schedule.repeats,
-                          "Wave 0 Outcome A — every DAS registered by ScheduleActivityMonitoringRepository MUST use repeats=true (D-13). Got repeats=false on \(entry.name.rawValue).")
+            #expect(entry.schedule.repeats,
+                    "Wave 0 Outcome A — every DAS registered by ScheduleActivityMonitoringRepository MUST use repeats=true (D-13). Got repeats=false on \(entry.name.rawValue).")
         }
     }
 
-    // MARK: - stopMonitoring (defensive clear of all 3 variants)
+    // MARK: - stopMonitoring
 
-    func testStopMonitoringRemovesAllSegmentsForScheduleId() async throws {
+    @Test("stopMonitoring removes all 3 segment variants for schedule id")
+    func stopMonitoringRemovesAllSegmentsForScheduleId() async throws {
         let fake = FakeCenter()
         let repo = LiveScheduleActivityMonitoringRepository(runner: fake)
         let id = UUID()
 
         await repo.stopMonitoring(scheduleId: id)
 
-        // Defensive: ALL 3 segment variants must be passed to stopMonitoring so
-        // a prior single-day→cross-midnight (or vice versa) edit leaves no
-        // stale segment consuming the 20-activity budget (pitfall D-14 #1).
         let stoppedRaw = Set(fake.stoppedActivities.map { $0.rawValue })
-        XCTAssertEqual(stoppedRaw.count, 3)
-        XCTAssertTrue(stoppedRaw.contains("deluludetox.schedule.\(id.uuidString).main"))
-        XCTAssertTrue(stoppedRaw.contains("deluludetox.schedule.\(id.uuidString).evening"))
-        XCTAssertTrue(stoppedRaw.contains("deluludetox.schedule.\(id.uuidString).morning"))
+        #expect(stoppedRaw.count == 3)
+        #expect(stoppedRaw.contains("deluludetox.schedule.\(id.uuidString).main"))
+        #expect(stoppedRaw.contains("deluludetox.schedule.\(id.uuidString).evening"))
+        #expect(stoppedRaw.contains("deluludetox.schedule.\(id.uuidString).morning"))
     }
 
     // MARK: - Error wrapping
 
-    func testStartMonitoringWrapsCenterErrorInRepositoryError() async {
+    @Test("startMonitoring wraps center error in repository error")
+    func startMonitoringWrapsCenterErrorInRepositoryError() async {
         let fake = FakeCenter()
         fake.startError = TestError()
         let repo = LiveScheduleActivityMonitoringRepository(runner: fake)
@@ -151,37 +124,56 @@ final class ScheduleActivityMonitoringRepositoryTests: XCTestCase {
 
         do {
             try await repo.startMonitoring(schedule: schedule)
-            XCTFail("expected throw")
+            Issue.record("expected throw")
         } catch ScheduleActivityMonitoringError.startFailed(let inner) {
-            XCTAssertTrue(inner is TestError, "Underlying error must be preserved for Plan 04 rollback logging.")
+            #expect(inner is TestError, "Underlying error must be preserved for Plan 04 rollback logging.")
         } catch {
-            XCTFail("wrong error type \(error)")
+            Issue.record("wrong error type \(error)")
         }
     }
 
     // MARK: - buildDeviceActivitySchedules round-trip
 
-    func testSegmentHelperBuildDeviceActivitySchedulesRoundTrip() {
+    @Test("segment helper buildDeviceActivitySchedules round-trips correctly")
+    func segmentHelperBuildDeviceActivitySchedulesRoundTrip() {
         let singleDay = makeSchedule(startHour: 9, startMinute: 0, endHour: 17, endMinute: 0)
         let crossMidnight = makeSchedule(startHour: 22, startMinute: 0, endHour: 6, endMinute: 0)
 
-        // Single-day: expect exactly one (name, das) pair with segment=.main,
-        // and ScheduleActivityNames.parse must reproduce (id, .main).
         let singlePairs = singleDay.buildDeviceActivitySchedules()
-        XCTAssertEqual(singlePairs.count, 1)
+        #expect(singlePairs.count == 1)
         let parsedSingle = ScheduleActivityNames.parse(singlePairs[0].name)
-        XCTAssertEqual(parsedSingle?.scheduleId, singleDay.id)
-        XCTAssertEqual(parsedSingle?.segment, .main)
+        #expect(parsedSingle?.scheduleId == singleDay.id)
+        #expect(parsedSingle?.segment == .main)
 
-        // Cross-midnight: two pairs, both round-tripping to (id, .evening/.morning).
         let crossPairs = crossMidnight.buildDeviceActivitySchedules()
-        XCTAssertEqual(crossPairs.count, 2)
+        #expect(crossPairs.count == 2)
         let parsed = crossPairs.compactMap { ScheduleActivityNames.parse($0.name) }
-        XCTAssertEqual(parsed.count, 2)
+        #expect(parsed.count == 2)
         for p in parsed {
-            XCTAssertEqual(p.scheduleId, crossMidnight.id)
+            #expect(p.scheduleId == crossMidnight.id)
         }
         let segments = Set(parsed.map { $0.segment })
-        XCTAssertEqual(segments, [.evening, .morning])
+        #expect(segments == [.evening, .morning])
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension ScheduleActivityMonitoringRepositoryTests {
+    func makeSchedule(
+        startHour: Int, startMinute: Int,
+        endHour: Int, endMinute: Int,
+        id: UUID = UUID()
+    ) -> Schedule {
+        Schedule(
+            id: id,
+            name: nil,
+            daysOfWeek: [2, 3, 4, 5, 6],
+            startHour: startHour, startMinute: startMinute,
+            endHour: endHour, endMinute: endMinute,
+            enabled: true,
+            blocklistId: UUID(),
+            appVersion: "test"
+        )
     }
 }

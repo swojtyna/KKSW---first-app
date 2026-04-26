@@ -1,94 +1,98 @@
-import XCTest
+import Foundation
 import Combine
+import Testing
 @testable import DeluluDetox
 
+@Suite(.serialized)
 @MainActor
-final class SessionStartViewModelTests: XCTestCase {
+final class SessionStartViewModelTests {
 
     struct TestError: Error {}
 
-    var mockStart: MockStartSessionUseCase!
-    var mockObserveActive: MockObserveActiveSessionUseCase!
-    var mockObserveBlocklist: MockObserveBlocklistUseCase!
+    let mockStart: MockStartSessionUseCase
+    let mockObserveActive: MockObserveActiveSessionUseCase
+    let mockObserveBlocklist: MockObserveBlocklistUseCase
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() {
         DIContainer.shared.reset()
 
         mockStart = MockStartSessionUseCase()
         mockObserveActive = MockObserveActiveSessionUseCase()
         mockObserveBlocklist = MockObserveBlocklistUseCase()
 
-        DIContainer.shared.register(StartSessionUseCase.self, scope: .application) { [mockStart] _ in mockStart! }
-        DIContainer.shared.register(ObserveActiveSessionUseCase.self, scope: .application) { [mockObserveActive] _ in mockObserveActive! }
-        DIContainer.shared.register(ObserveBlocklistUseCase.self, scope: .application) { [mockObserveBlocklist] _ in mockObserveBlocklist! }
-    }
-
-    override func tearDown() async throws {
-        DIContainer.shared.reset()
-        try await super.tearDown()
+        DIContainer.shared.register(StartSessionUseCase.self, scope: .application) { [mockStart] _ in mockStart }
+        DIContainer.shared.register(ObserveActiveSessionUseCase.self, scope: .application) { [mockObserveActive] _ in mockObserveActive }
+        DIContainer.shared.register(ObserveBlocklistUseCase.self, scope: .application) { [mockObserveBlocklist] _ in mockObserveBlocklist }
     }
 
     // MARK: - Initial state
 
-    func testInitialStateHasPreset30MinutesAndCustom30MinutesAndNilDestination() {
+    @Test("initial state has preset 30 minutes and nil destination")
+    func initialStateHasPreset30MinutesAndCustom30MinutesAndNilDestination() {
         let vm = SessionStartViewModel()
-        XCTAssertEqual(vm.selectedPresetMinutes, 30)
-        XCTAssertEqual(vm.customDurationSeconds, 1800)
-        XCTAssertNil(vm.destination)
-        XCTAssertFalse(vm.isStarting)
+        #expect(vm.selectedPresetMinutes == 30)
+        #expect(vm.customDurationSeconds == 1800)
+        #expect(vm.destination == nil)
+        #expect(!vm.isStarting)
     }
 
     // MARK: - Preset / custom toggles
 
-    func testSelectPresetUpdatesSelectedPresetAndKeepsCustomUntouched() {
+    @Test("selectPreset updates selectedPreset and keeps custom untouched")
+    func selectPresetUpdatesSelectedPresetAndKeepsCustomUntouched() {
         let vm = SessionStartViewModel()
-        vm.customDurationSeconds = 900      // 15 min stored on custom
+        vm.customDurationSeconds = 900
         vm.selectPreset(60)
-        XCTAssertEqual(vm.selectedPresetMinutes, 60)
-        XCTAssertEqual(vm.customDurationSeconds, 900)
+        #expect(vm.selectedPresetMinutes == 60)
+        #expect(vm.customDurationSeconds == 900)
     }
 
-    func testSwitchToCustomClearsSelectedPreset() {
+    @Test("switchToCustom clears selectedPreset")
+    func switchToCustomClearsSelectedPreset() {
         let vm = SessionStartViewModel()
         vm.switchToCustom()
-        XCTAssertNil(vm.selectedPresetMinutes)
+        #expect(vm.selectedPresetMinutes == nil)
     }
 
     // MARK: - resolvedDuration
 
-    func testResolvedDurationReadsPresetFirst() {
+    @Test("resolvedDuration reads preset first")
+    func resolvedDurationReadsPresetFirst() {
         let vm = SessionStartViewModel()
         vm.selectPreset(30)
         vm.customDurationSeconds = 900
-        XCTAssertEqual(vm.resolvedDuration?.seconds, 1800)
+        #expect(vm.resolvedDuration?.seconds == 1800)
     }
 
-    func testResolvedDurationReadsCustomWhenNoPresetSelected() {
+    @Test("resolvedDuration reads custom when no preset selected")
+    func resolvedDurationReadsCustomWhenNoPresetSelected() {
         let vm = SessionStartViewModel()
         vm.switchToCustom()
         vm.customDurationSeconds = 3600
-        XCTAssertEqual(vm.resolvedDuration?.seconds, 3600)
+        #expect(vm.resolvedDuration?.seconds == 3600)
     }
 
-    func testResolvedDurationClampsCustomBelowMin() {
+    @Test("resolvedDuration clamps custom below min")
+    func resolvedDurationClampsCustomBelowMin() {
         let vm = SessionStartViewModel()
         vm.switchToCustom()
-        vm.customDurationSeconds = 299    // below 5 min
-        XCTAssertEqual(vm.customDurationSeconds, SessionDuration.minSeconds)
-        XCTAssertEqual(vm.resolvedDuration?.seconds, SessionDuration.minSeconds)
+        vm.customDurationSeconds = 299
+        #expect(vm.customDurationSeconds == SessionDuration.minSeconds)
+        #expect(vm.resolvedDuration?.seconds == SessionDuration.minSeconds)
     }
 
     // MARK: - canStart gate
 
-    func testCanStartIsFalseWhenBlocklistIsEmpty() async {
+    @Test("canStart is false when blocklist is empty")
+    func canStartIsFalseWhenBlocklistIsEmpty() async {
         let vm = SessionStartViewModel()
         mockObserveBlocklist.subject.send(Blocklist.empty())
         await yield()
-        XCTAssertFalse(vm.canStart)
+        #expect(!vm.canStart)
     }
 
-    func testCanStartIsTrueWhenBlocklistHasRecordsAndDurationValid() async {
+    @Test("canStart is true when blocklist has records and duration valid")
+    func canStartIsTrueWhenBlocklistHasRecordsAndDurationValid() async {
         let vm = SessionStartViewModel()
         var list = Blocklist.empty()
         list.records = [
@@ -96,12 +100,13 @@ final class SessionStartViewModelTests: XCTestCase {
         ]
         mockObserveBlocklist.subject.send(list)
         await yield()
-        XCTAssertTrue(vm.canStart)
+        #expect(vm.canStart)
     }
 
     // MARK: - startTapped gates + success + failure
 
-    func testStartTappedRoutesToSessionInProgressWhenActiveExists() async {
+    @Test("startTapped routes to sessionInProgress when active exists")
+    func startTappedRoutesToSessionInProgressWhenActiveExists() async {
         let vm = SessionStartViewModel()
         let active = makeActiveRecord()
         mockObserveActive.subject.send(active)
@@ -109,11 +114,12 @@ final class SessionStartViewModelTests: XCTestCase {
 
         await vm.startTapped(now: Date())
 
-        XCTAssertEqual(vm.destination, .sessionInProgress(active))
-        XCTAssertEqual(mockStart.callCount, 0)
+        #expect(vm.destination == .sessionInProgress(active))
+        #expect(mockStart.callCount == 0)
     }
 
-    func testStartTappedCallsStartSessionUseCaseWithResolvedDurationAndBlocklistId() async {
+    @Test("startTapped calls start use case with resolved duration and blocklist id")
+    func startTappedCallsStartSessionUseCaseWithResolvedDurationAndBlocklistId() async {
         let vm = SessionStartViewModel()
         let blocklistId = UUID()
         var list = Blocklist.empty(id: blocklistId)
@@ -135,13 +141,14 @@ final class SessionStartViewModelTests: XCTestCase {
 
         await vm.startTapped(now: now)
 
-        XCTAssertEqual(mockStart.callCount, 1)
-        XCTAssertEqual(mockStart.lastBlocklistId, blocklistId)
-        XCTAssertEqual(mockStart.lastDuration?.seconds, 1800)
-        XCTAssertEqual(mockStart.lastNow, now)
+        #expect(mockStart.callCount == 1)
+        #expect(mockStart.lastBlocklistId == blocklistId)
+        #expect(mockStart.lastDuration?.seconds == 1800)
+        #expect(mockStart.lastNow == now)
     }
 
-    func testStartTappedSuccessRoutesDestinationToCountdownHandoff() async {
+    @Test("startTapped success routes destination to countdownHandoff")
+    func startTappedSuccessRoutesDestinationToCountdownHandoff() async {
         let vm = SessionStartViewModel()
         let blocklistId = UUID()
         var list = Blocklist.empty(id: blocklistId)
@@ -162,10 +169,11 @@ final class SessionStartViewModelTests: XCTestCase {
         mockStart.stubbedResult = stubbed
 
         await vm.startTapped(now: now)
-        XCTAssertEqual(vm.destination, .countdownHandoff(stubbed))
+        #expect(vm.destination == .countdownHandoff(stubbed))
     }
 
-    func testStartTappedFailureRoutesDestinationToErrorAlertWithPolishCopy() async {
+    @Test("startTapped failure routes destination to errorAlert with Polish copy")
+    func startTappedFailureRoutesDestinationToErrorAlertWithPolishCopy() async {
         let vm = SessionStartViewModel()
         var list = Blocklist.empty()
         list.records = [
@@ -177,16 +185,13 @@ final class SessionStartViewModelTests: XCTestCase {
         mockStart.stubbedError = TestError()
         await vm.startTapped(now: Date())
 
-        XCTAssertEqual(
-            vm.destination,
-            .errorAlert("Coś poszło nie tak. Timer nie wystartował — spróbuj jeszcze raz.")
+        #expect(
+            vm.destination == .errorAlert("Coś poszło nie tak. Timer nie wystartował — spróbuj jeszcze raz.")
         )
     }
 
-    func testStartTappedIsNoOpWhileIsStartingTrue() async {
-        // Re-entry guard: a second startTapped() call while the first is in flight
-        // must NOT produce a second StartSessionUseCase invocation. Correctness
-        // invariant — duplicate in-flight starts would create two SessionRecords.
+    @Test("startTapped is no-op while isStarting is true")
+    func startTappedIsNoOpWhileIsStartingTrue() async {
         let vm = SessionStartViewModel()
         var list = Blocklist.empty()
         list.records = [
@@ -195,7 +200,6 @@ final class SessionStartViewModelTests: XCTestCase {
         mockObserveBlocklist.subject.send(list)
         await yield()
 
-        // Gate the mock's return on an external signal so the first call stays in-flight.
         let gate = AsyncStream<Void>.makeStream()
         mockStart.beforeReturn = {
             await gate.stream.first { _ in true }
@@ -208,33 +212,33 @@ final class SessionStartViewModelTests: XCTestCase {
             appVersion: "test"
         )
 
-        // Fire two overlapping start taps. The second MUST short-circuit via the
-        // isStarting guard before the first completes.
         async let first: Void = vm.startTapped(now: Date())
         await yield()
         async let second: Void = vm.startTapped(now: Date())
         await yield()
 
-        // Release the first call.
         gate.continuation.yield()
         gate.continuation.finish()
 
         _ = await first
         _ = await second
 
-        XCTAssertEqual(mockStart.callCount, 1)
+        #expect(mockStart.callCount == 1)
     }
 
-    func testClearDestinationResetsToNil() {
+    @Test("clearDestination resets to nil")
+    func clearDestinationResetsToNil() {
         let vm = SessionStartViewModel()
         vm.destination = .errorAlert("x")
         vm.clearDestination()
-        XCTAssertNil(vm.destination)
+        #expect(vm.destination == nil)
     }
+}
 
-    // MARK: - Helpers
+// MARK: - Private Helpers
 
-    private func makeActiveRecord(now: Date = Date()) -> SessionRecord {
+private extension SessionStartViewModelTests {
+    func makeActiveRecord(now: Date = Date()) -> SessionRecord {
         SessionRecord(
             blocklistId: UUID(),
             startedAt: now,
@@ -244,8 +248,7 @@ final class SessionStartViewModelTests: XCTestCase {
         )
     }
 
-    private func yield() async {
-        // Three hops to drain Combine `.receive(on: DispatchQueue.main)` + defer.
+    func yield() async {
         await Task.yield()
         await Task.yield()
         await Task.yield()

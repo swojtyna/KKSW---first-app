@@ -1,23 +1,12 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
-/// Plan 05-02 Task 2 — real assertions replacing Plan 05-01 XCTSkipIf stubs.
-/// The repository already owns "list + sort + delete marker files"
-/// (ScheduleRepositoryImpl.consumeEventMarkers, Task 1). The UC's job is
-/// to translate each marker into a `ScheduleEvent` and append it to
-/// `schedule_events.json` via the repository, preserving order and
-/// returning the count.
-final class ConsumeScheduleEventMarkerUseCaseTests: XCTestCase {
+@Suite("ConsumeScheduleEventMarkerUseCase")
+struct ConsumeScheduleEventMarkerUseCaseTests {
 
-    private func makeMarker(ms: Int64, kind: ScheduleEventMarker.Kind = .started) -> ScheduleEventMarker {
-        ScheduleEventMarker(
-            scheduleId: UUID(),
-            kind: kind,
-            timestamp: Date(timeIntervalSince1970: TimeInterval(ms) / 1000.0)
-        )
-    }
-
-    func testConsumeAppendsAllMarkersToEventsJSON() async throws {
+    @Test("appends all markers to events JSON")
+    func consumeAppendsAllMarkersToEventsJSON() async throws {
         let repo = MockScheduleRepository()
         let uc = ConsumeScheduleEventMarkerUseCaseImpl(repository: repo)
 
@@ -28,20 +17,17 @@ final class ConsumeScheduleEventMarkerUseCaseTests: XCTestCase {
 
         let count = try await uc()
 
-        XCTAssertEqual(count, 3)
-        XCTAssertEqual(repo.appendedEvents.count, 3)
-        XCTAssertEqual(repo.appendedEvents[0].scheduleId, m1.scheduleId)
-        XCTAssertEqual(repo.appendedEvents[0].kind, .started)
-        XCTAssertEqual(repo.appendedEvents[0].timestamp, m1.timestamp)
-        XCTAssertEqual(repo.appendedEvents[1].kind, .ended)
-        XCTAssertEqual(repo.appendedEvents[2].scheduleId, m3.scheduleId)
+        #expect(count == 3)
+        #expect(repo.appendedEvents.count == 3)
+        #expect(repo.appendedEvents[0].scheduleId == m1.scheduleId)
+        #expect(repo.appendedEvents[0].kind == .started)
+        #expect(repo.appendedEvents[0].timestamp == m1.timestamp)
+        #expect(repo.appendedEvents[1].kind == .ended)
+        #expect(repo.appendedEvents[2].scheduleId == m3.scheduleId)
     }
 
-    func testConsumeDeletesMarkerFilesAfterAppending() async throws {
-        // Deletion is the Repository's responsibility (ScheduleRepositoryImpl
-        // removes each file inside consumeEventMarkers()). The UC-level
-        // contract here is: it reports the right count and does NOT call
-        // consumeEventMarkers twice for the same payload.
+    @Test("deletes marker files after appending, does not double-consume")
+    func consumeDeletesMarkerFilesAfterAppending() async throws {
         let repo = MockScheduleRepository()
         let uc = ConsumeScheduleEventMarkerUseCaseImpl(repository: repo)
 
@@ -52,31 +38,28 @@ final class ConsumeScheduleEventMarkerUseCaseTests: XCTestCase {
         ]
 
         let first = try await uc()
-        XCTAssertEqual(first, 3)
-        XCTAssertEqual(repo.consumeEventMarkersCallCount, 1)
+        #expect(first == 3)
+        #expect(repo.consumeEventMarkersCallCount == 1)
 
-        // Second run — mock auto-clears after first consume.
         let second = try await uc()
-        XCTAssertEqual(second, 0)
-        XCTAssertEqual(repo.consumeEventMarkersCallCount, 2)
-        XCTAssertEqual(repo.appendedEvents.count, 3, "no additional appends on empty run")
+        #expect(second == 0)
+        #expect(repo.consumeEventMarkersCallCount == 2)
+        #expect(repo.appendedEvents.count == 3)
     }
 
-    func testConsumeReturnsZeroWhenNoMarkers() async throws {
+    @Test("returns zero when no markers exist")
+    func consumeReturnsZeroWhenNoMarkers() async throws {
         let repo = MockScheduleRepository()
         let uc = ConsumeScheduleEventMarkerUseCaseImpl(repository: repo)
-        // No stubbedConsumedMarkers — default empty.
 
         let count = try await uc()
-        XCTAssertEqual(count, 0)
-        XCTAssertTrue(repo.appendedEvents.isEmpty)
-        XCTAssertEqual(repo.appendEventCallCount, 0)
+        #expect(count == 0)
+        #expect(repo.appendedEvents.isEmpty)
+        #expect(repo.appendEventCallCount == 0)
     }
 
-    func testConsumeSortsMarkersByTimestampBeforeAppend() async throws {
-        // The repository returns the markers in chronological order
-        // (ScheduleRepositoryImpl does the sort). The UC must preserve that
-        // order when appending. Pass pre-sorted input; verify order preserved.
+    @Test("preserves ascending timestamp order from repository")
+    func consumeSortsMarkersByTimestampBeforeAppend() async throws {
         let repo = MockScheduleRepository()
         let uc = ConsumeScheduleEventMarkerUseCaseImpl(repository: repo)
 
@@ -91,6 +74,18 @@ final class ConsumeScheduleEventMarkerUseCaseTests: XCTestCase {
 
         let appendedTimestamps = repo.appendedEvents.map(\.timestamp)
         let expectedTimestamps = sorted.map(\.timestamp)
-        XCTAssertEqual(appendedTimestamps, expectedTimestamps)
+        #expect(appendedTimestamps == expectedTimestamps)
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension ConsumeScheduleEventMarkerUseCaseTests {
+    func makeMarker(ms: Int64, kind: ScheduleEventMarker.Kind = .started) -> ScheduleEventMarker {
+        ScheduleEventMarker(
+            scheduleId: UUID(),
+            kind: kind,
+            timestamp: Date(timeIntervalSince1970: TimeInterval(ms) / 1000.0)
+        )
     }
 }

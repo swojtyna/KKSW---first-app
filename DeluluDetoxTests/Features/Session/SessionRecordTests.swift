@@ -1,67 +1,75 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
-@MainActor
-final class SessionRecordTests: XCTestCase {
+@Suite("SessionRecord model")
+struct SessionRecordTests {
 
-    // MARK: SessionOutcome
+    // MARK: - SessionOutcome
 
-    func testSessionOutcomeRawValuesMatchContractStrings() throws {
-        XCTAssertEqual(SessionOutcome.completed.rawValue, "completed")
-        XCTAssertEqual(SessionOutcome.cancelledByUser.rawValue, "cancelled_by_user")
-        XCTAssertEqual(SessionOutcome.brokenByRevoke.rawValue, "broken_by_revoke")
+    @Test("outcome raw values match contract strings")
+    func sessionOutcomeRawValuesMatchContractStrings() throws {
+        #expect(SessionOutcome.completed.rawValue == "completed")
+        #expect(SessionOutcome.cancelledByUser.rawValue == "cancelled_by_user")
+        #expect(SessionOutcome.brokenByRevoke.rawValue == "broken_by_revoke")
 
-        // Confirm JSON shape is the raw string (String-rawValue enums encode to the raw value).
         let data = try JSONEncoder().encode(SessionOutcome.cancelledByUser)
-        XCTAssertEqual(String(data: data, encoding: .utf8), "\"cancelled_by_user\"")
+        #expect(String(data: data, encoding: .utf8) == "\"cancelled_by_user\"")
     }
 
-    func testSessionOutcomeRoundTripsThroughCodable() throws {
+    @Test("all outcomes round-trip through Codable")
+    func sessionOutcomeRoundTripsThroughCodable() throws {
         for outcome in [SessionOutcome.completed, .cancelledByUser, .brokenByRevoke] {
             let data = try JSONEncoder().encode(outcome)
             let decoded = try JSONDecoder().decode(SessionOutcome.self, from: data)
-            XCTAssertEqual(decoded, outcome)
+            #expect(decoded == outcome)
         }
     }
 
-    // MARK: SessionDuration
+    // MARK: - SessionDuration
 
-    func testSessionDurationAcceptsAllFourPresets() {
-        XCTAssertEqual(SessionDuration.preset(15)?.seconds, 15 * 60)
-        XCTAssertEqual(SessionDuration.preset(30)?.seconds, 30 * 60)
-        XCTAssertEqual(SessionDuration.preset(60)?.seconds, 60 * 60)
-        XCTAssertEqual(SessionDuration.preset(90)?.seconds, 90 * 60)
+    @Test("all four presets are valid")
+    func sessionDurationAcceptsAllFourPresets() {
+        #expect(SessionDuration.preset(15)?.seconds == 15 * 60)
+        #expect(SessionDuration.preset(30)?.seconds == 30 * 60)
+        #expect(SessionDuration.preset(60)?.seconds == 60 * 60)
+        #expect(SessionDuration.preset(90)?.seconds == 90 * 60)
     }
 
-    func testSessionDurationAcceptsBoundarySeconds() {
-        XCTAssertNotNil(SessionDuration(seconds: 15 * 60))        // 15 min lower (DeviceActivitySchedule min)
-        XCTAssertNotNil(SessionDuration(seconds: 8 * 60 * 60))    // 8 h upper
+    @Test("boundary seconds (15 min and 8 h) are accepted")
+    func sessionDurationAcceptsBoundarySeconds() {
+        #expect(SessionDuration(seconds: 15 * 60) != nil)
+        #expect(SessionDuration(seconds: 8 * 60 * 60) != nil)
     }
 
-    func testSessionDurationRejectsOutOfRange() {
-        XCTAssertNil(SessionDuration(seconds: 15 * 60 - 1))        // 14 min 59 s
-        XCTAssertNil(SessionDuration(seconds: 8 * 60 * 60 + 1))    // 8 h + 1 s
+    @Test("out-of-range seconds are rejected")
+    func sessionDurationRejectsOutOfRange() {
+        #expect(SessionDuration(seconds: 15 * 60 - 1) == nil)
+        #expect(SessionDuration(seconds: 8 * 60 * 60 + 1) == nil)
     }
 
-    func testSessionDurationRejectsNegativeOrZero() {
-        XCTAssertNil(SessionDuration(seconds: 0))
-        XCTAssertNil(SessionDuration(seconds: -1))
+    @Test("negative and zero seconds are rejected")
+    func sessionDurationRejectsNegativeOrZero() {
+        #expect(SessionDuration(seconds: 0) == nil)
+        #expect(SessionDuration(seconds: -1) == nil)
     }
 
-    func testSessionDurationRoundTripsThroughCodable() throws {
-        guard let duration = SessionDuration.preset(30) else { return XCTFail("preset 30 nil") }
+    @Test("SessionDuration round-trips through Codable")
+    func sessionDurationRoundTripsThroughCodable() throws {
+        let duration = try #require(SessionDuration.preset(30))
         let data = try JSONEncoder().encode(duration)
         let decoded = try JSONDecoder().decode(SessionDuration.self, from: data)
-        XCTAssertEqual(decoded, duration)
+        #expect(decoded == duration)
     }
 
-    // MARK: SessionRecord
+    // MARK: - SessionRecord
 
-    func testSessionRecordJSONRoundTripPreservesAllFields() throws {
+    @Test("JSON round-trip preserves all fields")
+    func sessionRecordJSONRoundTripPreservesAllFields() throws {
         let id = UUID()
         let blocklistId = UUID()
         let start = Date(timeIntervalSince1970: 1_700_000_000)
-        let end = Date(timeIntervalSince1970: 1_700_001_800)  // +30 min
+        let end = Date(timeIntervalSince1970: 1_700_001_800)
         let original = SessionRecord(
             id: id,
             blocklistId: blocklistId,
@@ -74,17 +82,18 @@ final class SessionRecordTests: XCTestCase {
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(SessionRecord.self, from: data)
 
-        XCTAssertEqual(decoded.id, id)
-        XCTAssertEqual(decoded.blocklistId, blocklistId)
-        XCTAssertEqual(decoded.startedAt, start)
-        XCTAssertEqual(decoded.plannedEndAt, end)
-        XCTAssertEqual(decoded.plannedDurationSeconds, 1800)
-        XCTAssertNil(decoded.actualEndAt)
-        XCTAssertNil(decoded.outcome)
-        XCTAssertEqual(decoded.appVersion, "1.0")
+        #expect(decoded.id == id)
+        #expect(decoded.blocklistId == blocklistId)
+        #expect(decoded.startedAt == start)
+        #expect(decoded.plannedEndAt == end)
+        #expect(decoded.plannedDurationSeconds == 1800)
+        #expect(decoded.actualEndAt == nil)
+        #expect(decoded.outcome == nil)
+        #expect(decoded.appVersion == "1.0")
     }
 
-    func testSessionRecordIsActiveIsTrueWhenOutcomeAndActualEndAreNil() {
+    @Test("isActive is true when outcome and actualEndAt are nil")
+    func sessionRecordIsActiveIsTrueWhenOutcomeAndActualEndAreNil() {
         let record = SessionRecord(
             blocklistId: UUID(),
             startedAt: Date(),
@@ -92,10 +101,11 @@ final class SessionRecordTests: XCTestCase {
             plannedDurationSeconds: 1800,
             appVersion: "1.0"
         )
-        XCTAssertTrue(record.isActive)
+        #expect(record.isActive)
     }
 
-    func testSessionRecordIsActiveIsFalseAfterFinalize() {
+    @Test("isActive is false after finalize")
+    func sessionRecordIsActiveIsFalseAfterFinalize() {
         var record = SessionRecord(
             blocklistId: UUID(),
             startedAt: Date(),
@@ -105,12 +115,13 @@ final class SessionRecordTests: XCTestCase {
         )
         record.actualEndAt = Date()
         record.outcome = .completed
-        XCTAssertFalse(record.isActive)
+        #expect(!record.isActive)
     }
 
-    // MARK: SessionFinalizeMarker
+    // MARK: - SessionFinalizeMarker
 
-    func testSessionFinalizeMarkerRoundTripsThroughCodable() throws {
+    @Test("SessionFinalizeMarker round-trips through Codable")
+    func sessionFinalizeMarkerRoundTripsThroughCodable() throws {
         let marker = SessionFinalizeMarker(
             sessionId: UUID(),
             finalizedAt: Date(timeIntervalSince1970: 1_700_000_000),
@@ -118,16 +129,17 @@ final class SessionRecordTests: XCTestCase {
         )
         let data = try JSONEncoder().encode(marker)
         let decoded = try JSONDecoder().decode(SessionFinalizeMarker.self, from: data)
-        XCTAssertEqual(decoded, marker)
-        XCTAssertEqual(decoded.source.rawValue, "dam_interval_did_end")
+        #expect(decoded == marker)
+        #expect(decoded.source.rawValue == "dam_interval_did_end")
     }
 
-    // MARK: SessionPaths
+    // MARK: - SessionPaths
 
-    func testSessionPathsConstantsMatchContract() {
-        XCTAssertEqual(SessionPaths.appGroupIdentifier, "group.com.kksw.DeluluDetox")
-        XCTAssertEqual(SessionPaths.activeSessionFileName, "active_session.json")
-        XCTAssertEqual(SessionPaths.historyFileName, "sessions.json")
-        XCTAssertEqual(SessionPaths.finalizeMarkerFileName, "session_finalize_marker.json")
+    @Test("SessionPaths constants match contract")
+    func sessionPathsConstantsMatchContract() {
+        #expect(SessionPaths.appGroupIdentifier == "group.com.kksw.DeluluDetox")
+        #expect(SessionPaths.activeSessionFileName == "active_session.json")
+        #expect(SessionPaths.historyFileName == "sessions.json")
+        #expect(SessionPaths.finalizeMarkerFileName == "session_finalize_marker.json")
     }
 }

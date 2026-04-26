@@ -1,22 +1,15 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
+@Suite("EndSessionUseCase")
 @MainActor
-final class EndSessionUseCaseTests: XCTestCase {
+struct EndSessionUseCaseTests {
+
     struct TestError: Error, Equatable {}
 
-    private func makeActive(id: UUID = UUID()) -> SessionRecord {
-        SessionRecord(
-            id: id,
-            blocklistId: UUID(),
-            startedAt: Date(),
-            plannedEndAt: Date().addingTimeInterval(1800),
-            plannedDurationSeconds: 1800,
-            appVersion: "test"
-        )
-    }
-
-    func testEndSessionHappyPathClearsShieldStopsMonitoringThenFinalizes() async throws {
+    @Test("happy path: clears shield, stops monitoring, then finalizes")
+    func endSessionHappyPathClearsShieldStopsMonitoringThenFinalizes() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -33,19 +26,19 @@ final class EndSessionUseCaseTests: XCTestCase {
         let endDate = Date()
         try await uc(outcome: .completed, actualEndAt: endDate)
 
-        XCTAssertEqual(mockShield.clearShieldCallCount, 1)
-        XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
-        XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 1)
-        XCTAssertEqual(mockRepo.finalizeActiveSessionLastOutcome, .completed)
-        XCTAssertEqual(mockRepo.finalizeActiveSessionLastActualEndAt, endDate)
+        #expect(mockShield.clearShieldCallCount == 1)
+        #expect(mockMonitoring.stopActivityMonitoringCallCount == 1)
+        #expect(mockRepo.finalizeActiveSessionCallCount == 1)
+        #expect(mockRepo.finalizeActiveSessionLastOutcome == .completed)
+        #expect(mockRepo.finalizeActiveSessionLastActualEndAt == endDate)
     }
 
-    func testEndSessionIsNoOpWhenNoActiveSession() async throws {
+    @Test("no-op when no active session (swallows noActiveSession error)")
+    func endSessionIsNoOpWhenNoActiveSession() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
         let mockCancelNotification = MockCancelSessionEndNotificationUseCase()
-        // No active session; make repo throw .noActiveSession.
         mockRepo.finalizeActiveSessionError = SessionStoreError.noActiveSession
 
         let uc = EndSessionUseCaseImpl(
@@ -56,14 +49,13 @@ final class EndSessionUseCaseTests: XCTestCase {
         )
         try await uc(outcome: .completed, actualEndAt: Date())
 
-        // Defense-in-depth — clearShield/stopMonitoring still called.
-        XCTAssertEqual(mockShield.clearShieldCallCount, 1)
-        XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
-        // Finalize was attempted, threw noActiveSession; UC swallowed it (no throw).
-        XCTAssertEqual(mockRepo.finalizeActiveSessionCallCount, 1)
+        #expect(mockShield.clearShieldCallCount == 1)
+        #expect(mockMonitoring.stopActivityMonitoringCallCount == 1)
+        #expect(mockRepo.finalizeActiveSessionCallCount == 1)
     }
 
-    func testEndSessionPropagatesRepoFinalizeError() async {
+    @Test("propagates unexpected repo finalize error")
+    func endSessionPropagatesRepoFinalizeError() async {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -79,17 +71,18 @@ final class EndSessionUseCaseTests: XCTestCase {
         )
         do {
             try await uc(outcome: .completed, actualEndAt: Date())
-            XCTFail("expected throw")
+            Issue.record("expected throw")
         } catch {
-            XCTAssertEqual(mockShield.clearShieldCallCount, 1)
-            XCTAssertEqual(mockMonitoring.stopActivityMonitoringCallCount, 1)
-            XCTAssertTrue(error is TestError)
+            #expect(mockShield.clearShieldCallCount == 1)
+            #expect(mockMonitoring.stopActivityMonitoringCallCount == 1)
+            #expect(error is TestError)
         }
     }
 
-    // MARK: - Plan 06-03 (NTF-01 §H2) extensions
+    // MARK: - Notification cancellation
 
-    func testCancelsNotification_onCancelledByUserOutcome() async throws {
+    @Test("cancels notification on cancelledByUser outcome")
+    func cancelsNotification_onCancelledByUserOutcome() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -105,10 +98,11 @@ final class EndSessionUseCaseTests: XCTestCase {
         )
         try await uc(outcome: .cancelledByUser, actualEndAt: Date())
 
-        XCTAssertEqual(mockCancelNotification.cancelledSessionIds, [activeId])
+        #expect(mockCancelNotification.cancelledSessionIds == [activeId])
     }
 
-    func testCancelsNotification_onBrokenByRevokeOutcome() async throws {
+    @Test("cancels notification on brokenByRevoke outcome")
+    func cancelsNotification_onBrokenByRevokeOutcome() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -124,10 +118,11 @@ final class EndSessionUseCaseTests: XCTestCase {
         )
         try await uc(outcome: .brokenByRevoke, actualEndAt: Date())
 
-        XCTAssertEqual(mockCancelNotification.cancelledSessionIds, [activeId])
+        #expect(mockCancelNotification.cancelledSessionIds == [activeId])
     }
 
-    func testDoesNotCancelNotification_onCompletedOutcome() async throws {
+    @Test("does NOT cancel notification on completed outcome (iOS fires it naturally)")
+    func doesNotCancelNotification_onCompletedOutcome() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
@@ -142,16 +137,16 @@ final class EndSessionUseCaseTests: XCTestCase {
         )
         try await uc(outcome: .completed, actualEndAt: Date())
 
-        XCTAssertTrue(mockCancelNotification.cancelledSessionIds.isEmpty,
-                      "iOS fires the pending session.end trigger naturally on .completed")
+        #expect(mockCancelNotification.cancelledSessionIds.isEmpty,
+                "iOS fires the pending session.end trigger naturally on .completed")
     }
 
-    func testDoesNotCancelNotification_whenNoActiveSession() async throws {
+    @Test("does NOT cancel notification when no active session")
+    func doesNotCancelNotification_whenNoActiveSession() async throws {
         let mockRepo = MockSessionRepository()
         let mockShield = MockSessionShieldRepository()
         let mockMonitoring = MockSessionActivityMonitoringRepository()
         let mockCancelNotification = MockCancelSessionEndNotificationUseCase()
-        // activeSubject stays at nil
         mockRepo.finalizeActiveSessionError = SessionStoreError.noActiveSession
 
         let uc = EndSessionUseCaseImpl(
@@ -162,7 +157,22 @@ final class EndSessionUseCaseTests: XCTestCase {
         )
         try await uc(outcome: .cancelledByUser, actualEndAt: Date())
 
-        XCTAssertTrue(mockCancelNotification.cancelledSessionIds.isEmpty,
-                      "no active session → nothing to cancel even on abort outcome")
+        #expect(mockCancelNotification.cancelledSessionIds.isEmpty,
+                "no active session → nothing to cancel even on abort outcome")
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension EndSessionUseCaseTests {
+    func makeActive(id: UUID = UUID()) -> SessionRecord {
+        SessionRecord(
+            id: id,
+            blocklistId: UUID(),
+            startedAt: Date(),
+            plannedEndAt: Date().addingTimeInterval(1800),
+            plannedDurationSeconds: 1800,
+            appVersion: "test"
+        )
     }
 }

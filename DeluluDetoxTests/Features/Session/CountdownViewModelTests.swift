@@ -1,8 +1,10 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
+@Suite(.serialized)
 @MainActor
-final class CountdownViewModelTests: XCTestCase {
+final class CountdownViewModelTests {
 
     struct TestError: Error {}
 
@@ -41,38 +43,18 @@ final class CountdownViewModelTests: XCTestCase {
         init(_ date: Date) { self.value = date }
     }
 
-    // MARK: - DI setup
+    let mockEndSession: MockEndSessionUseCase
 
-    var mockEndSession: MockEndSessionUseCase!
-
-    override func setUp() async throws {
-        try await super.setUp()
+    init() {
         DIContainer.shared.reset()
         mockEndSession = MockEndSessionUseCase()
-        DIContainer.shared.register(EndSessionUseCase.self, scope: .application) { [mockEndSession] _ in mockEndSession! }
-    }
-
-    override func tearDown() async throws {
-        DIContainer.shared.reset()
-        try await super.tearDown()
-    }
-
-    // MARK: - Helpers
-
-    private func makeSession(duration: Int = 1800, startedAt: Date = Date(timeIntervalSince1970: 1_700_000_000)) -> SessionRecord {
-        SessionRecord(
-            id: UUID(),
-            blocklistId: UUID(),
-            startedAt: startedAt,
-            plannedEndAt: startedAt.addingTimeInterval(TimeInterval(duration)),
-            plannedDurationSeconds: duration,
-            appVersion: "test"
-        )
+        DIContainer.shared.register(EndSessionUseCase.self, scope: .application) { [mockEndSession] _ in mockEndSession }
     }
 
     // MARK: - Init / compute
 
-    func testInitSetsRemainingAndProgressFromSession() {
+    @Test("init sets remaining and progress from session")
+    func initSetsRemainingAndProgressFromSession() {
         let session = makeSession()
         let clock = FakeTickClock()
         let vm = CountdownViewModel(
@@ -80,11 +62,12 @@ final class CountdownViewModelTests: XCTestCase {
             clock: clock,
             dateProvider: { session.startedAt.addingTimeInterval(600) }
         )
-        XCTAssertEqual(vm.remainingSeconds, 1200)
-        XCTAssertEqual(vm.progress, 1200.0 / 1800.0, accuracy: 0.001)
+        #expect(vm.remainingSeconds == 1200)
+        #expect(abs(vm.progress - 1200.0 / 1800.0) < 0.001)
     }
 
-    func testInitClampsRemainingToZeroWhenSessionAlreadyExpired() {
+    @Test("init clamps remaining to zero when session already expired")
+    func initClampsRemainingToZeroWhenSessionAlreadyExpired() {
         let session = makeSession()
         let clock = FakeTickClock()
         let vm = CountdownViewModel(
@@ -92,16 +75,16 @@ final class CountdownViewModelTests: XCTestCase {
             clock: clock,
             dateProvider: { session.plannedEndAt.addingTimeInterval(10) }
         )
-        XCTAssertEqual(vm.remainingSeconds, 0)
-        XCTAssertEqual(vm.progress, 0.0)
+        #expect(vm.remainingSeconds == 0)
+        #expect(vm.progress == 0.0)
     }
 
     // MARK: - Tick
 
-    func testTickReducesRemainingByOneSecondPerFire() {
+    @Test("tick reduces remaining by one second per fire")
+    func tickReducesRemainingByOneSecondPerFire() {
         let session = makeSession()
         let clock = FakeTickClock()
-        // Use a class wrapper to avoid Swift 6 "captured var in @Sendable closure" error.
         let nowBox = DateBox(session.startedAt)
         let vm = CountdownViewModel(
             session: session,
@@ -111,14 +94,15 @@ final class CountdownViewModelTests: XCTestCase {
 
         nowBox.value = session.startedAt.addingTimeInterval(1)
         clock.advance()
-        XCTAssertEqual(vm.remainingSeconds, 1800 - 1)
+        #expect(vm.remainingSeconds == 1800 - 1)
 
         nowBox.value = session.startedAt.addingTimeInterval(2)
         clock.advance()
-        XCTAssertEqual(vm.remainingSeconds, 1800 - 2)
+        #expect(vm.remainingSeconds == 1800 - 2)
     }
 
-    func testTickStopsAtZeroDoesNotGoNegative() {
+    @Test("tick stops at zero and does not go negative")
+    func tickStopsAtZeroDoesNotGoNegative() {
         let session = makeSession(duration: 2)
         let clock = FakeTickClock()
         let nowBox = DateBox(session.startedAt)
@@ -130,23 +114,25 @@ final class CountdownViewModelTests: XCTestCase {
 
         nowBox.value = session.startedAt.addingTimeInterval(3)
         clock.advance()
-        XCTAssertEqual(vm.remainingSeconds, 0)
+        #expect(vm.remainingSeconds == 0)
 
         nowBox.value = session.startedAt.addingTimeInterval(4)
         clock.advance()
-        XCTAssertEqual(vm.remainingSeconds, 0)
+        #expect(vm.remainingSeconds == 0)
     }
 
     // MARK: - Early end
 
-    func testEarlyEndTappedSetsConfirmDestination() {
+    @Test("earlyEndTapped sets confirmEarlyEnd destination")
+    func earlyEndTappedSetsConfirmDestination() {
         let session = makeSession()
         let vm = CountdownViewModel(session: session, clock: FakeTickClock())
         vm.earlyEndTapped()
-        XCTAssertEqual(vm.destination, .confirmEarlyEnd(session))
+        #expect(vm.destination == .confirmEarlyEnd(session))
     }
 
-    func testConfirmEarlyEndInvokesEndSessionUseCaseWithCancelledByUserOutcome() async {
+    @Test("confirmEarlyEnd invokes EndSessionUseCase with cancelledByUser outcome")
+    func confirmEarlyEndInvokesEndSessionUseCaseWithCancelledByUserOutcome() async {
         let session = makeSession()
         let clock = FakeTickClock()
         let fakeNow = session.startedAt.addingTimeInterval(120)
@@ -154,37 +140,55 @@ final class CountdownViewModelTests: XCTestCase {
         vm.earlyEndTapped()
         await vm.confirmEarlyEnd()
 
-        XCTAssertEqual(mockEndSession.callCount, 1)
-        XCTAssertEqual(mockEndSession.lastOutcome, .cancelledByUser)
-        XCTAssertEqual(mockEndSession.lastActualEndAt, fakeNow)
-        XCTAssertNil(vm.destination)
+        #expect(mockEndSession.callCount == 1)
+        #expect(mockEndSession.lastOutcome == .cancelledByUser)
+        #expect(mockEndSession.lastActualEndAt == fakeNow)
+        #expect(vm.destination == nil)
     }
 
-    func testConfirmEarlyEndKeepsDestinationWhenEndSessionThrows() async {
+    @Test("confirmEarlyEnd keeps destination when EndSession throws")
+    func confirmEarlyEndKeepsDestinationWhenEndSessionThrows() async {
         let session = makeSession()
         mockEndSession.stubbedError = TestError()
         let vm = CountdownViewModel(session: session, clock: FakeTickClock())
         vm.earlyEndTapped()
         await vm.confirmEarlyEnd()
-        XCTAssertEqual(vm.destination, .confirmEarlyEnd(session))
+        #expect(vm.destination == .confirmEarlyEnd(session))
     }
 
-    func testDismissConfirmClearsDestination() {
+    @Test("dismissConfirm clears destination")
+    func dismissConfirmClearsDestination() {
         let session = makeSession()
         let vm = CountdownViewModel(session: session, clock: FakeTickClock())
         vm.destination = .confirmEarlyEnd(session)
         vm.dismissConfirm()
-        XCTAssertNil(vm.destination)
+        #expect(vm.destination == nil)
     }
 
     // MARK: - onDisappear
 
-    func testOnDisappearCancelsTickClock() {
+    @Test("onDisappear cancels tick clock")
+    func onDisappearCancelsTickClock() {
         let session = makeSession()
         let clock = FakeTickClock()
         let vm = CountdownViewModel(session: session, clock: clock)
-        XCTAssertEqual(clock.scheduleCallCount, 1)
+        #expect(clock.scheduleCallCount == 1)
         vm.onDisappear()
-        XCTAssertTrue(clock.lastToken?.cancelled ?? false)
+        #expect(clock.lastToken?.cancelled ?? false)
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension CountdownViewModelTests {
+    func makeSession(duration: Int = 1800, startedAt: Date = Date(timeIntervalSince1970: 1_700_000_000)) -> SessionRecord {
+        SessionRecord(
+            id: UUID(),
+            blocklistId: UUID(),
+            startedAt: startedAt,
+            plannedEndAt: startedAt.addingTimeInterval(TimeInterval(duration)),
+            plannedDurationSeconds: duration,
+            appVersion: "test"
+        )
     }
 }

@@ -1,48 +1,47 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
+@Suite(.serialized)
 @MainActor
-final class OnboardingViewModelTests: XCTestCase {
-    // IUO pattern is safe in XCTest: setUp runs before every test and assigns the value; tearDown nils it.
-    // Standard idiom — see `.claude/guides` for rationale (W16).
-    var mockUseCase: MockRequestScreenTimeAuthUseCase!
+final class OnboardingViewModelTests {
 
-    override func setUp() async throws {
-        try await super.setUp()
+    let mockUseCase: MockRequestScreenTimeAuthUseCase
+
+    init() {
         DIContainer.shared.reset()
         mockUseCase = MockRequestScreenTimeAuthUseCase()
         DIContainer.shared.register(RequestScreenTimeAuthUseCase.self, scope: .unique) { [mockUseCase] _ in
-            mockUseCase!
+            mockUseCase
         }
     }
 
-    func testGrantAccessSuccess() async {
+    @Test("grant access success calls use case and clears error and isRequesting")
+    func grantAccessSuccess() async {
         let vm = OnboardingViewModel()
-
         await vm.grantAccessTapped()
-
-        XCTAssertEqual(mockUseCase.callCount, 1)
-        XCTAssertNil(vm.error)
-        XCTAssertFalse(vm.isRequesting)
+        #expect(mockUseCase.callCount == 1)
+        #expect(vm.error == nil)
+        #expect(!vm.isRequesting)
     }
 
-    func testGrantAccessFailure() async {
+    @Test("grant access failure sets error message and clears isRequesting")
+    func grantAccessFailure() async {
         mockUseCase.stubbedError = NSError(
             domain: "FamilyControls", code: 2,
             userInfo: [NSLocalizedDescriptionKey: "Invalid account type"]
         )
         let vm = OnboardingViewModel()
-
         await vm.grantAccessTapped()
-
-        XCTAssertEqual(mockUseCase.callCount, 1)
-        XCTAssertNotNil(vm.error)
-        XCTAssertEqual(vm.error, "Invalid account type")
-        XCTAssertFalse(vm.isRequesting)
+        #expect(mockUseCase.callCount == 1)
+        #expect(vm.error != nil)
+        #expect(vm.error == "Invalid account type")
+        #expect(!vm.isRequesting)
     }
 
-    func testIsRequestingStartsFalse() async {
+    @Test("isRequesting starts false")
+    func isRequestingStartsFalse() async {
         let vm = OnboardingViewModel()
-        XCTAssertFalse(vm.isRequesting)
+        #expect(!vm.isRequesting)
     }
 }

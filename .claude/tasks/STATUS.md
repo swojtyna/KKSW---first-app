@@ -17,7 +17,7 @@
 
 - **TASK-002**: Wydzielenie nawigacji do `+Destination.swift` — 6 extension plików, 309 testów zielonych
 - **TASK-005**: Tłumaczenia — lokalizacja aplikacji en/pl/es, 90+ kluczy, xcstrings, pluralizacja
-- **TASK-008**: Swift Testing skill + konwersja 2 plików + guide testowania, 305 testów zielonych
+- **TASK-008**: Pełna migracja XCTest → Swift Testing (39 plików), MARK+private extension konwencja, 302 testy zielone
 
 ---
 

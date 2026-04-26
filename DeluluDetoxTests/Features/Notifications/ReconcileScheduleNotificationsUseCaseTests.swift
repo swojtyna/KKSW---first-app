@@ -1,35 +1,166 @@
-import XCTest
+import Foundation
 import UserNotifications
+import Testing
 @testable import DeluluDetox
 
-/// NTF-02 reconcile UC tests (Plan 06-04 Task 1).
-/// Covers full-replace semantics, cross-midnight evening-only, explicit
-/// calendar + TZ (RESEARCH Pitfall 7), auth gating, empty-days defensive
-/// cleanup, caption-library sourcing, and userInfo contract.
+@Suite("ReconcileScheduleNotificationsUseCase")
 @MainActor
-final class ReconcileScheduleNotificationsUseCaseTests: XCTestCase {
+struct ReconcileScheduleNotificationsUseCaseTests {
 
-    private var repo: MockLocalNotificationRepository!
-    private var captions: NotificationCaptionLibrary!
-    private var sut: ReconcileScheduleNotificationsUseCaseImpl!
+    let repo: MockLocalNotificationRepository
+    let captions: NotificationCaptionLibrary
+    let sut: ReconcileScheduleNotificationsUseCaseImpl
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() {
         repo = MockLocalNotificationRepository()
         captions = NotificationCaptionLibrary()
         sut = ReconcileScheduleNotificationsUseCaseImpl(repository: repo, captions: captions)
     }
 
-    override func tearDown() async throws {
-        sut = nil
-        captions = nil
-        repo = nil
-        try await super.tearDown()
+    // MARK: - Tests
+
+    @Test("Mon–Fri enabled schedule creates five weekday requests")
+    func enabledMonToFri_createsFiveWeekdayRequests() async throws {
+        repo.stubAuthorizationStatus = .authorized
+        let id = UUID()
+        let sch = makeSchedule(id: id, daysOfWeek: [2, 3, 4, 5, 6], startHour: 9, startMinute: 0, endHour: 17)
+
+        await sut(schedule: sch)
+
+        #expect(repo.addedRequests.count == 5)
+        let ids = repo.addedRequests.map(\.identifier).sorted()
+        let expectedFull = [2, 3, 4, 5, 6].map { "schedule.start.\(id.uuidString).\($0)" }.sorted()
+        #expect(ids == expectedFull)
+        for req in repo.addedRequests {
+            let trigger = try #require(req.trigger as? UNCalendarNotificationTrigger)
+            #expect(trigger.repeats)
+            #expect(trigger.dateComponents.hour == 9)
+            #expect(trigger.dateComponents.minute == 0)
+        }
     }
 
-    // MARK: - Fixture
+    @Test("explicit calendar and timezone on date components")
+    func explicitCalendarAndTimeZone_onDateComponents() async throws {
+        repo.stubAuthorizationStatus = .authorized
+        let sch = makeSchedule(daysOfWeek: [2])
 
-    private func schedule(
+        await sut(schedule: sch)
+
+        let req = try #require(repo.addedRequests.first)
+        let trigger = try #require(req.trigger as? UNCalendarNotificationTrigger)
+        #expect(trigger.dateComponents.calendar?.identifier == .gregorian)
+        #expect(trigger.dateComponents.timeZone == TimeZone.current)
+    }
+
+    @Test("removes stale first, before add")
+    func removesStaleFirst_beforeAdd() async {
+        repo.stubAuthorizationStatus = .authorized
+        let id = UUID()
+        let content = UNMutableNotificationContent()
+        content.body = "x"
+        repo.stubPending = [
+            UNNotificationRequest(identifier: "schedule.start.\(id.uuidString).7", content: content, trigger: nil),
+            UNNotificationRequest(identifier: "schedule.start.OTHER.3", content: content, trigger: nil)
+        ]
+
+        await sut(schedule: makeSchedule(id: id, daysOfWeek: [2, 3]))
+
+        #expect(repo.removedPrefixes.contains("schedule.start.\(id.uuidString)."))
+        #expect(repo.stubPending.contains(where: { $0.identifier == "schedule.start.OTHER.3" }))
+    }
+
+    @Test("disabled schedule removes all pending and adds nothing")
+    func disabled_removesAllPendingForId_addsNothing() async {
+        repo.stubAuthorizationStatus = .authorized
+        let id = UUID()
+
+        await sut(schedule: makeSchedule(id: id, daysOfWeek: [2, 3, 4], enabled: false))
+
+        #expect(repo.addedRequests.isEmpty)
+        #expect(repo.removedPrefixes == ["schedule.start.\(id.uuidString)."])
+    }
+
+    @Test("not authorized removes stale but does NOT add")
+    func notAuthorized_removesStaleButDoesNotAdd() async {
+        repo.stubAuthorizationStatus = .denied
+        let id = UUID()
+
+        await sut(schedule: makeSchedule(id: id, daysOfWeek: [2, 3]))
+
+        #expect(repo.addedRequests.isEmpty)
+        #expect(repo.removedPrefixes == ["schedule.start.\(id.uuidString)."])
+    }
+
+    @Test("cross-midnight schedule schedules only evening segment")
+    func crossMidnight_schedulesOnlyEveningSegment() async throws {
+        repo.stubAuthorizationStatus = .authorized
+        let id = UUID()
+        let sch = makeSchedule(id: id, daysOfWeek: [2, 3], startHour: 22, startMinute: 0, endHour: 6, endMinute: 0)
+        #expect(sch.crossesMidnight, "fixture sanity")
+
+        await sut(schedule: sch)
+
+        #expect(repo.addedRequests.count == 2, "two weekdays x one segment (evening only)")
+        for req in repo.addedRequests {
+            let trigger = try #require(req.trigger as? UNCalendarNotificationTrigger)
+            #expect(trigger.dateComponents.hour == 22, "MUST be evening start, not morning segment")
+            #expect(trigger.dateComponents.minute == 0)
+            #expect(trigger.dateComponents.hour != 6, "morning segment MUST be skipped per D-18")
+        }
+    }
+
+    @Test("single-day with endHour > startHour creates one request per weekday")
+    func singleDay_endHourGreaterThanStartHour_createsOneRequestPerWeekday() async throws {
+        repo.stubAuthorizationStatus = .authorized
+        let sch = makeSchedule(daysOfWeek: [6], startHour: 9, startMinute: 0, endHour: 17)
+
+        await sut(schedule: sch)
+
+        #expect(repo.addedRequests.count == 1)
+        let trigger = try #require(repo.addedRequests.first?.trigger as? UNCalendarNotificationTrigger)
+        #expect(trigger.dateComponents.weekday == 6)
+        #expect(trigger.dateComponents.hour == 9)
+    }
+
+    @Test("caption uses caption library (not raw template)")
+    func caption_usesCaptionLibrary() async throws {
+        repo.stubAuthorizationStatus = .authorized
+
+        await sut(schedule: makeSchedule(daysOfWeek: [2]))
+
+        let body = try #require(repo.addedRequests.first?.content.body)
+        #expect(!body.contains("%d"), "body must be a formatted caption, not raw template")
+        #expect(captions.scheduleStartCaptions.contains(body), "body must be one of the library captions")
+    }
+
+    @Test("content carries scheduleId and kind in userInfo")
+    func content_carriesScheduleIdAndKindInUserInfo() async throws {
+        repo.stubAuthorizationStatus = .authorized
+        let id = UUID()
+
+        await sut(schedule: makeSchedule(id: id, daysOfWeek: [2]))
+
+        let userInfo = try #require(repo.addedRequests.first?.content.userInfo)
+        #expect(userInfo["kind"] as? String == "schedule-start")
+        #expect(userInfo["scheduleId"] as? String == id.uuidString)
+    }
+
+    @Test("empty daysOfWeek adds nothing (defensive)")
+    func emptyDaysOfWeek_addsNothing() async {
+        repo.stubAuthorizationStatus = .authorized
+        let id = UUID()
+
+        await sut(schedule: makeSchedule(id: id, daysOfWeek: [], enabled: true))
+
+        #expect(repo.addedRequests.isEmpty)
+        #expect(repo.removedPrefixes == ["schedule.start.\(id.uuidString)."])
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension ReconcileScheduleNotificationsUseCaseTests {
+    func makeSchedule(
         id: UUID = UUID(),
         daysOfWeek: [Int],
         startHour: Int = 9,
@@ -50,136 +181,5 @@ final class ReconcileScheduleNotificationsUseCaseTests: XCTestCase {
             blocklistId: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
             appVersion: "test"
         )
-    }
-
-    // MARK: - Tests
-
-    func testEnabledMonToFri_createsFiveWeekdayRequests() async throws {
-        repo.stubAuthorizationStatus = .authorized
-        let id = UUID()
-        let sch = schedule(id: id, daysOfWeek: [2, 3, 4, 5, 6], startHour: 9, startMinute: 0, endHour: 17)
-
-        await sut(schedule: sch)
-
-        XCTAssertEqual(repo.addedRequests.count, 5)
-        let ids = repo.addedRequests.map(\.identifier).sorted()
-        let expected = [2, 3, 4, 5, 6].map { "schedule.start.\(id.uuidString).\($0)" }.sorted()
-        XCTAssertEqual(ids, expected)
-        for req in repo.addedRequests {
-            let trigger = try XCTUnwrap(req.trigger as? UNCalendarNotificationTrigger)
-            XCTAssertTrue(trigger.repeats)
-            XCTAssertEqual(trigger.dateComponents.hour, 9)
-            XCTAssertEqual(trigger.dateComponents.minute, 0)
-        }
-    }
-
-    func testExplicitCalendarAndTimeZone_onDateComponents() async throws {
-        repo.stubAuthorizationStatus = .authorized
-        let sch = schedule(daysOfWeek: [2])
-
-        await sut(schedule: sch)
-
-        let req = try XCTUnwrap(repo.addedRequests.first)
-        let trigger = try XCTUnwrap(req.trigger as? UNCalendarNotificationTrigger)
-        XCTAssertEqual(trigger.dateComponents.calendar?.identifier, .gregorian)
-        XCTAssertEqual(trigger.dateComponents.timeZone, TimeZone.current)
-    }
-
-    func testRemovesStaleFirst_beforeAdd() async {
-        repo.stubAuthorizationStatus = .authorized
-        let id = UUID()
-        let content = UNMutableNotificationContent()
-        content.body = "x"
-        repo.stubPending = [
-            UNNotificationRequest(identifier: "schedule.start.\(id.uuidString).7", content: content, trigger: nil),
-            UNNotificationRequest(identifier: "schedule.start.OTHER.3", content: content, trigger: nil)
-        ]
-
-        await sut(schedule: schedule(id: id, daysOfWeek: [2, 3]))
-
-        XCTAssertTrue(repo.removedPrefixes.contains("schedule.start.\(id.uuidString)."))
-        XCTAssertTrue(repo.stubPending.contains(where: { $0.identifier == "schedule.start.OTHER.3" }))
-    }
-
-    func testDisabled_removesAllPendingForId_addsNothing() async {
-        repo.stubAuthorizationStatus = .authorized
-        let id = UUID()
-
-        await sut(schedule: schedule(id: id, daysOfWeek: [2, 3, 4], enabled: false))
-
-        XCTAssertTrue(repo.addedRequests.isEmpty)
-        XCTAssertEqual(repo.removedPrefixes, ["schedule.start.\(id.uuidString)."])
-    }
-
-    func testNotAuthorized_removesStaleButDoesNotAdd() async {
-        repo.stubAuthorizationStatus = .denied
-        let id = UUID()
-
-        await sut(schedule: schedule(id: id, daysOfWeek: [2, 3]))
-
-        XCTAssertTrue(repo.addedRequests.isEmpty)
-        XCTAssertEqual(repo.removedPrefixes, ["schedule.start.\(id.uuidString)."])
-    }
-
-    func testCrossMidnight_schedulesOnlyEveningSegment() async throws {
-        repo.stubAuthorizationStatus = .authorized
-        let id = UUID()
-        // 22:00 -> 06:00 — crossesMidnight because (6,0) <= (22,0).
-        let sch = schedule(id: id, daysOfWeek: [2, 3], startHour: 22, startMinute: 0, endHour: 6, endMinute: 0)
-        XCTAssertTrue(sch.crossesMidnight, "fixture sanity")
-
-        await sut(schedule: sch)
-
-        XCTAssertEqual(repo.addedRequests.count, 2, "two weekdays x one segment (evening only)")
-        for req in repo.addedRequests {
-            let trigger = try XCTUnwrap(req.trigger as? UNCalendarNotificationTrigger)
-            XCTAssertEqual(trigger.dateComponents.hour, 22, "MUST be evening start, not morning segment")
-            XCTAssertEqual(trigger.dateComponents.minute, 0)
-            XCTAssertNotEqual(trigger.dateComponents.hour, 6, "morning segment MUST be skipped per D-18")
-        }
-    }
-
-    func testSingleDay_endHourGreaterThanStartHour_createsOneRequestPerWeekday() async throws {
-        repo.stubAuthorizationStatus = .authorized
-        let sch = schedule(daysOfWeek: [6], startHour: 9, startMinute: 0, endHour: 17)
-
-        await sut(schedule: sch)
-
-        XCTAssertEqual(repo.addedRequests.count, 1)
-        let trigger = try XCTUnwrap(repo.addedRequests.first?.trigger as? UNCalendarNotificationTrigger)
-        XCTAssertEqual(trigger.dateComponents.weekday, 6)
-        XCTAssertEqual(trigger.dateComponents.hour, 9)
-    }
-
-    func testCaption_usesCaptionLibrary() async throws {
-        repo.stubAuthorizationStatus = .authorized
-
-        await sut(schedule: schedule(daysOfWeek: [2]))
-
-        let body = try XCTUnwrap(repo.addedRequests.first?.content.body)
-        XCTAssertFalse(body.contains("%d"), "body must be a formatted caption, not raw template")
-        XCTAssertTrue(captions.scheduleStartCaptions.contains(body), "body must be one of the library captions")
-    }
-
-    func testContent_carriesScheduleIdAndKindInUserInfo() async throws {
-        repo.stubAuthorizationStatus = .authorized
-        let id = UUID()
-
-        await sut(schedule: schedule(id: id, daysOfWeek: [2]))
-
-        let userInfo = try XCTUnwrap(repo.addedRequests.first?.content.userInfo)
-        XCTAssertEqual(userInfo["kind"] as? String, "schedule-start")
-        XCTAssertEqual(userInfo["scheduleId"] as? String, id.uuidString)
-    }
-
-    func testEmptyDaysOfWeek_addsNothing() async {
-        repo.stubAuthorizationStatus = .authorized
-        let id = UUID()
-
-        await sut(schedule: schedule(id: id, daysOfWeek: [], enabled: true))
-
-        XCTAssertTrue(repo.addedRequests.isEmpty)
-        // Stale still removed (defensive).
-        XCTAssertEqual(repo.removedPrefixes, ["schedule.start.\(id.uuidString)."])
     }
 }

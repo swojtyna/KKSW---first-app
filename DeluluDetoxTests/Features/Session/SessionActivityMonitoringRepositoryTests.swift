@@ -1,11 +1,11 @@
-import XCTest
+import Foundation
 import DeviceActivity
+import Testing
 @testable import DeluluDetox
 
+@Suite("LiveSessionActivityMonitoringRepository")
 @MainActor
-final class SessionActivityMonitoringRepositoryTests: XCTestCase {
-
-    // MARK: - Fake
+struct SessionActivityMonitoringRepositoryTests {
 
     final class FakeCenter: DeviceActivityCenterRunner, @unchecked Sendable {
         var startedActivities: [DeviceActivityName] = []
@@ -25,9 +25,59 @@ final class SessionActivityMonitoringRepositoryTests: XCTestCase {
 
     struct TestError: Error, Equatable {}
 
-    // MARK: - Helpers
+    // MARK: - startActivityMonitoring
 
-    private func makeSession(startingAt: Date = Date(), durationSeconds: Int = 1800) -> SessionRecord {
+    @Test("startActivityMonitoring invokes center with quickSession name and non-repeating schedule")
+    func startActivityMonitoringInvokesCenterWithQuickSessionNameAndNonRepeatingSchedule() async throws {
+        let fakeCenter = FakeCenter()
+        let repo = LiveSessionActivityMonitoringRepository(center: fakeCenter)
+        let session = makeSession(durationSeconds: 30 * 60)
+
+        try await repo.startActivityMonitoring(for: session)
+
+        #expect(fakeCenter.startedActivities == [SessionActivityNames.quickSession])
+        #expect(fakeCenter.startedSchedules.count == 1)
+        #expect(fakeCenter.startedSchedules.first?.repeats == false)
+    }
+
+    @Test("startActivityMonitoring throws wrapped error when center throws")
+    func startActivityMonitoringThrowsWrappedErrorWhenCenterThrows() async {
+        let fakeCenter = FakeCenter()
+        fakeCenter.startError = TestError()
+        let repo = LiveSessionActivityMonitoringRepository(center: fakeCenter)
+
+        do {
+            try await repo.startActivityMonitoring(for: makeSession())
+            Issue.record("expected throw")
+        } catch SessionActivityMonitoringError.deviceActivityStartFailed(let inner) {
+            #expect((inner as? TestError) != nil)
+        } catch {
+            Issue.record("wrong error type \(error)")
+        }
+    }
+
+    // MARK: - stopActivityMonitoring
+
+    @Test("stopActivityMonitoring stops the quickSession activity")
+    func stopActivityMonitoringStopsTheQuickSessionActivity() async {
+        let fakeCenter = FakeCenter()
+        let repo = LiveSessionActivityMonitoringRepository(center: fakeCenter)
+        await repo.stopActivityMonitoring()
+        #expect(fakeCenter.stoppedActivities == [SessionActivityNames.quickSession])
+    }
+
+    // MARK: - SessionActivityNames constant
+
+    @Test("SessionActivityNames rawValue matches shared constant")
+    func sessionActivityNameRawValueMatchesSharedConstant() {
+        #expect(SessionActivityNames.quickSession.rawValue == "deluludetox.quickSession")
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension SessionActivityMonitoringRepositoryTests {
+    func makeSession(startingAt: Date = Date(), durationSeconds: Int = 1800) -> SessionRecord {
         SessionRecord(
             blocklistId: UUID(),
             startedAt: startingAt,
@@ -35,49 +85,5 @@ final class SessionActivityMonitoringRepositoryTests: XCTestCase {
             plannedDurationSeconds: durationSeconds,
             appVersion: "test"
         )
-    }
-
-    // MARK: - startActivityMonitoring
-
-    func testStartActivityMonitoringInvokesCenterWithQuickSessionNameAndNonRepeatingSchedule() async throws {
-        let fakeCenter = FakeCenter()
-        let repo = LiveSessionActivityMonitoringRepository(center: fakeCenter)
-        let session = makeSession(durationSeconds: 30 * 60)
-
-        try await repo.startActivityMonitoring(for: session)
-
-        XCTAssertEqual(fakeCenter.startedActivities, [SessionActivityNames.quickSession])
-        XCTAssertEqual(fakeCenter.startedSchedules.count, 1)
-        XCTAssertEqual(fakeCenter.startedSchedules.first?.repeats, false)
-    }
-
-    func testStartActivityMonitoringThrowsWrappedErrorWhenCenterThrows() async {
-        let fakeCenter = FakeCenter()
-        fakeCenter.startError = TestError()
-        let repo = LiveSessionActivityMonitoringRepository(center: fakeCenter)
-
-        do {
-            try await repo.startActivityMonitoring(for: makeSession())
-            XCTFail("expected throw")
-        } catch SessionActivityMonitoringError.deviceActivityStartFailed(let inner) {
-            XCTAssertTrue((inner as? TestError) != nil)
-        } catch {
-            XCTFail("wrong error type \(error)")
-        }
-    }
-
-    // MARK: - stopActivityMonitoring
-
-    func testStopActivityMonitoringStopsTheQuickSessionActivity() async {
-        let fakeCenter = FakeCenter()
-        let repo = LiveSessionActivityMonitoringRepository(center: fakeCenter)
-        await repo.stopActivityMonitoring()
-        XCTAssertEqual(fakeCenter.stoppedActivities, [SessionActivityNames.quickSession])
-    }
-
-    // MARK: - SessionActivityNames constant
-
-    func testSessionActivityNameRawValueMatchesSharedConstant() {
-        XCTAssertEqual(SessionActivityNames.quickSession.rawValue, "deluludetox.quickSession")
     }
 }

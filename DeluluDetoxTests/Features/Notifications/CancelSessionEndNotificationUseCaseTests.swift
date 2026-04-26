@@ -1,28 +1,31 @@
-import XCTest
+import Foundation
 import UserNotifications
+import Testing
 @testable import DeluluDetox
 
+@Suite("CancelSessionEndNotificationUseCase")
 @MainActor
-final class CancelSessionEndNotificationUseCaseTests: XCTestCase {
+struct CancelSessionEndNotificationUseCaseTests {
 
-    func testRemovesByIdentifier() async {
+    @Test("removes notification by session identifier")
+    func removesByIdentifier() async {
         let repo = MockLocalNotificationRepository()
         let sut = CancelSessionEndNotificationUseCaseImpl(repository: repo)
         let sessionId = UUID()
 
         await sut(sessionId: sessionId)
 
-        XCTAssertEqual(repo.removedIdentifierSets, [["session.end.\(sessionId.uuidString)"]])
+        #expect(repo.removedIdentifierSets == [["session.end.\(sessionId.uuidString)"]])
     }
 
-    func testIsIdempotent_whenNoPendingMatch() async {
+    @Test("is idempotent when no pending notification matches")
+    func isIdempotentWhenNoPendingMatch() async {
         let repo = MockLocalNotificationRepository()
-        repo.stubPending = [] // nothing to remove
+        repo.stubPending = []
         let sut = CancelSessionEndNotificationUseCaseImpl(repository: repo)
 
         await sut(sessionId: UUID())
 
-        // UN API is a no-op on unknown ids; we still record the attempt.
-        XCTAssertEqual(repo.removedIdentifierSets.count, 1)
+        #expect(repo.removedIdentifierSets.count == 1)
     }
 }

@@ -1,11 +1,69 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
-/// Plan 05-04 Task 2 — `ToggleScheduleUseCaseImpl` assertions.
+@Suite("ToggleScheduleUseCase")
 @MainActor
-final class ToggleScheduleUseCaseTests: XCTestCase {
+struct ToggleScheduleUseCaseTests {
 
-    private func schedule(id: UUID, enabled: Bool) -> Schedule {
+    @Test("toggle enable calls upsert then sync")
+    func toggleEnableCallsUpsertThenSync() async throws {
+        let repo = MockScheduleRepository()
+        let sync = MockSyncScheduleWithSystemUseCase()
+        let uc = ToggleScheduleUseCaseImpl(repository: repo, sync: sync)
+
+        let s = makeSchedule(id: UUID(), enabled: false)
+        repo.schedulesSubject.send([s])
+
+        try await uc(scheduleId: s.id, enabled: true)
+
+        #expect(repo.upsertCallCount == 1)
+        #expect(repo.lastUpserted?.id == s.id)
+        #expect(repo.lastUpserted?.enabled == true)
+        #expect(sync.callCount == 1)
+        #expect(sync.lastInputSchedule?.id == s.id)
+        #expect(sync.lastInputSchedule?.enabled == true)
+    }
+
+    @Test("toggle disable calls upsert then sync with enabled=false")
+    func toggleDisableCallsUpsertThenSyncWhichStopsMonitoring() async throws {
+        let repo = MockScheduleRepository()
+        let sync = MockSyncScheduleWithSystemUseCase()
+        let uc = ToggleScheduleUseCaseImpl(repository: repo, sync: sync)
+
+        let s = makeSchedule(id: UUID(), enabled: true)
+        repo.schedulesSubject.send([s])
+
+        try await uc(scheduleId: s.id, enabled: false)
+
+        #expect(repo.lastUpserted?.enabled == false)
+        #expect(sync.lastInputSchedule?.enabled == false)
+    }
+
+    @Test("toggle missing schedule throws .scheduleNotFound")
+    func toggleMissingScheduleThrowsNotFound() async {
+        let repo = MockScheduleRepository()
+        let sync = MockSyncScheduleWithSystemUseCase()
+        let uc = ToggleScheduleUseCaseImpl(repository: repo, sync: sync)
+
+        do {
+            try await uc(scheduleId: UUID(), enabled: true)
+            Issue.record("Expected ScheduleUseCaseError.scheduleNotFound")
+        } catch let error as ScheduleUseCaseError {
+            #expect(error == .scheduleNotFound)
+        } catch {
+            Issue.record("Expected ScheduleUseCaseError.scheduleNotFound, got \(error)")
+        }
+
+        #expect(repo.upsertCallCount == 0)
+        #expect(sync.callCount == 0)
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension ToggleScheduleUseCaseTests {
+    func makeSchedule(id: UUID, enabled: Bool) -> Schedule {
         Schedule(
             id: id,
             name: nil,
@@ -17,56 +75,4 @@ final class ToggleScheduleUseCaseTests: XCTestCase {
             appVersion: "test"
         )
     }
-
-    func testToggleEnableCallsUpsertThenSync() async throws {
-        let repo = MockScheduleRepository()
-        let sync = MockSyncScheduleWithSystemUseCase()
-        let uc = ToggleScheduleUseCaseImpl(repository: repo, sync: sync)
-
-        let s = schedule(id: UUID(), enabled: false)
-        repo.schedulesSubject.send([s])
-
-        try await uc(scheduleId: s.id, enabled: true)
-
-        XCTAssertEqual(repo.upsertCallCount, 1)
-        XCTAssertEqual(repo.lastUpserted?.id, s.id)
-        XCTAssertEqual(repo.lastUpserted?.enabled, true)
-        XCTAssertEqual(sync.callCount, 1)
-        XCTAssertEqual(sync.lastInputSchedule?.id, s.id)
-        XCTAssertEqual(sync.lastInputSchedule?.enabled, true)
-    }
-
-    func testToggleDisableCallsUpsertThenSyncWhichStopsMonitoring() async throws {
-        let repo = MockScheduleRepository()
-        let sync = MockSyncScheduleWithSystemUseCase()
-        let uc = ToggleScheduleUseCaseImpl(repository: repo, sync: sync)
-
-        let s = schedule(id: UUID(), enabled: true)
-        repo.schedulesSubject.send([s])
-
-        try await uc(scheduleId: s.id, enabled: false)
-
-        XCTAssertEqual(repo.lastUpserted?.enabled, false)
-        XCTAssertEqual(sync.lastInputSchedule?.enabled, false)
-    }
-
-    func testToggleMissingScheduleThrowsNotFound() async {
-        let repo = MockScheduleRepository()
-        let sync = MockSyncScheduleWithSystemUseCase()
-        let uc = ToggleScheduleUseCaseImpl(repository: repo, sync: sync)
-
-        // Empty repo — schedulesSubject holds [].
-        do {
-            try await uc(scheduleId: UUID(), enabled: true)
-            XCTFail("Expected ScheduleUseCaseError.scheduleNotFound")
-        } catch let error as ScheduleUseCaseError {
-            XCTAssertEqual(error, .scheduleNotFound)
-        } catch {
-            XCTFail("Expected ScheduleUseCaseError.scheduleNotFound, got \(error)")
-        }
-
-        XCTAssertEqual(repo.upsertCallCount, 0)
-        XCTAssertEqual(sync.callCount, 0)
-    }
 }
-

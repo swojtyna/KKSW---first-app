@@ -1,13 +1,37 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
+@Suite("SessionSuccessViewModel")
 @MainActor
-final class SessionSuccessViewModelTests: XCTestCase {
-    // NOTE: SuccessShownFlag UserDefaults-setup was removed in revision 1. Persistence
-    // of the 'success-shown' flag is now covered by SuccessShownUseCasesTests (Plan 03-03 Task 2),
-    // not by this VM test. This VM is a pure value-derivation test — no UserDefaults surface.
+struct SessionSuccessViewModelTests {
 
-    private func makeSession(duration: Int, id: UUID = UUID()) -> SessionRecord {
+    @Test("derives durationMinutes from plannedDurationSeconds")
+    func initDerivesDurationMinutesFromSessionPlannedDurationSeconds() {
+        let vm = SessionSuccessViewModel(session: makeSession(duration: 1800))
+        #expect(vm.durationMinutes == 30)
+    }
+
+    @Test("uses integer division for fractional seconds")
+    func initDerivesDurationMinutesWithIntegerDivisionForFractionalSeconds() {
+        let vm = SessionSuccessViewModel(session: makeSession(duration: 1830))
+        #expect(vm.durationMinutes == 30)
+    }
+
+    @Test("caption is stable and non-empty for same session id")
+    func initPicksCaptionFromStablePool() {
+        let id = UUID()
+        let vm1 = SessionSuccessViewModel(session: makeSession(duration: 1800, id: id))
+        let vm2 = SessionSuccessViewModel(session: makeSession(duration: 1800, id: id))
+        #expect(vm1.caption == vm2.caption)
+        #expect(!vm1.caption.isEmpty)
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension SessionSuccessViewModelTests {
+    func makeSession(duration: Int, id: UUID = UUID()) -> SessionRecord {
         SessionRecord(
             id: id,
             blocklistId: UUID(),
@@ -16,23 +40,5 @@ final class SessionSuccessViewModelTests: XCTestCase {
             plannedDurationSeconds: duration,
             appVersion: "test"
         )
-    }
-
-    func testInitDerivesDurationMinutesFromSessionPlannedDurationSeconds() {
-        let vm = SessionSuccessViewModel(session: makeSession(duration: 1800))
-        XCTAssertEqual(vm.durationMinutes, 30)
-    }
-
-    func testInitDerivesDurationMinutesWithIntegerDivisionForFractionalSeconds() {
-        let vm = SessionSuccessViewModel(session: makeSession(duration: 1830))
-        XCTAssertEqual(vm.durationMinutes, 30)    // 1830 / 60 = 30
-    }
-
-    func testInitPicksCaptionFromStablePool() {
-        let id = UUID()
-        let vm1 = SessionSuccessViewModel(session: makeSession(duration: 1800, id: id))
-        let vm2 = SessionSuccessViewModel(session: makeSession(duration: 1800, id: id))
-        XCTAssertEqual(vm1.caption, vm2.caption)
-        XCTAssertFalse(vm1.caption.isEmpty)
     }
 }

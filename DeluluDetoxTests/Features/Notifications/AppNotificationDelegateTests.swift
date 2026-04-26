@@ -1,12 +1,12 @@
-import XCTest
+import Foundation
 import UserNotifications
+import Testing
 @testable import DeluluDetox
 
+@Suite("AppNotificationDelegate")
 @MainActor
-final class AppNotificationDelegateTests: XCTestCase {
+struct AppNotificationDelegateTests {
 
-    // Spy for the shield deep-link handler — captures every URL the delegate
-    // forwards. Thread-safe because multiple Task hops may touch it.
     final class HandlerSpy: @unchecked Sendable {
         private(set) var receivedURLs: [URL] = []
         private let lock = NSLock()
@@ -16,41 +16,40 @@ final class AppNotificationDelegateTests: XCTestCase {
         }
     }
 
-    private func makeSUT() -> (AppNotificationDelegate, HandlerSpy) {
-        let spy = HandlerSpy()
-        let sut = AppNotificationDelegate(shieldDeepLinkHandler: { url in spy.handle(url: url) })
-        return (sut, spy)
-    }
-
     // MARK: - presentationOptions (willPresent seam)
 
-    func testWillPresent_shieldDeepLinkPrefix_returnsBanner() {
+    @Test("shield deep-link prefix returns .banner")
+    func willPresent_shieldDeepLinkPrefix_returnsBanner() {
         let (sut, _) = makeSUT()
         let options = sut.presentationOptions(forIdentifier: "com.kksw.DeluluDetox.shield-deeplink.XYZ")
-        XCTAssertEqual(options, [.banner])
+        #expect(options == [.banner])
     }
 
-    func testWillPresent_sessionEndPrefix_returnsEmpty() {
+    @Test("session end prefix returns empty options")
+    func willPresent_sessionEndPrefix_returnsEmpty() {
         let (sut, _) = makeSUT()
         let options = sut.presentationOptions(forIdentifier: "session.end.ABC")
-        XCTAssertEqual(options, [])
+        #expect(options == [])
     }
 
-    func testWillPresent_scheduleStartPrefix_returnsBannerSound() {
+    @Test("schedule start prefix returns .banner and .sound")
+    func willPresent_scheduleStartPrefix_returnsBannerSound() {
         let (sut, _) = makeSUT()
         let options = sut.presentationOptions(forIdentifier: "schedule.start.DEF.2")
-        XCTAssertEqual(options, [.banner, .sound])
+        #expect(options == [.banner, .sound])
     }
 
-    func testWillPresent_unknownPrefix_returnsEmpty() {
+    @Test("unknown prefix returns empty options")
+    func willPresent_unknownPrefix_returnsEmpty() {
         let (sut, _) = makeSUT()
         let options = sut.presentationOptions(forIdentifier: "unknown.foo")
-        XCTAssertEqual(options, [])
+        #expect(options == [])
     }
 
     // MARK: - dispatchResponse (didReceive seam)
 
-    func testDidReceive_shieldDeepLinkPrefix_forwardsValidURL() async {
+    @Test("shield deep-link prefix forwards valid URL")
+    func didReceive_shieldDeepLinkPrefix_forwardsValidURL() async {
         let (sut, spy) = makeSUT()
 
         await sut.dispatchResponse(
@@ -58,10 +57,11 @@ final class AppNotificationDelegateTests: XCTestCase {
             urlString: "deluludetox://shield"
         )
 
-        XCTAssertEqual(spy.receivedURLs.map(\.absoluteString), ["deluludetox://shield"])
+        #expect(spy.receivedURLs.map(\.absoluteString) == ["deluludetox://shield"])
     }
 
-    func testDidReceive_shieldDeepLinkPrefix_invalidScheme_notForwarded() async {
+    @Test("shield deep-link prefix with invalid scheme not forwarded")
+    func didReceive_shieldDeepLinkPrefix_invalidScheme_notForwarded() async {
         let (sut, spy) = makeSUT()
 
         await sut.dispatchResponse(
@@ -69,10 +69,11 @@ final class AppNotificationDelegateTests: XCTestCase {
             urlString: "https://example.com"
         )
 
-        XCTAssertTrue(spy.receivedURLs.isEmpty)
+        #expect(spy.receivedURLs.isEmpty)
     }
 
-    func testDidReceive_shieldDeepLinkPrefix_missingUserInfo_notForwarded() async {
+    @Test("shield deep-link prefix with missing userInfo not forwarded")
+    func didReceive_shieldDeepLinkPrefix_missingUserInfo_notForwarded() async {
         let (sut, spy) = makeSUT()
 
         await sut.dispatchResponse(
@@ -80,10 +81,11 @@ final class AppNotificationDelegateTests: XCTestCase {
             urlString: nil
         )
 
-        XCTAssertTrue(spy.receivedURLs.isEmpty)
+        #expect(spy.receivedURLs.isEmpty)
     }
 
-    func testDidReceive_sessionEndPrefix_doesNotInvokeShieldHandler() async {
+    @Test("session end prefix does NOT invoke shield handler")
+    func didReceive_sessionEndPrefix_doesNotInvokeShieldHandler() async {
         let (sut, spy) = makeSUT()
 
         await sut.dispatchResponse(
@@ -91,10 +93,11 @@ final class AppNotificationDelegateTests: XCTestCase {
             urlString: "deluludetox://session"
         )
 
-        XCTAssertTrue(spy.receivedURLs.isEmpty, "engagement notifications MUST NOT go through shield handler")
+        #expect(spy.receivedURLs.isEmpty, "engagement notifications MUST NOT go through shield handler")
     }
 
-    func testDidReceive_scheduleStartPrefix_doesNotInvokeShieldHandler() async {
+    @Test("schedule start prefix does NOT invoke shield handler")
+    func didReceive_scheduleStartPrefix_doesNotInvokeShieldHandler() async {
         let (sut, spy) = makeSUT()
 
         await sut.dispatchResponse(
@@ -102,6 +105,16 @@ final class AppNotificationDelegateTests: XCTestCase {
             urlString: nil
         )
 
-        XCTAssertTrue(spy.receivedURLs.isEmpty)
+        #expect(spy.receivedURLs.isEmpty)
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension AppNotificationDelegateTests {
+    func makeSUT() -> (AppNotificationDelegate, HandlerSpy) {
+        let spy = HandlerSpy()
+        let sut = AppNotificationDelegate(shieldDeepLinkHandler: { url in spy.handle(url: url) })
+        return (sut, spy)
     }
 }

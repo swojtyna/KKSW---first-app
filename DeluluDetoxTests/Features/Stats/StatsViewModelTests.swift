@@ -1,39 +1,33 @@
-import XCTest
+import Foundation
 import Combine
+import Testing
 @testable import DeluluDetox
 
-/// VM-level tests for `StatsViewModel`. DIContainer is reset per test and
-/// seeded with `MockObserveStatsUseCase`. Main-run-loop bounces are awaited
-/// via `expectation` → `DispatchQueue.main.async { fulfill }`.
+@Suite(.serialized)
 @MainActor
-final class StatsViewModelTests: XCTestCase {
+final class StatsViewModelTests {
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() {
         DIContainer.shared.reset()
         DIContainer.shared.register(ObserveStatsUseCase.self, scope: .application) { _ in
             MockObserveStatsUseCase()
         }
     }
 
-    private func mainRunLoopBounce() {
-        let exp = expectation(description: "sink")
-        DispatchQueue.main.async { exp.fulfill() }
-        wait(for: [exp], timeout: 1.0)
-    }
-
     // MARK: - Initial state
 
-    func testInitialState_isEmpty() {
+    @Test("initial state is empty")
+    func initialState_isEmpty() {
         let vm = StatsViewModel()
-        XCTAssertEqual(vm.stats.totalCount, 0)
-        XCTAssertEqual(vm.stats.currentStreak, 0)
-        XCTAssertEqual(vm.stats.longestStreak, 0)
+        #expect(vm.stats.totalCount == 0)
+        #expect(vm.stats.currentStreak == 0)
+        #expect(vm.stats.longestStreak == 0)
     }
 
     // MARK: - Reactive pipeline
 
-    func testReceivesStats_fromObservePublisher() {
+    @Test("receives stats from observe publisher")
+    func receivesStats_fromObservePublisher() async {
         let mock = MockObserveStatsUseCase()
         DIContainer.shared.register(ObserveStatsUseCase.self, scope: .application) { _ in mock }
         let vm = StatsViewModel()
@@ -47,16 +41,17 @@ final class StatsViewModelTests: XCTestCase {
             completedDaysSet: []
         )
         mock.subject.send(newStats)
-        mainRunLoopBounce()
+        await mainRunLoopBounce()
 
-        XCTAssertEqual(vm.stats.currentStreak, 7)
-        XCTAssertEqual(vm.stats.totalCount, 42)
-        XCTAssertEqual(vm.stats.longestStreak, 12)
+        #expect(vm.stats.currentStreak == 7)
+        #expect(vm.stats.totalCount == 42)
+        #expect(vm.stats.longestStreak == 12)
     }
 
     // MARK: - isMarked
 
-    func testIsMarked_returnsTrue_forDayInCompletedDaysSet() {
+    @Test("isMarked returns true for day in completedDaysSet")
+    func isMarked_returnsTrue_forDayInCompletedDaysSet() async {
         let mock = MockObserveStatsUseCase()
         DIContainer.shared.register(ObserveStatsUseCase.self, scope: .application) { _ in mock }
         let vm = StatsViewModel()
@@ -72,12 +67,13 @@ final class StatsViewModelTests: XCTestCase {
             completedDaysSet: [today]
         )
         mock.subject.send(stats)
-        mainRunLoopBounce()
+        await mainRunLoopBounce()
 
-        XCTAssertTrue(vm.isMarked(day: today))
+        #expect(vm.isMarked(day: today))
     }
 
-    func testIsMarked_returnsFalse_forDayNotInSet() {
+    @Test("isMarked returns false for day not in set")
+    func isMarked_returnsFalse_forDayNotInSet() async {
         let mock = MockObserveStatsUseCase()
         DIContainer.shared.register(ObserveStatsUseCase.self, scope: .application) { _ in mock }
         let vm = StatsViewModel()
@@ -94,14 +90,15 @@ final class StatsViewModelTests: XCTestCase {
             completedDaysSet: [today]
         )
         mock.subject.send(stats)
-        mainRunLoopBounce()
+        await mainRunLoopBounce()
 
-        XCTAssertFalse(vm.isMarked(day: yesterday))
+        #expect(!vm.isMarked(day: yesterday))
     }
 
     // MARK: - Month navigation
 
-    func testPrevMonthTapped_decrementsDisplayedMonth() {
+    @Test("prevMonthTapped decrements displayed month")
+    func prevMonthTapped_decrementsDisplayedMonth() {
         let vm = StatsViewModel()
         let initial = vm.displayedMonth
 
@@ -110,11 +107,12 @@ final class StatsViewModelTests: XCTestCase {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = .current
         let expected = cal.date(byAdding: .month, value: -1, to: initial)!
-        XCTAssertEqual(cal.component(.month, from: vm.displayedMonth), cal.component(.month, from: expected))
-        XCTAssertEqual(cal.component(.year, from: vm.displayedMonth), cal.component(.year, from: expected))
+        #expect(cal.component(.month, from: vm.displayedMonth) == cal.component(.month, from: expected))
+        #expect(cal.component(.year, from: vm.displayedMonth) == cal.component(.year, from: expected))
     }
 
-    func testNextMonthTapped_incrementsDisplayedMonth() {
+    @Test("nextMonthTapped increments displayed month")
+    func nextMonthTapped_incrementsDisplayedMonth() {
         let vm = StatsViewModel()
         let initial = vm.displayedMonth
 
@@ -123,24 +121,24 @@ final class StatsViewModelTests: XCTestCase {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = .current
         let expected = cal.date(byAdding: .month, value: 1, to: initial)!
-        XCTAssertEqual(cal.component(.month, from: vm.displayedMonth), cal.component(.month, from: expected))
-        XCTAssertEqual(cal.component(.year, from: vm.displayedMonth), cal.component(.year, from: expected))
+        #expect(cal.component(.month, from: vm.displayedMonth) == cal.component(.month, from: expected))
+        #expect(cal.component(.year, from: vm.displayedMonth) == cal.component(.year, from: expected))
     }
 
     // MARK: - Formatting / grid geometry
 
-    func testDisplayedMonthFormatted_isLocalized() {
+    @Test("displayedMonthFormatted is localized with 4-digit year")
+    func displayedMonthFormatted_isLocalized() {
         let vm = StatsViewModel()
         let formatted = vm.displayedMonthFormatted
-        XCTAssertFalse(formatted.isEmpty)
-        // PL format "LLLL yyyy" — must contain a 4-digit year substring.
+        #expect(!formatted.isEmpty)
         let yearPattern = try! NSRegularExpression(pattern: #"\d{4}"#)
         let range = NSRange(formatted.startIndex..., in: formatted)
-        XCTAssertNotNil(yearPattern.firstMatch(in: formatted, range: range), "expected 4-digit year in `\(formatted)`")
+        #expect(yearPattern.firstMatch(in: formatted, range: range) != nil, "expected 4-digit year in `\(formatted)`")
     }
 
-    /// April 2026: April 1 is a Wednesday. Monday-first ⇒ leadingEmptyCells = 2 (Mon, Tue).
-    func testLeadingEmptyCells_correctForMondayFirstWeek() {
+    @Test("leadingEmptyCells is correct for Monday-first week (April 2026)")
+    func leadingEmptyCells_correctForMondayFirstWeek() {
         let vm = StatsViewModel()
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = .current
@@ -149,10 +147,11 @@ final class StatsViewModelTests: XCTestCase {
         let april2026 = cal.date(from: comps)!
         vm.setDisplayedMonthForTesting(april2026)
 
-        XCTAssertEqual(vm.leadingEmptyCells, 2)
+        #expect(vm.leadingEmptyCells == 2)
     }
 
-    func testDaysInMonth_correctForApril2026() {
+    @Test("daysInMonth is correct for April 2026")
+    func daysInMonth_correctForApril2026() {
         let vm = StatsViewModel()
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = .current
@@ -160,6 +159,16 @@ final class StatsViewModelTests: XCTestCase {
         let april2026 = cal.date(from: comps)!
         vm.setDisplayedMonthForTesting(april2026)
 
-        XCTAssertEqual(vm.daysInMonth, 30)
+        #expect(vm.daysInMonth == 30)
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension StatsViewModelTests {
+    func mainRunLoopBounce() async {
+        await withCheckedContinuation { cont in
+            DispatchQueue.main.async { cont.resume() }
+        }
     }
 }

@@ -1,13 +1,13 @@
-import XCTest
+import Foundation
 import Combine
+import Testing
 @testable import DeluluDetox
 
-/// Verifies the Combine pipeline: `ObserveSessionHistoryUseCase` emissions →
-/// `ComputeStatsUseCase(history:, now:)` → `AnyPublisher<Stats, Never>`.
-/// `now` is clock-injected for determinism.
-final class ObserveStatsUseCaseTests: XCTestCase {
+@Suite("ObserveStatsUseCase")
+struct ObserveStatsUseCaseTests {
 
-    func testEmitsStats_wheneverHistoryEmits() {
+    @Test("emits stats whenever history emits")
+    func emitsStats_wheneverHistoryEmits() {
         let history = MockObserveSessionHistoryUseCase()
         let compute = MockComputeStatsUseCase()
         compute.stubResult = .empty
@@ -18,11 +18,9 @@ final class ObserveStatsUseCaseTests: XCTestCase {
         let cancellable = sut().sink { emissions.append($0) }
         defer { cancellable.cancel() }
 
-        // Pipe is live — first emission happened immediately (CurrentValueSubject seed).
-        XCTAssertEqual(emissions.count, 1)
-        XCTAssertEqual(emissions.first?.totalCount, 0)
+        #expect(emissions.count == 1)
+        #expect(emissions.first?.totalCount == 0)
 
-        // Swap the compute result, then push a new history — pipeline must re-emit.
         compute.stubResult = Stats(
             currentStreak: 3,
             longestStreak: 3,
@@ -33,12 +31,13 @@ final class ObserveStatsUseCaseTests: XCTestCase {
         )
         history.subject.send([])
 
-        XCTAssertEqual(emissions.count, 2)
-        XCTAssertEqual(emissions.last?.currentStreak, 3)
-        XCTAssertEqual(compute.callLog.last?.now, fixedNow)
+        #expect(emissions.count == 2)
+        #expect(emissions.last?.currentStreak == 3)
+        #expect(compute.callLog.last?.now == fixedNow)
     }
 
-    func testClockInjected_forDeterminism() {
+    @Test("clock is injected for determinism")
+    func clockInjected_forDeterminism() {
         let history = MockObserveSessionHistoryUseCase()
         let compute = MockComputeStatsUseCase()
         let fixedNow = Date(timeIntervalSince1970: 0)
@@ -50,9 +49,9 @@ final class ObserveStatsUseCaseTests: XCTestCase {
         history.subject.send([])
         history.subject.send([])
 
-        XCTAssertFalse(compute.callLog.isEmpty)
+        #expect(!compute.callLog.isEmpty)
         for call in compute.callLog {
-            XCTAssertEqual(call.now, fixedNow)
+            #expect(call.now == fixedNow)
         }
     }
 }

@@ -1,74 +1,72 @@
-import XCTest
+import Foundation
 import UserNotifications
+import Testing
 @testable import DeluluDetox
 
+@Suite("ScheduleSessionEndNotificationUseCase")
 @MainActor
-final class ScheduleSessionEndNotificationUseCaseTests: XCTestCase {
+struct ScheduleSessionEndNotificationUseCaseTests {
 
-    private var repo: MockLocalNotificationRepository!
-    private var captions: NotificationCaptionLibrary!
-    private var sut: ScheduleSessionEndNotificationUseCaseImpl!
+    let repo: MockLocalNotificationRepository
+    let captions: NotificationCaptionLibrary
+    let sut: ScheduleSessionEndNotificationUseCaseImpl
 
-    override func setUp() async throws {
-        try await super.setUp()
+    init() {
         repo = MockLocalNotificationRepository()
         captions = NotificationCaptionLibrary()
         sut = ScheduleSessionEndNotificationUseCaseImpl(repository: repo, captions: captions)
     }
 
-    override func tearDown() async throws {
-        sut = nil
-        captions = nil
-        repo = nil
-        try await super.tearDown()
-    }
-
-    func testSchedulesRequest_whenAuthorized() async throws {
+    @Test("schedules request when authorized")
+    func schedulesRequest_whenAuthorized() async throws {
         repo.stubAuthorizationStatus = .authorized
         let sessionId = UUID()
         let plannedEndAt = Date().addingTimeInterval(1800)
 
         await sut(sessionId: sessionId, plannedEndAt: plannedEndAt, durationMinutes: 30)
 
-        XCTAssertEqual(repo.addedRequests.count, 1)
-        let req = try XCTUnwrap(repo.addedRequests.first)
-        XCTAssertEqual(req.identifier, "session.end.\(sessionId.uuidString)")
-        let trigger = try XCTUnwrap(req.trigger as? UNCalendarNotificationTrigger)
-        XCTAssertFalse(trigger.repeats)
+        #expect(repo.addedRequests.count == 1)
+        let req = try #require(repo.addedRequests.first)
+        #expect(req.identifier == "session.end.\(sessionId.uuidString)")
+        let trigger = try #require(req.trigger as? UNCalendarNotificationTrigger)
+        #expect(!trigger.repeats)
 
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = TimeZone.current
         let expected = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: plannedEndAt)
-        XCTAssertEqual(trigger.dateComponents.year, expected.year)
-        XCTAssertEqual(trigger.dateComponents.month, expected.month)
-        XCTAssertEqual(trigger.dateComponents.day, expected.day)
-        XCTAssertEqual(trigger.dateComponents.hour, expected.hour)
-        XCTAssertEqual(trigger.dateComponents.minute, expected.minute)
-        XCTAssertEqual(trigger.dateComponents.second, expected.second)
+        #expect(trigger.dateComponents.year == expected.year)
+        #expect(trigger.dateComponents.month == expected.month)
+        #expect(trigger.dateComponents.day == expected.day)
+        #expect(trigger.dateComponents.hour == expected.hour)
+        #expect(trigger.dateComponents.minute == expected.minute)
+        #expect(trigger.dateComponents.second == expected.second)
     }
 
-    func testSkipsAdd_whenNotAuthorized() async {
+    @Test("skips add when not authorized")
+    func skipsAdd_whenNotAuthorized() async {
         repo.stubAuthorizationStatus = .denied
         await sut(sessionId: UUID(), plannedEndAt: Date(), durationMinutes: 30)
-        XCTAssertTrue(repo.addedRequests.isEmpty)
+        #expect(repo.addedRequests.isEmpty)
     }
 
-    func testSkipsAdd_whenNotDetermined() async {
+    @Test("skips add when not determined")
+    func skipsAdd_whenNotDetermined() async {
         repo.stubAuthorizationStatus = .notDetermined
         await sut(sessionId: UUID(), plannedEndAt: Date(), durationMinutes: 30)
-        XCTAssertTrue(repo.addedRequests.isEmpty)
+        #expect(repo.addedRequests.isEmpty)
     }
 
-    func testCaptionInterpolation_usesDurationMinutes() async throws {
+    @Test("caption interpolates durationMinutes (no raw %d template)")
+    func captionInterpolation_usesDurationMinutes() async throws {
         repo.stubAuthorizationStatus = .authorized
         let sessionId = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
         await sut(sessionId: sessionId, plannedEndAt: Date(), durationMinutes: 45)
-        let body = try XCTUnwrap(repo.addedRequests.first?.content.body)
-        // The caption must be formatted — never a literal %d leak.
-        XCTAssertFalse(body.contains("%d"), "caption must be formatted, not raw template")
+        let body = try #require(repo.addedRequests.first?.content.body)
+        #expect(!body.contains("%d"), "caption must be formatted, not raw template")
     }
 
-    func testCaption_rotatesByDeterministicHash() async throws {
+    @Test("caption rotates by deterministic hash")
+    func caption_rotatesByDeterministicHash() async throws {
         repo.stubAuthorizationStatus = .authorized
         let sessionA = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
         let sessionB = UUID(uuidString: "99999999-9999-9999-9999-999999999999")!
@@ -77,21 +75,20 @@ final class ScheduleSessionEndNotificationUseCaseTests: XCTestCase {
         await sut(sessionId: sessionB, plannedEndAt: Date(), durationMinutes: 30)
         await sut(sessionId: sessionA, plannedEndAt: Date(), durationMinutes: 30)
 
-        XCTAssertEqual(repo.addedRequests.count, 3)
-        // Deterministic: repeating sessionA must yield identical copy.
-        XCTAssertEqual(
-            repo.addedRequests[0].content.body,
-            repo.addedRequests[2].content.body,
+        #expect(repo.addedRequests.count == 3)
+        #expect(
+            repo.addedRequests[0].content.body == repo.addedRequests[2].content.body,
             "rotation must be deterministic per-sessionId across calls"
         )
     }
 
-    func testUserInfo_carriesSessionIdAsOpaqueString() async throws {
+    @Test("userInfo carries sessionId as opaque string")
+    func userInfo_carriesSessionIdAsOpaqueString() async throws {
         repo.stubAuthorizationStatus = .authorized
         let sessionId = UUID()
         await sut(sessionId: sessionId, plannedEndAt: Date(), durationMinutes: 30)
-        let userInfo = try XCTUnwrap(repo.addedRequests.first?.content.userInfo)
-        XCTAssertEqual(userInfo["kind"] as? String, "session-end")
-        XCTAssertEqual(userInfo["sessionId"] as? String, sessionId.uuidString)
+        let userInfo = try #require(repo.addedRequests.first?.content.userInfo)
+        #expect(userInfo["kind"] as? String == "session-end")
+        #expect(userInfo["sessionId"] as? String == sessionId.uuidString)
     }
 }

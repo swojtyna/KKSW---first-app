@@ -1,16 +1,136 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
-/// Plan 05-04 Task 2 — `SyncScheduleWithSystemUseCaseImpl` assertions.
-/// Pattern mirrors `SessionRepositoryTests.currentActive/...` — drive the
-/// MockScheduleRepository's CurrentValueSubject so the UC's snapshot read
-/// resolves synchronously.
+@Suite("SyncScheduleWithSystemUseCase")
 @MainActor
-final class SyncScheduleWithSystemUseCaseTests: XCTestCase {
+struct SyncScheduleWithSystemUseCaseTests {
 
-    // MARK: - Helpers
+    @Test("sync stops old then starts new when enabled")
+    func syncStopsOldThenStartsNewWhenEnabled() async throws {
+        let (uc, repo, monitoring, _) = makeSUT()
 
-    private func schedule(id: UUID, enabled: Bool) -> Schedule {
+        let s = makeSchedule(id: UUID(), enabled: true)
+        repo.schedulesSubject.send([s])
+
+        try await uc(schedule: s)
+
+        #expect(monitoring.stopMonitoringCallCount == 1)
+        #expect(monitoring.stoppedScheduleIds.last == s.id)
+        #expect(monitoring.startMonitoringCallCount == 1)
+        #expect(monitoring.lastStartedSchedule?.id == s.id)
+        #expect(monitoring.callLog.first == .stop(scheduleId: s.id))
+        #expect(monitoring.callLog.last == .start(scheduleId: s.id))
+    }
+
+    @Test("sync only stops when schedule is disabled")
+    func syncOnlyStopsWhenScheduleDisabled() async throws {
+        let (uc, repo, monitoring, _) = makeSUT()
+
+        let s = makeSchedule(id: UUID(), enabled: false)
+        repo.schedulesSubject.send([s])
+
+        try await uc(schedule: s)
+
+        #expect(monitoring.stopMonitoringCallCount == 1)
+        #expect(monitoring.startMonitoringCallCount == 0)
+    }
+
+    @Test("rolls back schedule JSON when startMonitoring throws")
+    func syncRollsBackScheduleJSONWhenStartMonitoringThrows() async {
+        let (uc, repo, monitoring, _) = makeSUT()
+
+        let id = UUID()
+        let prior = makeSchedule(id: id, enabled: false)
+        repo.schedulesSubject.send([prior])
+
+        let new = makeSchedule(id: id, enabled: true)
+
+        struct BoomError: Error {}
+        monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
+
+        do {
+            try await uc(schedule: new)
+            Issue.record("Expected uc(schedule:) to throw when startMonitoring throws")
+        } catch {
+            // Expected — rethrows.
+        }
+
+        #expect(monitoring.stopMonitoringCallCount == 1)
+        #expect(monitoring.startMonitoringCallCount == 1)
+        #expect(repo.upsertCallCount == 1)
+        #expect(repo.lastUpserted?.id == id)
+        #expect(repo.lastUpserted?.enabled == false)
+    }
+
+    @Test("does not retry stop after start failure")
+    func syncDoesNotRetryStopMonitoringAfterStartFailure() async {
+        let (uc, repo, monitoring, _) = makeSUT()
+
+        let s = makeSchedule(id: UUID(), enabled: true)
+        repo.schedulesSubject.send([s])
+
+        struct BoomError: Error {}
+        monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
+
+        _ = try? await uc(schedule: s)
+
+        #expect(monitoring.stopMonitoringCallCount == 1)
+    }
+
+    // MARK: - Notification reconcile
+
+    @Test("reconciles notifications after startMonitoring success")
+    func reconcilesNotifications_afterStartMonitoringSuccess() async throws {
+        let (uc, repo, _, reconcile) = makeSUT()
+
+        let s = makeSchedule(id: UUID(), enabled: true)
+        repo.schedulesSubject.send([s])
+
+        try await uc(schedule: s)
+
+        #expect(reconcile.receivedSchedules.count == 1)
+        #expect(reconcile.receivedSchedules.last?.id == s.id)
+        #expect(reconcile.receivedSchedules.last?.enabled == true)
+    }
+
+    @Test("reconciles notifications on disabled early return")
+    func reconcilesNotifications_onDisabledEarlyReturn() async throws {
+        let (uc, repo, _, reconcile) = makeSUT()
+
+        let s = makeSchedule(id: UUID(), enabled: false)
+        repo.schedulesSubject.send([s])
+
+        try await uc(schedule: s)
+
+        #expect(reconcile.receivedSchedules.count == 1)
+        #expect(reconcile.receivedSchedules.last?.id == s.id)
+        #expect(reconcile.receivedSchedules.last?.enabled == false)
+    }
+
+    @Test("does NOT reconcile notifications when startMonitoring throws")
+    func doesNotReconcileNotifications_whenStartMonitoringThrows() async {
+        let (uc, repo, monitoring, reconcile) = makeSUT()
+
+        let s = makeSchedule(id: UUID(), enabled: true)
+        repo.schedulesSubject.send([s])
+
+        struct BoomError: Error {}
+        monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
+
+        do {
+            try await uc(schedule: s)
+            Issue.record("expected throw")
+        } catch {}
+
+        #expect(reconcile.receivedSchedules.isEmpty)
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension SyncScheduleWithSystemUseCaseTests {
+    func makeSchedule(id: UUID, enabled: Bool) -> Schedule {
         Schedule(
             id: id,
             name: nil,
@@ -23,11 +143,7 @@ final class SyncScheduleWithSystemUseCaseTests: XCTestCase {
         )
     }
 
-    // MARK: - Tests
-
-    /// SUT factory — Plan 06-04 extends the impl with `reconcileNotifications:`.
-    /// Existing tests use the default mock (ignored); reconcile tests assert on it.
-    private func makeSUT(
+    func makeSUT(
         repo: MockScheduleRepository = MockScheduleRepository(),
         monitoring: MockScheduleActivityMonitoringRepository = MockScheduleActivityMonitoringRepository(),
         reconcile: MockReconcileScheduleNotificationsUseCase = MockReconcileScheduleNotificationsUseCase()
@@ -38,129 +154,5 @@ final class SyncScheduleWithSystemUseCaseTests: XCTestCase {
             reconcileNotifications: reconcile
         )
         return (uc, repo, monitoring, reconcile)
-    }
-
-    func testSyncStopsOldThenStartsNewWhenEnabled() async throws {
-        let (uc, repo, monitoring, _) = makeSUT()
-
-        let s = schedule(id: UUID(), enabled: true)
-        repo.schedulesSubject.send([s])
-
-        try await uc(schedule: s)
-
-        XCTAssertEqual(monitoring.stopMonitoringCallCount, 1)
-        XCTAssertEqual(monitoring.stoppedScheduleIds.last, s.id)
-        XCTAssertEqual(monitoring.startMonitoringCallCount, 1)
-        XCTAssertEqual(monitoring.lastStartedSchedule?.id, s.id)
-        // Call-order assertion — stop BEFORE start.
-        XCTAssertEqual(monitoring.callLog.first, .stop(scheduleId: s.id))
-        XCTAssertEqual(monitoring.callLog.last, .start(scheduleId: s.id))
-    }
-
-    func testSyncOnlyStopsWhenScheduleDisabled() async throws {
-        let (uc, repo, monitoring, _) = makeSUT()
-
-        let s = schedule(id: UUID(), enabled: false)
-        repo.schedulesSubject.send([s])
-
-        try await uc(schedule: s)
-
-        XCTAssertEqual(monitoring.stopMonitoringCallCount, 1)
-        XCTAssertEqual(monitoring.startMonitoringCallCount, 0)
-    }
-
-    func testSyncRollsBackScheduleJSONWhenStartMonitoringThrows() async {
-        let (uc, repo, monitoring, _) = makeSUT()
-
-        // Seed prior snapshot: "enabled=false" version persisted before.
-        let id = UUID()
-        let prior = schedule(id: id, enabled: false)
-        repo.schedulesSubject.send([prior])
-
-        // Caller passes the "new" enabled=true version.
-        let new = schedule(id: id, enabled: true)
-
-        struct BoomError: Error {}
-        monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
-
-        do {
-            try await uc(schedule: new)
-            XCTFail("Expected uc(schedule:) to throw when startMonitoring throws")
-        } catch {
-            // Expected — rethrows.
-        }
-
-        XCTAssertEqual(monitoring.stopMonitoringCallCount, 1)
-        XCTAssertEqual(monitoring.startMonitoringCallCount, 1)
-        // Rollback: upsert called with prior snapshot.
-        XCTAssertEqual(repo.upsertCallCount, 1)
-        XCTAssertEqual(repo.lastUpserted?.id, id)
-        XCTAssertEqual(repo.lastUpserted?.enabled, false)
-    }
-
-    func testSyncDoesNotRetryStopMonitoringAfterStartFailure() async {
-        let (uc, repo, monitoring, _) = makeSUT()
-
-        let s = schedule(id: UUID(), enabled: true)
-        repo.schedulesSubject.send([s])
-
-        struct BoomError: Error {}
-        monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
-
-        _ = try? await uc(schedule: s)
-
-        // Exactly one stop (pre-start), never re-called after the start threw.
-        XCTAssertEqual(monitoring.stopMonitoringCallCount, 1)
-    }
-
-    // MARK: - Plan 06-04 NTF-02 reconcile integration (§H3)
-
-    func testReconcilesNotifications_afterStartMonitoringSuccess() async throws {
-        let (uc, repo, _, reconcile) = makeSUT()
-
-        let s = schedule(id: UUID(), enabled: true)
-        repo.schedulesSubject.send([s])
-
-        try await uc(schedule: s)
-
-        XCTAssertEqual(reconcile.receivedSchedules.count, 1)
-        XCTAssertEqual(reconcile.receivedSchedules.last?.id, s.id)
-        XCTAssertEqual(reconcile.receivedSchedules.last?.enabled, true)
-    }
-
-    func testReconcilesNotifications_onDisabledEarlyReturn() async throws {
-        let (uc, repo, _, reconcile) = makeSUT()
-
-        let s = schedule(id: UUID(), enabled: false)
-        repo.schedulesSubject.send([s])
-
-        try await uc(schedule: s)
-
-        // Reconcile fires even on disable so pending `schedule.start.{id}.*`
-        // get cleaned up.
-        XCTAssertEqual(reconcile.receivedSchedules.count, 1)
-        XCTAssertEqual(reconcile.receivedSchedules.last?.id, s.id)
-        XCTAssertEqual(reconcile.receivedSchedules.last?.enabled, false)
-    }
-
-    func testDoesNotReconcileNotifications_whenStartMonitoringThrows() async {
-        let (uc, repo, monitoring, reconcile) = makeSUT()
-
-        let s = schedule(id: UUID(), enabled: true)
-        repo.schedulesSubject.send([s])
-
-        struct BoomError: Error {}
-        monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
-
-        do {
-            try await uc(schedule: s)
-            XCTFail("expected throw")
-        } catch {
-            // expected
-        }
-
-        // On throw we skip reconcile — pending notifications remain reflecting
-        // the prior-snapshot state that the upsert-rollback above restored.
-        XCTAssertTrue(reconcile.receivedSchedules.isEmpty)
     }
 }

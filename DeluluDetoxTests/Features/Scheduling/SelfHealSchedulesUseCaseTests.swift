@@ -1,32 +1,44 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
-/// Plan 05-04 Task 3 — real assertions for SelfHealSchedulesUseCase (CONTEXT §D-18).
-final class SelfHealSchedulesUseCaseTests: XCTestCase {
+@Suite(.serialized)
+final class SelfHealSchedulesUseCaseTests {
 
-    private var repo: MockScheduleRepository!
-    private var shield: MockScheduleShieldRepository!
-    private var observeBlocklist: MockObserveBlocklistUseCase!
-    private var compute: MockComputeScheduleWindowUseCase!
-    private var defaults: UserDefaults!
-    private var defaultsSuiteName: String!
-    private var sut: SelfHealSchedulesUseCaseImpl!
+    let repo: MockScheduleRepository
+    let shield: MockScheduleShieldRepository
+    let observeBlocklist: MockObserveBlocklistUseCase
+    let compute: MockComputeScheduleWindowUseCase
+    let defaults: UserDefaults
+    let defaultsSuiteName: String
+    let sut: SelfHealSchedulesUseCaseImpl
+    let now = Date(timeIntervalSince1970: 1_700_000_000)
+    let scheduleId: UUID
+    let blocklistId: UUID
 
-    private let now = Date(timeIntervalSince1970: 1_700_000_000)
-    private let scheduleId = UUID()
-    private let blocklistId = UUID()
+    init() {
+        scheduleId = UUID()
+        blocklistId = UUID()
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
+        let suiteName = "test.schedule.state.\(UUID().uuidString)"
+        defaultsSuiteName = suiteName
+        defaults = UserDefaults(suiteName: suiteName)!
+        SelfHealSchedulesUseCaseImpl.defaultsOverride = defaults
+
         repo = MockScheduleRepository()
         shield = MockScheduleShieldRepository()
-        observeBlocklist = MockObserveBlocklistUseCase(initial: makeBlocklist())
-        compute = MockComputeScheduleWindowUseCase()
 
-        defaultsSuiteName = "test.schedule.state.\(UUID().uuidString)"
-        defaults = UserDefaults(suiteName: defaultsSuiteName)
-        XCTAssertNotNil(defaults)
-        SelfHealSchedulesUseCaseImpl.defaultsOverride = defaults
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let bl = Blocklist(
+            id: blocklistId,
+            name: "Test Blocklist",
+            records: [TokenRecord(id: UUID(), kind: .application, encodedToken: Data([0x01]), lastSeenAt: now)],
+            lastSelection: .init(),
+            updatedAt: now,
+            needsRepair: false
+        )
+        observeBlocklist = MockObserveBlocklistUseCase(initial: bl)
+        compute = MockComputeScheduleWindowUseCase()
 
         sut = SelfHealSchedulesUseCaseImpl(
             scheduleRepo: repo,
@@ -37,61 +49,57 @@ final class SelfHealSchedulesUseCaseTests: XCTestCase {
         )
     }
 
-    override func tearDownWithError() throws {
+    deinit {
         SelfHealSchedulesUseCaseImpl.defaultsOverride = nil
         defaults.removePersistentDomain(forName: defaultsSuiteName)
-        sut = nil
-        repo = nil
-        shield = nil
-        observeBlocklist = nil
-        compute = nil
-        defaults = nil
-        defaultsSuiteName = nil
-        try super.tearDownWithError()
     }
 
-    func testAppliesShieldWhenShouldBeActiveButStoreClear() async throws {
+    @Test("applies shield when should be active but store is clear")
+    func appliesShieldWhenShouldBeActiveButStoreClear() async throws {
         repo.schedulesSubject.send([makeSchedule(id: scheduleId, enabled: true)])
         compute.stubbedResult = ScheduleWindow(state: .active(endsAt: now.addingTimeInterval(3600)), currentWeekday: 2)
 
         let operations = try await sut(now: now)
 
-        XCTAssertEqual(operations, 1)
-        XCTAssertEqual(shield.applyShieldCallCount, 1)
-        XCTAssertEqual(shield.clearShieldCallCount, 0)
-        XCTAssertEqual(shield.lastAppliedBlocklist?.id, blocklistId)
-        XCTAssertTrue(defaults.bool(forKey: ComputeScheduleWindowUseCaseImpl.lastAppliedKey(scheduleId: scheduleId)))
+        #expect(operations == 1)
+        #expect(shield.applyShieldCallCount == 1)
+        #expect(shield.clearShieldCallCount == 0)
+        #expect(shield.lastAppliedBlocklist?.id == blocklistId)
+        #expect(defaults.bool(forKey: ComputeScheduleWindowUseCaseImpl.lastAppliedKey(scheduleId: scheduleId)))
     }
 
-    func testClearsShieldWhenStoreDirtyButShouldNotBeActive() async throws {
+    @Test("clears shield when store dirty but should not be active")
+    func clearsShieldWhenStoreDirtyButShouldNotBeActive() async throws {
         repo.schedulesSubject.send([makeSchedule(id: scheduleId, enabled: true)])
         compute.stubbedResult = ScheduleWindow(state: .inactive, currentWeekday: 2)
         defaults.set(true, forKey: ComputeScheduleWindowUseCaseImpl.lastAppliedKey(scheduleId: scheduleId))
 
         let operations = try await sut(now: now)
 
-        XCTAssertEqual(operations, 1)
-        XCTAssertEqual(shield.applyShieldCallCount, 0)
-        XCTAssertEqual(shield.clearShieldCallCount, 1)
-        XCTAssertFalse(defaults.bool(forKey: ComputeScheduleWindowUseCaseImpl.lastAppliedKey(scheduleId: scheduleId)))
+        #expect(operations == 1)
+        #expect(shield.applyShieldCallCount == 0)
+        #expect(shield.clearShieldCallCount == 1)
+        #expect(!defaults.bool(forKey: ComputeScheduleWindowUseCaseImpl.lastAppliedKey(scheduleId: scheduleId)))
     }
 
-    func testNoOpWhenStateMatches() async throws {
+    @Test("no-op when state already matches")
+    func noOpWhenStateMatches() async throws {
         repo.schedulesSubject.send([makeSchedule(id: scheduleId, enabled: true)])
         compute.stubbedResult = ScheduleWindow(state: .active(endsAt: now.addingTimeInterval(3600)), currentWeekday: 2)
         defaults.set(true, forKey: ComputeScheduleWindowUseCaseImpl.lastAppliedKey(scheduleId: scheduleId))
 
         let operations = try await sut(now: now)
 
-        XCTAssertEqual(operations, 0)
-        XCTAssertEqual(shield.applyShieldCallCount, 0)
-        XCTAssertEqual(shield.clearShieldCallCount, 0)
+        #expect(operations == 0)
+        #expect(shield.applyShieldCallCount == 0)
+        #expect(shield.clearShieldCallCount == 0)
     }
 
-    func testIteratesOverAllEnabledSchedules() async throws {
+    @Test("iterates over all enabled schedules, skips disabled")
+    func iteratesOverAllEnabledSchedules() async throws {
         let id1 = UUID()
         let id2 = UUID()
-        let id3 = UUID() // disabled — must be skipped
+        let id3 = UUID()
         repo.schedulesSubject.send([
             makeSchedule(id: id1, enabled: true),
             makeSchedule(id: id2, enabled: true),
@@ -101,14 +109,16 @@ final class SelfHealSchedulesUseCaseTests: XCTestCase {
 
         let operations = try await sut(now: now)
 
-        XCTAssertEqual(operations, 2, "Disabled schedule must not trigger shield ops.")
-        XCTAssertEqual(shield.applyShieldCallCount, 2)
-        XCTAssertEqual(compute.callCount, 2, "Compute must only be called for enabled schedules.")
+        #expect(operations == 2, "disabled schedule must not trigger shield ops")
+        #expect(shield.applyShieldCallCount == 2)
+        #expect(compute.callCount == 2, "compute must only be called for enabled schedules")
     }
+}
 
-    // MARK: - Helpers
+// MARK: - Private Helpers
 
-    private func makeSchedule(id: UUID, enabled: Bool) -> Schedule {
+private extension SelfHealSchedulesUseCaseTests {
+    func makeSchedule(id: UUID, enabled: Bool) -> Schedule {
         Schedule(
             id: id,
             name: "Test",
@@ -120,19 +130,6 @@ final class SelfHealSchedulesUseCaseTests: XCTestCase {
             enabled: enabled,
             blocklistId: blocklistId,
             appVersion: "test"
-        )
-    }
-
-    private func makeBlocklist() -> Blocklist {
-        Blocklist(
-            id: blocklistId,
-            name: "Test Blocklist",
-            records: [
-                TokenRecord(id: UUID(), kind: .application, encodedToken: Data([0x01]), lastSeenAt: now),
-            ],
-            lastSelection: .init(),
-            updatedAt: now,
-            needsRepair: false
         )
     }
 }

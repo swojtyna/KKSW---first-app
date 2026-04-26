@@ -1,6 +1,6 @@
 # TASK-008: Usprawnienie testów — Swift Testing Agent Skill
 
-**Status**: ready-to-work
+**Status**: done
 **Created**: 2026-04-26
 **Size**: large
 **Priority**: medium

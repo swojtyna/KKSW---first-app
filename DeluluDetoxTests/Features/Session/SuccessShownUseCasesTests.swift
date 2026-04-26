@@ -1,65 +1,61 @@
-import XCTest
+import Foundation
+import Testing
 @testable import DeluluDetox
 
-final class SuccessShownUseCasesTests: XCTestCase {
+@Suite(.serialized)
+final class SuccessShownUseCasesTests {
 
-    private var suiteName: String!
+    let suiteName: String
+    let suite: UserDefaults
 
-    override func setUp() {
-        super.setUp()
-        // Fresh in-memory-ish UserDefaults suite per test — don't leak across runs.
+    init() {
         suiteName = "test.successShown.\(UUID().uuidString)"
-        let suite = UserDefaults(suiteName: suiteName)!
-        // Clear any persisted keys (shouldn't exist for a fresh suite, belt-and-suspenders).
+        suite = UserDefaults(suiteName: suiteName)!
         suite.dictionaryRepresentation().keys.forEach { suite.removeObject(forKey: $0) }
         MarkSuccessShownUseCaseImpl.defaultsOverride = suite
     }
 
-    override func tearDown() {
+    deinit {
         MarkSuccessShownUseCaseImpl.defaultsOverride = nil
-        if let suiteName {
-            UserDefaults().removePersistentDomain(forName: suiteName)
-        }
-        suiteName = nil
-        super.tearDown()
+        suite.removePersistentDomain(forName: suiteName)
     }
 
-    func testMarkSuccessShownPersistsFlagToUserDefaults() {
+    @Test("mark success shown persists flag to UserDefaults")
+    func markSuccessShownPersistsFlagToUserDefaults() {
         let id = UUID()
         let markUC = MarkSuccessShownUseCaseImpl()
         let checkUC = CheckSuccessShownUseCaseImpl()
 
-        XCTAssertFalse(checkUC(sessionId: id))
+        #expect(!checkUC(sessionId: id))
         markUC(sessionId: id)
-        XCTAssertTrue(checkUC(sessionId: id))
+        #expect(checkUC(sessionId: id))
     }
 
-    func testCheckSuccessShownReturnsFalseForUnmarkedSession() {
-        let checkUC = CheckSuccessShownUseCaseImpl()
-        XCTAssertFalse(checkUC(sessionId: UUID()))
+    @Test("check success shown returns false for unmarked session")
+    func checkSuccessShownReturnsFalseForUnmarkedSession() {
+        #expect(!CheckSuccessShownUseCaseImpl()(sessionId: UUID()))
     }
 
-    func testMarkAndCheckAreIndependentPerSessionId() {
+    @Test("mark and check are independent per sessionId")
+    func markAndCheckAreIndependentPerSessionId() {
         let a = UUID()
         let b = UUID()
         let markUC = MarkSuccessShownUseCaseImpl()
         let checkUC = CheckSuccessShownUseCaseImpl()
 
         markUC(sessionId: a)
-        XCTAssertTrue(checkUC(sessionId: a))
-        XCTAssertFalse(checkUC(sessionId: b))
+        #expect(checkUC(sessionId: a))
+        #expect(!checkUC(sessionId: b))
     }
 
-    func testMockMarkSuccessShownCapturesCallsWithoutTouchingUserDefaults() {
-        // Parity check: the mock records the id but does not write to UserDefaults.
+    @Test("mock mark captures calls without touching UserDefaults")
+    func mockMarkSuccessShownCapturesCallsWithoutTouchingUserDefaults() {
         let mockMark = MockMarkSuccessShownUseCase()
         let id = UUID()
         mockMark(sessionId: id)
-        XCTAssertEqual(mockMark.callCount, 1)
-        XCTAssertEqual(mockMark.lastSessionId, id)
-        XCTAssertTrue(mockMark.allMarked.contains(id))
-
-        // Real CheckSuccessShownUseCaseImpl backed by the override suite should NOT see it.
-        XCTAssertFalse(CheckSuccessShownUseCaseImpl()(sessionId: id))
+        #expect(mockMark.callCount == 1)
+        #expect(mockMark.lastSessionId == id)
+        #expect(mockMark.allMarked.contains(id))
+        #expect(!CheckSuccessShownUseCaseImpl()(sessionId: id))
     }
 }
