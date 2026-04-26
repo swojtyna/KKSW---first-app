@@ -35,7 +35,7 @@ struct HomeView: View {
                 StatsView(model: statsModel)
             }
             .alert(
-                "Coś się popsuło",
+                "commonErrorTitle",
                 isPresented: Binding(
                     get: {
                         if case .errorAlert = model.destination { return true }
@@ -44,7 +44,7 @@ struct HomeView: View {
                     set: { if !$0 { model.destination = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) { model.destination = nil }
+                Button("commonButtonOk", role: .cancel) { model.destination = nil }
             } message: {
                 if case .errorAlert(let message) = model.destination {
                     Text(message)
@@ -56,7 +56,7 @@ struct HomeView: View {
 
     private var tabs: some View {
         DesignTabBar(selection: $selectedTab) {
-            Tab("Dzisiaj", systemImage: "house.fill", value: 0) {
+            Tab("homeTabToday", systemImage: "house.fill", value: 0) {
                 HomeDashboardView(
                     statsCard: model.statsCard,
                     onQuickSessionTap: { model.startSessionTapped() },
@@ -64,15 +64,15 @@ struct HomeView: View {
                 )
                 .background(Color.surfaceGrouped)
             }
-            Tab("Lista", systemImage: "list.bullet", value: 1) {
+            Tab("homeTabList", systemImage: "list.bullet", value: 1) {
                 listaContent
                     .background(Color.surfaceGrouped)
             }
-            Tab("Plan", systemImage: "calendar", value: 2) {
+            Tab("homeTabSchedule", systemImage: "calendar", value: 2) {
                 ScheduleListView(model: scheduleListModel)
                     .background(Color.surfaceGrouped)
             }
-            Tab("Staty", systemImage: "chart.bar.fill", value: 3) {
+            Tab("homeTabStats", systemImage: "chart.bar.fill", value: 3) {
                 StatsView(model: statsTabModel)
                     .background(Color.surfaceGrouped)
             }
@@ -143,14 +143,14 @@ struct HomeView: View {
             .frame(width: 120, height: 120)
             .padding(.bottom, Theme.Spacing.xxl)
 
-            Text("Jeszcze żadnych wrogów.")
+            Text("homeEmptyHeading")
                 .font(.dduLargeTitle)
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Theme.Spacing.xxl)
                 .padding(.bottom, Theme.Spacing.sm)
 
-            Text("Wybierz aplikacje, które kradną Ci czas. Resztą zajmie się DeluluDetox.")
+            Text("homeEmptySubheading")
                 .font(.dduBody)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
@@ -158,7 +158,7 @@ struct HomeView: View {
 
             Spacer()
 
-            PrimaryButton(title: "Wybierz aplikacje do blokady", systemIcon: "plus") {
+            PrimaryButton(title: String(localized: "homeButtonSelectApps"), systemIcon: "plus") {
                 model.chooseAppsTapped()
             }
             .padding(.horizontal, Theme.Spacing.xxl)
@@ -190,7 +190,7 @@ private struct PickerHostView: View {
             FamilyActivityPicker(selection: $session.selection)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Gotowe") {
+                        Button("homeButtonDone") {
                             onDismiss(session.selection)
                             dismiss()
                         }

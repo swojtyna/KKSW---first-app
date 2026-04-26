@@ -2,30 +2,31 @@ import Foundation
 
 /// Copy libraries for Phase 6 notifications + broken streak (CONTEXT §D-10, §D-17, §D-20).
 /// Rotation is deterministic per-session (NTF-01 uses sessionId-derived hash),
-/// per-call (NTF-02 uses scheduleId-derived hash). Claude's Discretion finalizes
-/// copy wording during execution; drafts below honor the sarcastic-playful tone (§D-12 Phase 3).
+/// per-call (NTF-02 uses scheduleId-derived hash). Uses NSLocalizedString so
+/// notification content respects the device locale (architectural exception:
+/// string lookup in Repository layer because notification body is data, not UI).
 struct NotificationCaptionLibrary: Sendable {
 
     // CONTEXT §D-17 — miękki sarkazm + celebracja (NTF-01).
     let sessionEndCaptions: [String] = [
-        "Przetrwałeś %d min bez scrollowania. Świat się nie zawalił.",
-        "Sesja ukończona. Możesz wrócić do chaosu.",
-        "Gratuluję, %d min w realnym świecie. Teraz możesz pojeździć palcem."
+        NSLocalizedString("notifSessionEnd1", comment: "NTF-01 session completion"),
+        NSLocalizedString("notifSessionEnd2", comment: "NTF-01 session completion"),
+        NSLocalizedString("notifSessionEnd3", comment: "NTF-01 session completion"),
     ]
 
     // CONTEXT §D-20 — miękki sarkazm + info (NTF-02).
     let scheduleStartCaptions: [String] = [
-        "Schedule właśnie zaczął blokadę. Powodzenia.",
-        "Apki wyłączone. Realny świat prosi o uwagę.",
-        "Blokada zaczyna się teraz. Telefon idzie spać."
+        NSLocalizedString("notifScheduleStart1", comment: "NTF-02 schedule start"),
+        NSLocalizedString("notifScheduleStart2", comment: "NTF-02 schedule start"),
+        NSLocalizedString("notifScheduleStart3", comment: "NTF-02 schedule start"),
     ]
 
     // CONTEXT §D-10 — ostry shame (broken streak). Kept separately because
     // tonal register differs: shame vs. celebratory.
     let brokenStreakCaptions: [String] = [
-        "Straciłeś %d-dniową serię. Imponujące.",
-        "%d dni do kosza. Brawo.",
-        "Seria %d dni właśnie wyparowała. Gratulacje."
+        NSLocalizedString("notifBrokenStreak1", comment: "broken streak shame"),
+        NSLocalizedString("notifBrokenStreak2", comment: "broken streak shame"),
+        NSLocalizedString("notifBrokenStreak3", comment: "broken streak shame"),
     ]
 
     /// NTF-01 copy. `hash` is typically `abs(sessionId.uuidString.hashValue)`;

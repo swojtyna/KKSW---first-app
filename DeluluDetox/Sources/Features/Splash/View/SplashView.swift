@@ -52,7 +52,7 @@ struct SplashView: View {
                         .kerning(-1)
                         .foregroundStyle(Color.textPrimary)
 
-                    Text("Mniej scrolla. Mniej wymówek.")
+                    Text("splashSubtitle")
                         .font(.dduBody)
                         .foregroundStyle(Color.textSecondary)
                         .multilineTextAlignment(.center)

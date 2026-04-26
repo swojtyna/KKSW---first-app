@@ -90,6 +90,7 @@ Details: `.claude/guides/xcodebuild-mcp/GUIDE.md` · `.claude/guides/xcodegen/GU
 | XcodeGen setup | `.claude/guides/xcodegen/GUIDE.md` |
 | Build & test with XcodeBuildMCP | `.claude/guides/xcodebuild-mcp/GUIDE.md` |
 | Authoring new guides | `.claude/guides/create-new-guide/GUIDE.md` |
+| Localization (en/pl/es, xcstrings, plurals) | `.claude/guides/localization/GUIDE.md` |
 | Task management | `.claude/tasks/` · `.claude/tasks/WORKFLOW.md` |
 
 ---

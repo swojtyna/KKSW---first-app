@@ -1,34 +1,16 @@
 import SwiftUI
 
 /// Stats screen — VM-driven per Phase 6 Plan 05 (H7).
-/// All dynamic state lives on `StatsViewModel`; only display-constant weekday
-/// labels stay local to the View.
+/// All dynamic state lives on `StatsViewModel`; weekday labels use
+/// Calendar.current for locale-aware symbols (always Monday-first to match
+/// the hardcoded Monday-first encoding in StatsViewModel).
 struct StatsView: View {
     @Bindable var model: StatsViewModel
-
-    // Weekday headers — Monday-first. Kept as View-local display constant
-    // (CONTEXT §Claude's Discretion — no localization variation in MVP).
-    // String IDs since "P" repeats (Pn + Pt) and raw offsets would collide
-    // with the Int day IDs in the grid below.
-    private struct WeekdayHeader: Identifiable {
-        let id: String
-        let letter: String
-    }
-
-    private let weekdayHeaders: [WeekdayHeader] = [
-        WeekdayHeader(id: "wd-mon", letter: "P"),
-        WeekdayHeader(id: "wd-tue", letter: "W"),
-        WeekdayHeader(id: "wd-wed", letter: "Ś"),
-        WeekdayHeader(id: "wd-thu", letter: "C"),
-        WeekdayHeader(id: "wd-fri", letter: "P"),
-        WeekdayHeader(id: "wd-sat", letter: "S"),
-        WeekdayHeader(id: "wd-sun", letter: "N"),
-    ]
 
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.lg) {
-                Text("Twoje święte wojny")
+                Text("statsHeading")
                     .font(.dduLargeTitle)
                     .foregroundStyle(Color.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -39,7 +21,7 @@ struct StatsView: View {
                     streakCard(
                         icon: "flame.fill",
                         iconColor: .brandAmber,
-                        label: "AKTUALNY",
+                        label: String(localized: "statsCurrentLabel"),
                         value: "\(model.stats.currentStreak)",
                         valueColor: .textPrimary,
                         showHot: false
@@ -47,7 +29,7 @@ struct StatsView: View {
                     streakCard(
                         icon: nil,
                         iconColor: .clear,
-                        label: "REKORD",
+                        label: String(localized: "statsRecordLabel"),
                         value: "\(model.stats.longestStreak)",
                         valueColor: .brandAmber,
                         showHot: true
@@ -58,7 +40,7 @@ struct StatsView: View {
                 calendarCard
                     .padding(.horizontal, Theme.Spacing.lg)
 
-                Text("Łącznie ukończonych sesji: \(model.stats.totalCount).")
+                Text(String(format: String(localized: "statsTotalSessions"), Int64(model.stats.totalCount)))
                     .font(.dduFootnote)
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -68,7 +50,7 @@ struct StatsView: View {
             }
         }
         .background(Color.surfaceGrouped.ignoresSafeArea())
-        .navigationTitle("Statystyki")
+        .navigationTitle(String(localized: "statsNavigationTitle"))
         .navigationBarTitleDisplayMode(.large)
     }
 
@@ -103,7 +85,7 @@ struct StatsView: View {
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(valueColor)
 
-                    Text("dni")
+                    Text("commonDaysUnit")
                         .font(.system(size: 15))
                         .foregroundStyle(Color.textSecondary)
                 }
@@ -112,7 +94,7 @@ struct StatsView: View {
             .padding(14)
 
             if showHot {
-                Text("HOT")
+                Text("statsHotBadge")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Color.brandAmberInk)
                     .padding(.horizontal, Theme.Spacing.sm)
@@ -154,8 +136,8 @@ struct StatsView: View {
             }
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
-                ForEach(weekdayHeaders) { header in
-                    Text(header.letter)
+                ForEach(Calendar.current.localizedWeekdayDisplayOrder, id: \.weekday) { day in
+                    Text(day.label)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.textSecondary)
                         .frame(maxWidth: .infinity)

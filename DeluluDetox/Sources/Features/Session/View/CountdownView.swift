@@ -16,7 +16,7 @@ struct CountdownView: View {
 
             Spacer().frame(height: Theme.Spacing.xxxl)
 
-            Text("„Scrollowanie może poczekać. Ty nie.”")
+            Text("countdownQuote")
                 .font(.system(size: 20, weight: .semibold).italic())
                 .foregroundStyle(Color.brandVioletInk)
                 .multilineTextAlignment(.center)
@@ -30,11 +30,11 @@ struct CountdownView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.surfaceGrouped.ignoresSafeArea())
-        .navigationTitle("Sesja aktywna")
+        .navigationTitle(String(localized: "countdownNavigationTitle"))
         .navigationBarBackButtonHidden(true)
         .onDisappear { model.onDisappear() }
         .confirmationDialog(
-            "Zakończyć wcześniej?",
+            "countdownEndEarlyTitle",
             isPresented: Binding(
                 get: {
                     if case .confirmEarlyEnd = model.destination { return true }
@@ -44,14 +44,14 @@ struct CountdownView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Tak, kończę wcześniej", role: .destructive) {
+            Button("countdownEndEarlyConfirm", role: .destructive) {
                 Task { await model.confirmEarlyEnd() }
             }
-            Button("Nie, wytrzymam", role: .cancel) {
+            Button("countdownEndEarlyCancel", role: .cancel) {
                 model.dismissConfirm()
             }
         } message: {
-            Text("Timer ma jeszcze \(formatRemaining(model.remainingSeconds)). Jesteś pewien?")
+            Text(String(format: String(localized: "countdownEndEarlyMessage"), formatRemaining(model.remainingSeconds)))
         }
     }
 
@@ -94,7 +94,7 @@ struct CountdownView: View {
                     .font(.system(size: 64, weight: .light, design: .monospaced))
                     .monospacedDigit()
                     .foregroundStyle(Color.textPrimary)
-                Text("z \(formatTotal)")
+                Text(String(format: String(localized: "countdownTimeOf"), formatTotal))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Color.textSecondary)
                     .monospacedDigit()
@@ -107,7 +107,7 @@ struct CountdownView: View {
         Button {
             model.earlyEndTapped()
         } label: {
-            Text("Zakończ wcześniej")
+            Text("countdownButtonEndEarly")
                 .font(.dduHeadline)
                 .foregroundStyle(Color.textPrimary)
                 .frame(maxWidth: .infinity)

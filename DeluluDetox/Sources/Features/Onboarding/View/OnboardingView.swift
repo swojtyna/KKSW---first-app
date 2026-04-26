@@ -3,10 +3,10 @@ import SwiftUI
 struct OnboardingView: View {
     @Bindable var model: OnboardingViewModel
 
-    private let bullets: [(String, String)] = [
-        ("Ty wybierasz co blokować.", "Apki, strony, całe kategorie."),
-        ("Apple pilnuje — my klikamy.", "Screen Time robi robotę w tle."),
-        ("Nic nie leci nigdzie.", "Twoje dane zostają na telefonie."),
+    private let bulletKeys: [(LocalizedStringKey, LocalizedStringKey)] = [
+        ("onboardingFeature1Heading", "onboardingFeature1Sub"),
+        ("onboardingFeature2Heading", "onboardingFeature2Sub"),
+        ("onboardingFeature3Heading", "onboardingFeature3Sub"),
     ]
 
     var body: some View {
@@ -15,21 +15,22 @@ struct OnboardingView: View {
                 .padding(.top, 60)
                 .padding(.bottom, 36)
 
-            Text("Zanim zaczniemy — damy Ci spokój.")
+            Text("onboardingTitle")
                 .font(.dduLargeTitle)
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Theme.Spacing.xxl)
                 .padding(.bottom, Theme.Spacing.md)
 
-            Text(screenTimeExplanation)
+            Text("onboardingScreenTimeDesc")
                 .font(.dduBody)
+                .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Theme.Spacing.xxxl)
                 .padding(.bottom, 36)
 
             VStack(spacing: 14) {
-                ForEach(Array(bullets.enumerated()), id: \.offset) { index, item in
+                ForEach(Array(bulletKeys.enumerated()), id: \.offset) { index, item in
                     bulletRow(index: index + 1, heading: item.0, sub: item.1)
                 }
             }
@@ -45,7 +46,7 @@ struct OnboardingView: View {
                         if model.isRequesting {
                             ProgressView().tint(.white)
                         } else {
-                            Text("Włącz Screen Time")
+                            Text("onboardingButtonScreenTime")
                                 .font(.dduHeadline)
                         }
                     }
@@ -65,7 +66,7 @@ struct OnboardingView: View {
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
                 } else {
-                    Text("Odmówione? Ustawienia → Screen Time → Zezwól.")
+                    Text("onboardingHelperText")
                         .font(.dduCaption1)
                         .foregroundStyle(Color.textTertiary)
                 }
@@ -74,20 +75,6 @@ struct OnboardingView: View {
             .padding(.bottom, 40)
         }
         .background(Color.surfaceGrouped.ignoresSafeArea())
-    }
-
-    private var screenTimeExplanation: AttributedString {
-        var lead = AttributedString("Potrzebujemy dostępu do ")
-        lead.foregroundColor = .textSecondary
-
-        var emphasis = AttributedString("Screen Time")
-        emphasis.foregroundColor = .textPrimary
-        emphasis.font = .dduBody.weight(.semibold)
-
-        var tail = AttributedString(". Bez niego umiemy co najwyżej życzyć Ci powodzenia.")
-        tail.foregroundColor = .textSecondary
-
-        return lead + emphasis + tail
     }
 
     private var heroIcon: some View {
@@ -110,7 +97,7 @@ struct OnboardingView: View {
         .frame(width: 120, height: 120)
     }
 
-    private func bulletRow(index: Int, heading: String, sub: String) -> some View {
+    private func bulletRow(index: Int, heading: LocalizedStringKey, sub: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 14) {
             ZStack {
                 Circle().fill(Color.brandVioletTint)

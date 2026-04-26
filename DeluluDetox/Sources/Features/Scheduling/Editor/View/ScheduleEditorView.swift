@@ -10,11 +10,6 @@ struct ScheduleEditorView: View {
     /// Invoked after `saveTapped()` succeeds so the parent can pop / dismiss.
     var onSaved: () -> Void = {}
 
-    /// Monday-first display order (PL convention); stored as Calendar.weekday values.
-    private static let displayOrder: [(label: String, weekday: Int)] = [
-        ("Pn", 2), ("Wt", 3), ("Śr", 4), ("Cz", 5), ("Pt", 6), ("Sb", 7), ("Nd", 1),
-    ]
-
     private enum TimeField { case start, end }
 
     @State private var editingField: TimeField = .start
@@ -22,12 +17,12 @@ struct ScheduleEditorView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                SectionLabel(text: "Dni")
+                SectionLabel(text: String(localized: "scheduleEditorSectionDays"))
 
                 GroupedCard {
                     VStack(spacing: Theme.Spacing.md) {
                         HStack(spacing: 6) {
-                            ForEach(Self.displayOrder, id: \.weekday) { item in
+                            ForEach(Calendar.current.localizedWeekdayDisplayOrder, id: \.weekday) { item in
                                 ScheduleDayChip(
                                     label: item.label,
                                     isSelected: model.daysOfWeek.contains(item.weekday),
@@ -40,21 +35,21 @@ struct ScheduleEditorView: View {
                             Button {
                                 model.applyPresetDniRobocze()
                             } label: {
-                                DesignChip(text: "Dni robocze", isSoft: true)
+                                DesignChip(text: String(localized: "scheduleEditorPresetWeekdays"), isSoft: true)
                             }
                             .buttonStyle(.plain)
 
                             Button {
                                 model.applyPresetWeekend()
                             } label: {
-                                DesignChip(text: "Weekend")
+                                DesignChip(text: String(localized: "scheduleEditorPresetWeekend"))
                             }
                             .buttonStyle(.plain)
 
                             Button {
                                 model.applyPresetCodziennie()
                             } label: {
-                                DesignChip(text: "Codziennie")
+                                DesignChip(text: String(localized: "scheduleEditorPresetEveryday"))
                             }
                             .buttonStyle(.plain)
 
@@ -64,11 +59,11 @@ struct ScheduleEditorView: View {
                     .padding(Theme.Spacing.lg)
                 }
 
-                SectionLabel(text: "Godziny")
+                SectionLabel(text: String(localized: "scheduleEditorSectionHours"))
 
                 GroupedCard {
-                    timeRow(label: "Od", value: formattedTime(startDate), field: .start, isLast: false)
-                    timeRow(label: "Do", value: formattedTime(endDate), field: .end, isLast: true)
+                    timeRow(label: String(localized: "scheduleEditorFromLabel"), value: formattedTime(startDate), field: .start, isLast: false)
+                    timeRow(label: String(localized: "scheduleEditorToLabel"), value: formattedTime(endDate), field: .end, isLast: true)
                 }
 
                 GroupedCard {
@@ -86,18 +81,18 @@ struct ScheduleEditorView: View {
                 .padding(.top, Theme.Spacing.sm)
 
                 if model.isCrossMidnight {
-                    Label("Cross-midnight — nocna zmiana, co?", systemImage: "moon.zzz")
+                    Label(String(localized: "scheduleEditorCrossMidnightNote"), systemImage: "moon.zzz")
                         .font(.dduFootnote)
                         .foregroundStyle(Color.textSecondary)
                         .padding(.horizontal, Theme.Spacing.xxxl)
                         .padding(.top, Theme.Spacing.md)
                 }
 
-                SectionLabel(text: "Aktywność")
+                SectionLabel(text: String(localized: "scheduleEditorSectionActivity"))
 
                 GroupedCard {
                     GroupedListRow(
-                        title: "Harmonogram aktywny",
+                        title: String(localized: "scheduleEditorToggleLabel"),
                         detail: nil,
                         leading: nil,
                         trailing: {
@@ -107,7 +102,7 @@ struct ScheduleEditorView: View {
                     )
                 }
 
-                Text("Blokady włączą się automatycznie w wybrane dni o \(formattedTime(startDate)).")
+                Text(String(format: String(localized: "scheduleEditorActiveInfo"), formattedTime(startDate)))
                     .font(.dduFootnote)
                     .foregroundStyle(Color.textSecondary)
                     .padding(.horizontal, Theme.Spacing.xxxl)
@@ -117,14 +112,14 @@ struct ScheduleEditorView: View {
             }
         }
         .background(Color.surfaceGrouped.ignoresSafeArea())
-        .navigationTitle("Harmonogram")
+        .navigationTitle(String(localized: "scheduleEditorNavigationTitle"))
         .safeAreaInset(edge: .bottom) { saveButton }
         .alert(
-            "Błąd",
+            "scheduleEditorErrorTitle",
             isPresented: errorAlertPresented,
             presenting: errorAlertMessage
         ) { _ in
-            Button("OK", role: .cancel) { model.clearDestination() }
+            Button("commonButtonOk", role: .cancel) { model.clearDestination() }
         } message: { msg in
             Text(msg)
         }
@@ -160,7 +155,7 @@ struct ScheduleEditorView: View {
 
     @ViewBuilder
     private var saveButton: some View {
-        PrimaryButton(title: model.isSaving ? "Zapisywanie…" : "Zapisz") {
+        PrimaryButton(title: model.isSaving ? String(localized: "scheduleEditorButtonSaving") : String(localized: "scheduleEditorButtonSave")) {
             Task {
                 let didSave = await model.saveTapped()
                 if didSave { onSaved() }

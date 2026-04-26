@@ -247,6 +247,26 @@ Model danych współdzielony między warstwami?
 
 ---
 
+## Localization rules
+
+Tłumaczenia żyją **tylko w warstwie View i ViewModel** — nigdy w Domain ani Repository.
+
+```swift
+// ✅ View
+Text("sessionStartHeader")
+// ✅ ViewModel (display string)
+let title = String(localized: "statsNavigationTitle")
+
+// ❌ UseCase — nie tutaj
+// ❌ Repository — nie tutaj
+```
+
+**Wyjątek:** push notification body (`NotificationCaptionLibrary`) używa `NSLocalizedString` w Repository, bo treść powiadomienia to dane, nie UI. Dokumentuj takie wyjątki komentarzem.
+
+Szczegóły, nazewnictwo kluczy, pluralizacja → `.claude/guides/localization/GUIDE.md`.
+
+---
+
 ## Common pitfalls
 
 - **ViewModel importujący SwiftUI.** Tylko `Observation` jest OK — nigdy `View`, `Color`, `Binding`, `Image`.
@@ -265,6 +285,7 @@ Model danych współdzielony między warstwami?
 - Layout plików per feature: `.claude/guides/feature-structure/GUIDE.md`
 - Dependency Injection: `.claude/guides/dependency-injection/GUIDE.md`
 - Nawigacja: `.claude/guides/navigation/GUIDE.md`
+- Lokalizacja (xcstrings, reguły warstwowe, pluralizacja): `.claude/guides/localization/GUIDE.md`
 - Swift concurrency — wywołaj skill `swift-concurrency:swift-concurrency` przy pracy z async/await, aktorami, Sendable.
 - SwiftUI patterns — wywołaj skill `swiftui-expert:swiftui-expert-skill` przy projektowaniu widoków.
 

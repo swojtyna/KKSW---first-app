@@ -26,7 +26,7 @@ struct SessionSuccessView: View {
             .frame(width: 120, height: 120)
             .padding(.bottom, Theme.Spacing.xxl)
 
-            Text("Wytrzymałeś \(model.durationMinutes) minut")
+            Text(String(format: String(localized: "sessionSuccessHeading"), Int64(model.durationMinutes)))
                 .font(.dduLargeTitle)
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
@@ -41,7 +41,7 @@ struct SessionSuccessView: View {
 
             Spacer()
 
-            PrimaryButton(title: "Dzięki, wiem", systemIcon: "hand.thumbsup.fill") {
+            PrimaryButton(title: String(localized: "sessionSuccessButton"), systemIcon: "hand.thumbsup.fill") {
                 onDismiss()
             }
             .padding(.horizontal, Theme.Spacing.xxl)

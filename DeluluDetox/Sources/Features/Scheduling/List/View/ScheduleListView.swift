@@ -4,10 +4,10 @@ import SwiftUINavigation
 /// Schedule List screen (SCH-01 entry + SCH-02 row-level quick toggle).
 ///
 /// Shows a single list row per configured `Schedule` (MVP ships with 0 or 1 row;
-/// schema supports N per CONTEXT §D-01). Empty state renders sarcastic Polish
-/// copy (CONTEXT §Claude's Discretion + D-16) with a primary "Stwórz harmonogram"
-/// CTA. Tapping a row pushes the editor from Plan 05-06; toggling the row's
-/// trailing Toggle flips enabled via ToggleScheduleUseCase without navigating.
+/// schema supports N per CONTEXT §D-01). Empty state renders sarcastic copy
+/// with a primary "Create schedule" CTA. Tapping a row pushes the editor from
+/// Plan 05-06; toggling the row's trailing Toggle flips enabled via
+/// ToggleScheduleUseCase without navigating.
 struct ScheduleListView: View {
     @Bindable var model: ScheduleListViewModel
 
@@ -18,7 +18,7 @@ struct ScheduleListView: View {
                     .frame(minHeight: 520)
             } else {
                 VStack(spacing: Theme.Spacing.lg) {
-                    SectionLabel(text: "Aktywne harmonogramy")
+                    SectionLabel(text: String(localized: "scheduleListSectionActive"))
                         .padding(.top, Theme.Spacing.sm)
 
                     GroupedCard {
@@ -27,7 +27,7 @@ struct ScheduleListView: View {
                         }
                     }
 
-                    PrimaryButton(title: "Dodaj harmonogram", systemIcon: "plus") {
+                    PrimaryButton(title: String(localized: "scheduleListButtonAdd"), systemIcon: "plus") {
                         model.createTapped()
                     }
                     .padding(.horizontal, Theme.Spacing.lg)
@@ -37,18 +37,18 @@ struct ScheduleListView: View {
             }
         }
         .background(Color.surfaceGrouped.ignoresSafeArea())
-        .navigationTitle("Harmonogram")
+        .navigationTitle(String(localized: "scheduleListNavigationTitle"))
         .navigationDestination(item: $model.destination.scheduleEditor) { editorModel in
             ScheduleEditorView(model: editorModel) {
                 model.clearDestination()
             }
         }
         .alert(
-            "Błąd",
+            "scheduleListErrorTitle",
             isPresented: errorAlertPresented,
             presenting: errorAlertMessage
         ) { _ in
-            Button("OK", role: .cancel) { model.clearDestination() }
+            Button("commonButtonOk", role: .cancel) { model.clearDestination() }
         } message: { msg in
             Text(msg)
         }
@@ -79,21 +79,21 @@ struct ScheduleListView: View {
             .frame(width: 120, height: 120)
             .padding(.bottom, Theme.Spacing.xxl)
 
-            Text("Nie masz jeszcze harmonogramu.")
+            Text("scheduleListEmptyHeading")
                 .font(.dduTitle2)
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Theme.Spacing.xxl)
                 .padding(.bottom, Theme.Spacing.sm)
 
-            Text("Życie samo się nie zablokuje.")
+            Text("scheduleListEmptySubheading")
                 .font(.dduBody)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
 
             Spacer()
 
-            PrimaryButton(title: "Stwórz harmonogram", systemIcon: "plus") {
+            PrimaryButton(title: String(localized: "scheduleListButtonCreate"), systemIcon: "plus") {
                 model.createTapped()
             }
             .padding(.horizontal, Theme.Spacing.xxl)
@@ -143,22 +143,18 @@ struct ScheduleListView: View {
 
     // MARK: - Label helpers
 
-    /// Monday-first display order (PL convention); stored as Calendar.weekday values.
-    private static let displayOrder: [(label: String, weekday: Int)] = [
-        ("Pn", 2), ("Wt", 3), ("Śr", 4), ("Cz", 5), ("Pt", 6), ("Sb", 7), ("Nd", 1),
-    ]
-
     private func daysLabel(for schedule: Schedule) -> String {
         let set = Set(schedule.daysOfWeek)
-        let parts = Self.displayOrder.compactMap { set.contains($0.weekday) ? $0.label : nil }
-        return parts.joined(separator: ", ")
+        return Calendar.current.localizedWeekdayDisplayOrder
+            .compactMap { set.contains($0.weekday) ? $0.label : nil }
+            .joined(separator: ", ")
     }
 
     private func timeLabel(for schedule: Schedule) -> String {
         let start = String(format: "%02d:%02d", schedule.startHour, schedule.startMinute)
         let end = String(format: "%02d:%02d", schedule.endHour, schedule.endMinute)
         let base = "\(start) – \(end)"
-        return schedule.crossesMidnight ? base + " (nocna)" : base
+        return schedule.crossesMidnight ? base + String(localized: "scheduleListNightSuffix") : base
     }
 
     // MARK: - Alert bindings

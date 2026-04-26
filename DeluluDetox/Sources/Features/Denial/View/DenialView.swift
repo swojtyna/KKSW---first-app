@@ -10,14 +10,14 @@ struct DenialView: View {
             heroIcon
                 .padding(.bottom, Theme.Spacing.xxl)
 
-            Text("Bez Screen Time nic z tego nie będzie.")
+            Text("denialHeading")
                 .font(.dduLargeTitle)
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Theme.Spacing.xxl)
                 .padding(.bottom, Theme.Spacing.md)
 
-            Text("To jak zatrudnić bramkarza i nie wpuścić go do klubu. Wróć do Ustawień i włącz dostęp.")
+            Text("denialDescription")
                 .font(.dduBody)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
@@ -33,7 +33,7 @@ struct DenialView: View {
                         if model.isRequesting {
                             ProgressView().tint(.white)
                         } else {
-                            Text("Spróbuj jeszcze raz")
+                            Text("denialButtonRetry")
                                 .font(.dduHeadline)
                         }
                     }
@@ -53,7 +53,7 @@ struct DenialView: View {
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
                 } else {
-                    Text("Ustawienia → Screen Time → Zezwól.")
+                    Text("denialHelperText")
                         .font(.dduCaption1)
                         .foregroundStyle(Color.textTertiary)
                 }

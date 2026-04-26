@@ -22,7 +22,7 @@ struct SessionStartView: View {
             .padding(.top, Theme.Spacing.xxl)
         }
         .background(Color.surfaceGrouped.ignoresSafeArea())
-        .navigationTitle("Nowa sesja")
+        .navigationTitle(String(localized: "sessionStartNavigationTitle"))
         .navigationBarTitleDisplayMode(.large)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Theme.Spacing.sm) {
@@ -46,7 +46,7 @@ struct SessionStartView: View {
             .padding(.vertical, Theme.Spacing.lg)
         }
         .alert(
-            "Coś się popsuło",
+            "commonErrorTitle",
             isPresented: Binding(
                 get: {
                     if case .errorAlert = model.destination { return true }
@@ -55,7 +55,7 @@ struct SessionStartView: View {
                 set: { if !$0 { model.clearDestination() } }
             )
         ) {
-            Button("OK", role: .cancel) { model.clearDestination() }
+            Button("commonButtonOk", role: .cancel) { model.clearDestination() }
         } message: {
             if case .errorAlert(let message) = model.destination {
                 Text(message)
@@ -70,10 +70,10 @@ struct SessionStartView: View {
     @ViewBuilder
     private var header: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text("Ile tym razem wytrzymasz?")
+            Text("sessionStartHeader")
                 .font(.dduTitle1)
                 .foregroundStyle(Color.textPrimary)
-            Text("Wybierz preset albo zakręć kółkiem jak w kasynie.")
+            Text("sessionStartSubheader")
                 .font(.dduBody)
                 .foregroundStyle(Color.textSecondary)
         }
@@ -87,11 +87,11 @@ struct SessionStartView: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(Color.textTertiary)
                 .padding(.bottom, Theme.Spacing.xs)
-            Text("Najpierw wybierz aplikacje do blokady")
+            Text("sessionStartEmptyHeading")
                 .font(.dduHeadline)
                 .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
-            Text("Bez tego nie mamy czego blokować.")
+            Text("sessionStartEmptySubheading")
                 .font(.dduFootnote)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
@@ -104,7 +104,7 @@ struct SessionStartView: View {
     @ViewBuilder
     private var presetChips: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-            Text("PRESETY")
+            Text("sessionStartPresetsLabel")
                 .font(.dduFootnote)
                 .kerning(0.4)
                 .foregroundStyle(Color.textSecondary)
@@ -123,7 +123,7 @@ struct SessionStartView: View {
                 Button {
                     model.switchToCustom()
                 } label: {
-                    DesignChip(text: "własny…", isActive: model.selectedPresetMinutes == nil, isSoft: true)
+                    DesignChip(text: String(localized: "sessionStartCustomOption"), isActive: model.selectedPresetMinutes == nil, isSoft: true)
                 }
                 .buttonStyle(.plain)
             }
@@ -133,7 +133,7 @@ struct SessionStartView: View {
     @ViewBuilder
     private var customWheelSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-            Text("WŁASNY CZAS")
+            Text("sessionStartCustomLabel")
                 .font(.dduFootnote)
                 .kerning(0.4)
                 .foregroundStyle(Color.textSecondary)
@@ -145,7 +145,7 @@ struct SessionStartView: View {
                     HStack {
                         Image(systemName: model.selectedPresetMinutes == nil ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(Color.brandViolet)
-                        Text("Ustaw samodzielnie")
+                        Text("sessionStartCustomOption2")
                             .foregroundStyle(Color.textPrimary)
                         Spacer()
                         Text(customDurationLabel)
@@ -163,7 +163,7 @@ struct SessionStartView: View {
                         .overlay(Color.separator)
 
                     DatePicker(
-                        "Czas sesji",
+                        String(localized: "sessionStartDurationLabel"),
                         selection: customDurationBinding,
                         displayedComponents: [.hourAndMinute]
                     )
@@ -212,14 +212,14 @@ struct SessionStartView: View {
     }
 
     private var primaryButtonTitle: String {
-        if model.isStarting { return "Startuję…" }
+        if model.isStarting { return String(localized: "sessionStartButtonLoading") }
         if let preset = model.selectedPresetMinutes {
-            return "Zaczynamy — \(preset) min"
+            return String(format: String(localized: "sessionStartButtonPreset"), preset)
         }
-        return "Zaczynamy — \(customDurationLabel)"
+        return String(format: String(localized: "sessionStartButtonCustom"), customDurationLabel)
     }
 
-    /// "Zablokuje X rzeczy · odblokuje o HH:MM" — hidden until both an active
+    /// "Will block X items · unlocks at HH:MM" — hidden until both an active
     /// blocklist and a resolved duration are available. The unlock time is a
     /// view-level projection (now + duration); no VM field needed.
     private var summaryHint: String? {
@@ -232,14 +232,12 @@ struct SessionStartView: View {
         formatter.dateFormat = "HH:mm"
         let unlockLabel = formatter.string(from: unlockTime)
 
-        return "Zablokuje \(model.blocklistItemCount) \(itemsWord(for: model.blocklistItemCount)) · odblokuje o \(unlockLabel)"
-    }
-
-    /// Basic Polish pluralisation for "rzecz / rzeczy / rzeczy".
-    /// 1 → "rzecz", 2–4 (except 12–14) → "rzeczy", everything else → "rzeczy".
-    private func itemsWord(for count: Int) -> String {
-        if count == 1 { return "rzecz" }
-        return "rzeczy"
+        let count = model.blocklistItemCount
+        let itemString = String.localizedStringWithFormat(
+            NSLocalizedString("sessionStartItemCountWord", comment: ""),
+            Int64(count)
+        )
+        return String(format: String(localized: "sessionStartSummaryHint"), itemString, unlockLabel)
     }
 }
 

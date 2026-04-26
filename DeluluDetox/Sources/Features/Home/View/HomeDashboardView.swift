@@ -15,9 +15,6 @@ struct HomeDashboardView: View {
     let onQuickSessionTap: () -> Void
     let onStatsCardTap: () -> Void
 
-    // Keep dayLabels as View-local display constant (no locale variance in MVP).
-    private let dayLabels: [String] = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"]
-
     // KEPT as mock (out-of-scope for Phase 6 — greeting is not a stats binding).
     private let greetingName: String = "mistrzu"
     private let greetingSubtitle: String = "Sobota, 18 kwietnia — dzień 7."
@@ -28,11 +25,15 @@ struct HomeDashboardView: View {
     private let nextBlockSubtitle: String = "Aktywny · 12 blokad"
     @State private var nextBlockEnabled: Bool = true
 
+    private var weekdayDisplayLabels: [String] {
+        Calendar.current.localizedWeekdayDisplayOrder.map { $0.label }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text("Cześć, \(greetingName).")
+                    Text(String(format: String(localized: "homeDashboardGreeting"), greetingName))
                         .font(.dduLargeTitle)
                         .foregroundStyle(Color.textPrimary)
                     Text(greetingSubtitle)
@@ -58,15 +59,15 @@ struct HomeDashboardView: View {
                     }
 
                     HStack(spacing: 10) {
-                        quickStat(label: "UKOŃCZONYCH", value: "\(statsCard.stats.totalCount)", tint: Color.textPrimary)
-                        quickStat(label: "REKORD", value: "\(statsCard.stats.longestStreak)", tint: Color.brandAmber, showHot: true)
+                        quickStat(label: String(localized: "homeDashboardCompletedLabel"), value: "\(statsCard.stats.totalCount)", tint: Color.textPrimary)
+                        quickStat(label: String(localized: "homeDashboardRecordLabel"), value: "\(statsCard.stats.longestStreak)", tint: Color.brandAmber, showHot: true)
                     }
                     .padding(.horizontal, Theme.Spacing.lg)
 
                     nextBlockCard
                         .padding(.horizontal, Theme.Spacing.lg)
 
-                    PrimaryButton(title: "Szybka sesja", systemIcon: "bolt.fill") {
+                    PrimaryButton(title: String(localized: "homeDashboardButtonQuickSession"), systemIcon: "bolt.fill") {
                         onQuickSessionTap()
                     }
                     .padding(.horizontal, Theme.Spacing.lg)
@@ -91,7 +92,7 @@ struct HomeDashboardView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("AKTUALNY STREAK")
+                        Text("homeDashboardStreakLabel")
                             .font(.dduFootnote)
                             .kerning(0.5)
                             .foregroundStyle(.white.opacity(0.8))
@@ -101,12 +102,12 @@ struct HomeDashboardView: View {
                                 .font(.system(size: 54, weight: .bold))
                                 .foregroundStyle(.white)
 
-                            Text("dni")
+                            Text("commonDaysUnit")
                                 .font(.dduTitle3)
                                 .foregroundStyle(.white.opacity(0.9))
                         }
 
-                        Text("Dziś też nie zawal.")
+                        Text("homeDashboardMotivation")
                             .font(.dduCallout)
                             .foregroundStyle(.white.opacity(0.9))
                     }
@@ -128,7 +129,7 @@ struct HomeDashboardView: View {
                 HStack(spacing: 6) {
                     ForEach(Array(statsCard.stats.last7DaysFlags.enumerated()), id: \.offset) { index, isOn in
                         VStack(spacing: 2) {
-                            Text(dayLabels[safe: index] ?? "")
+                            Text(weekdayDisplayLabels[safe: index] ?? "")
                                 .font(.system(size: 10, weight: .regular))
                                 .foregroundStyle(.white.opacity(0.75))
 
@@ -169,10 +170,10 @@ struct HomeDashboardView: View {
             )
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("SERIA ZERWANA")
+                Text("homeDashboardBrokenStreakLabel")
                     .font(.dduFootnote).kerning(0.5)
                     .foregroundStyle(.white.opacity(0.8))
-                Text("0 dni")
+                Text("homeDashboardBrokenStreakZero")
                     .font(.system(size: 44, weight: .bold))
                     .foregroundStyle(.white)
                 Text(shame)
@@ -214,7 +215,7 @@ struct HomeDashboardView: View {
             .padding(14)
 
             if showHot {
-                Text("HOT")
+                Text("homeDashboardHotBadge")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Color.brandAmberInk)
                     .padding(.horizontal, Theme.Spacing.sm)

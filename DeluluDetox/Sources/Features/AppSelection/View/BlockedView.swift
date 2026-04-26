@@ -24,7 +24,7 @@ struct BlockedView: View {
     var body: some View {
         List {
             if !model.appRecords.isEmpty {
-                Section("Aplikacje") {
+                Section("blockedSectionApps") {
                     ForEach(model.appRecords) { record in
                         if let token = record.applicationToken() {
                             Label(token)
@@ -32,7 +32,7 @@ struct BlockedView: View {
                                     Button(role: .destructive) {
                                         Task { await model.deleteTapped(recordID: record.id) }
                                     } label: {
-                                        Label("Usuń", systemImage: "trash")
+                                        Label("blockedButtonDelete", systemImage: "trash")
                                     }
                                 }
                         }
@@ -41,7 +41,7 @@ struct BlockedView: View {
             }
 
             if !model.categoryRecords.isEmpty {
-                Section("Kategorie") {
+                Section("blockedSectionCategories") {
                     ForEach(model.categoryRecords) { record in
                         if let token = record.categoryToken() {
                             Label(token)
@@ -49,7 +49,7 @@ struct BlockedView: View {
                                     Button(role: .destructive) {
                                         Task { await model.deleteTapped(recordID: record.id) }
                                     } label: {
-                                        Label("Usuń", systemImage: "trash")
+                                        Label("blockedButtonDelete", systemImage: "trash")
                                     }
                                 }
                         }
@@ -58,7 +58,7 @@ struct BlockedView: View {
             }
 
             if !model.webRecords.isEmpty {
-                Section("Strony www") {
+                Section("blockedSectionWebsites") {
                     ForEach(model.webRecords) { record in
                         if let token = record.webDomainToken() {
                             Label(token)
@@ -66,7 +66,7 @@ struct BlockedView: View {
                                     Button(role: .destructive) {
                                         Task { await model.deleteTapped(recordID: record.id) }
                                     } label: {
-                                        Label("Usuń", systemImage: "trash")
+                                        Label("blockedButtonDelete", systemImage: "trash")
                                     }
                                 }
                         }
@@ -75,14 +75,14 @@ struct BlockedView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Zablokowane")
+        .navigationTitle(String(localized: "blockedNavigationTitle"))
         .navigationBarTitleDisplayMode(.large)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Theme.Spacing.sm) {
-                PrimaryButton(title: "Edytuj listę", systemIcon: "plus") {
+                PrimaryButton(title: String(localized: "blockedButtonEdit"), systemIcon: "plus") {
                     model.changeSelectionTapped()
                 }
-                SecondaryButton(title: "Wyczyść listę", systemIcon: "trash.fill") {
+                SecondaryButton(title: String(localized: "blockedButtonClear"), systemIcon: "trash.fill") {
                     showClearConfirm = true
                 }
             }
@@ -90,16 +90,16 @@ struct BlockedView: View {
             .padding(.vertical, Theme.Spacing.lg)
         }
         .confirmationDialog(
-            "Wyczyścić całą listę?",
+            "blockedClearConfirmTitle",
             isPresented: $showClearConfirm,
             titleVisibility: .visible
         ) {
-            Button("Tak, usuń wszystko", role: .destructive) {
+            Button("blockedClearConfirmButton", role: .destructive) {
                 model.clearListTapped()
             }
-            Button("Nie", role: .cancel) { }
+            Button("blockedClearCancelButton", role: .cancel) { }
         } message: {
-            Text("Znikną wszystkie zablokowane aplikacje, kategorie i strony.")
+            Text("blockedClearConfirmMessage")
         }
     }
 }

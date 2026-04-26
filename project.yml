@@ -8,6 +8,11 @@ options:
   defaultConfig: Debug
   developmentLanguage: en
   schemePathPrefix: ""
+  knownRegions:
+    - Base
+    - en
+    - pl
+    - es
 
 schemes:
   DeluluDetox:
@@ -47,6 +52,7 @@ targets:
     sources:
       - path: DeluluDetox/Sources
       - path: DeluluDetox/Resources/Assets.xcassets
+      - path: DeluluDetox/Resources/Localizable.xcstrings
     info:
       path: DeluluDetox/Info.plist
       properties:
