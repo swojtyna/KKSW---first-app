@@ -90,7 +90,7 @@ Details: `.claude/guides/xcodebuild-mcp/GUIDE.md` · `.claude/guides/xcodegen/GU
 | XcodeGen setup | `.claude/guides/xcodegen/GUIDE.md` |
 | Build & test with XcodeBuildMCP | `.claude/guides/xcodebuild-mcp/GUIDE.md` |
 | Authoring new guides | `.claude/guides/create-new-guide/GUIDE.md` |
-| Operational flow (7 commands) | `WORKFLOW.md` |
+| Task management | `.claude/tasks/` · `.claude/tasks/WORKFLOW.md` |
 
 ---
 
@@ -140,20 +140,40 @@ No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skill
 
 ## Workflow Enforcement
 
-Before editing code, start work through a phase command so planning artifacts and execution context stay in sync.
+Cała praca implementacyjna odbywa się przez system TASK-XXX. **Przed każdą sesją roboczą sprawdź `.claude/tasks/STATUS.md`** — tam jest lista co czeka i co jest w toku.
 
-Entry points:
-- `/phase-discuss <N>` → produces `<NN>-CONTEXT.md`
-- `/phase-plan <N>` → produces `<NN>-PLAN.md` (with Plan Approval gate)
-- `/phase-do <N>` → implementation + commits + `<NN>-SUMMARY.md`
-- `/phase-verify <N>` → UAT + `<NN>-VERIFICATION.md`
-- `/phase-ship <N>` → ROADMAP checkbox + STATE bump
-- `/phase-add [--after N] <slug>` → add phase to ROADMAP
-- `/phase-status` → read-only dashboard
+### Struktura tasków
 
-Details: `WORKFLOW.md` (operational docs for user).
+```
+.claude/tasks/
+├── ready-to-work/    # do zrobienia
+├── in-progress/      # aktywnie robione
+├── done/             # ukończone
+├── STATUS.md         # dashboard — czytaj na początku każdej sesji
+├── TASK-TEMPLATE.md  # szablon małego taska
+└── PHASE-TEMPLATE.md # szablon pliku fazy (duże taski)
+```
 
-Do not make direct repo edits outside a phase workflow unless explicitly asked to bypass.
+**Mały task** — jeden plik `TASK-NNN_slug.md`, wszystko w jednej sesji.
+
+**Duży task** — `TASK-NNN_slug.md` + `TASK-NNN_files/` obok siebie w tym samym folderze:
+- `MASTERPLAN.md` — cel, success criteria, kolejność faz
+- `phase-NN.md` — plan + notatki z jednej fazy (jeden kontekst czatu)
+
+**Naming:** `TASK-NNN_kebab-case.md` (leading zeros). Folder = status, nie ma pola Status w pliku.
+
+### Tworzenie taska
+
+Gdy użytkownik opisuje nowe zadanie — utwórz TASK plik w `ready-to-work/` przed rozpoczęciem pracy. Duże zadania (wiele plików, wiele kroków) → od razu `TASK-NNN_files/MASTERPLAN.md`.
+
+### Wykonanie taska
+
+1. Przenieś plik (+ `_files/` jeśli istnieje) do `in-progress/`
+2. Zaktualizuj `STATUS.md`
+3. Wykonaj pracę
+4. Przenieś do `done/`, zaktualizuj `STATUS.md`
+
+Szczegóły: `.claude/tasks/WORKFLOW.md`
 
 <!-- GSD:profile-start -->
 ## Developer Profile
