@@ -213,59 +213,19 @@ struct GroupedListRow<Trailing: View>: View {
 
 // MARK: - Tab bar
 
-struct DesignTabBar: View {
-    let activeIndex: Int
-    var onSelect: (Int) -> Void = { _ in }
+struct DesignTabBar<SelectionValue: Hashable, Content: TabContent>: View where Content.TabValue == SelectionValue {
+    @Binding var selection: SelectionValue
+    private let content: Content
 
-    @Namespace private var tabAnimation
-
-    private struct Tab: Identifiable {
-        let id: String
-        let symbol: String
-        let label: String
+    init(selection: Binding<SelectionValue>, @TabContentBuilder<SelectionValue> content: () -> Content) {
+        self._selection = selection
+        self.content = content()
     }
 
-    private let tabs: [Tab] = [
-        Tab(id: "dzisiaj", symbol: "house.fill", label: "Dzisiaj"),
-        Tab(id: "lista", symbol: "list.bullet", label: "Lista"),
-        Tab(id: "plan", symbol: "calendar", label: "Plan"),
-        Tab(id: "staty", symbol: "chart.bar.fill", label: "Staty"),
-    ]
-
     var body: some View {
-        GlassEffectContainer(spacing: 4) {
-            HStack(spacing: 4) {
-                ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
-                    let isActive = index == activeIndex
-                    Button {
-                        onSelect(index)
-                    } label: {
-                        VStack(spacing: 2) {
-                            Image(systemName: tab.symbol)
-                                .font(.system(size: 22, weight: .semibold))
-                            Text(tab.label)
-                                .font(.system(size: 10, weight: .semibold))
-                        }
-                        .foregroundStyle(isActive ? .white : Color.textSecondary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(
-                        isActive
-                            ? .regular.tint(Color.brandViolet).interactive()
-                            : .regular.interactive(),
-                        in: .capsule
-                    )
-                    .glassEffectID(isActive ? "selected-tab" : "tab-\(tab.id)", in: tabAnimation)
-                    .accessibilityLabel(tab.label)
-                    .accessibilityAddTraits(isActive ? [.isSelected] : [])
-                }
-            }
-            .padding(4)
+        TabView(selection: $selection) {
+            content
         }
-        .animation(.smooth(duration: 0.35), value: activeIndex)
-        .shadow(color: .black.opacity(0.1), radius: 20, x: 0, y: 10)
     }
 }
 

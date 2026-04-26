@@ -53,7 +53,8 @@ Wszystko co zmieści się w jednej sesji czatu. Jeden plik `.md`, bez podkatalog
 1. Utwórz `TASK-NNN_slug.md` w `ready-to-work/` wg szablonu
 2. Zaktualizuj `STATUS.md`
 3. Kiedy zaczynam: przenieś do `in-progress/`
-4. Kiedy skończone: przenieś do `done/`, zaktualizuj `STATUS.md`
+4. Kiedy skończone: code review (`/review`) → poczekaj na akceptację
+5. Po akceptacji: przenieś do `done/`, zaktualizuj `STATUS.md`
 
 ---
 
@@ -66,7 +67,8 @@ Zadanie wymagające wielu kontekstów czatu lub złożonej analizy przed impleme
 2. Zaktualizuj `STATUS.md`
 3. Kiedy zaczynam: przenieś oba (plik + folder) do `in-progress/`
 4. Każda faza: nowy plik `TASK-NNN_files/phase-NN.md` wg szablonu
-5. Kiedy skończone: przenieś do `done/`, zaktualizuj `STATUS.md`
+5. Kiedy wszystkie fazy skończone: code review (`/review`) → poczekaj na akceptację
+6. Po akceptacji: przenieś do `done/`, zaktualizuj `STATUS.md`
 
 **MASTERPLAN.md** zawiera:
 - Cel i success criteria całego taska

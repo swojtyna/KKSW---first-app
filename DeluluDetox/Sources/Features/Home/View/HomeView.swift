@@ -10,13 +10,7 @@ struct HomeView: View {
     @State private var selectedTab: Int = 0
 
     var body: some View {
-        tabContent
-            .safeAreaInset(edge: .bottom) {
-                DesignTabBar(activeIndex: selectedTab) { index in
-                    selectedTab = index
-                }
-                .padding(.bottom, Theme.Spacing.xs)
-            }
+        tabs
             .sheet(item: $model.destination.picker) { session in
                 PickerHostView(
                     initialSession: session,
@@ -60,41 +54,27 @@ struct HomeView: View {
             }
     }
 
-    // MARK: - Tab content
-
-    /// Swaps the active tab's view inline. Each tab owns its state via @State
-    /// in HomeView so switching back preserves scroll position / edited fields.
-    /// Navigation pushes that originate INSIDE a tab (e.g., tapping a schedule
-    /// row to open the editor) still resolve through the parent NavigationStack
-    /// provided by AppRootView.
-    @ViewBuilder
-    private var tabContent: some View {
-        Group {
-            switch selectedTab {
-            case 1:
-                listaContent
-            case 2:
-                ScheduleListView(model: scheduleListModel)
-            case 3:
-                StatsView(model: statsTabModel)
-            default:
+    private var tabs: some View {
+        DesignTabBar(selection: $selectedTab) {
+            Tab("Dzisiaj", systemImage: "house.fill", value: 0) {
                 HomeDashboardView(
                     statsCard: model.statsCard,
                     onQuickSessionTap: { model.startSessionTapped() },
                     onStatsCardTap: { model.statsCardTapped() }
                 )
+                .background(Color.surfaceGrouped)
             }
-        }
-        .background(Color.surfaceGrouped)
-        .onAppear {
-            // Wire BlockedView's CTAs up to the VM that owns the picker /
-            // session destinations. Captured weakly so BlockedView's closure
-            // lifetime does not retain HomeViewModel.
-            blockedModel.onChangeSelection = { [weak model] in
-                model?.chooseAppsTapped()
+            Tab("Lista", systemImage: "list.bullet", value: 1) {
+                listaContent
+                    .background(Color.surfaceGrouped)
             }
-            blockedModel.onClearList = { [weak model] in
-                Task { await model?.clearBlocklistTapped() }
+            Tab("Plan", systemImage: "calendar", value: 2) {
+                ScheduleListView(model: scheduleListModel)
+                    .background(Color.surfaceGrouped)
+            }
+            Tab("Staty", systemImage: "chart.bar.fill", value: 3) {
+                StatsView(model: statsTabModel)
+                    .background(Color.surfaceGrouped)
             }
         }
     }
@@ -104,12 +84,18 @@ struct HomeView: View {
     /// dashboard landed on tab 0.
     @ViewBuilder
     private var listaContent: some View {
-        if model.snapshot.records.isEmpty {
-            emptyHero
-                .navigationTitle("DeluluDetox")
-                .navigationBarTitleDisplayMode(.large)
-        } else {
-            BlockedView(model: blockedModel)
+        Group {
+            if model.snapshot.records.isEmpty {
+                emptyHero
+                    .navigationTitle("DeluluDetox")
+                    .navigationBarTitleDisplayMode(.large)
+            } else {
+                BlockedView(model: blockedModel)
+            }
+        }
+        .onAppear {
+            blockedModel.onChangeSelection = { [weak model] in model?.chooseAppsTapped() }
+            blockedModel.onClearList = { [weak model] in Task { await model?.clearBlocklistTapped() } }
         }
     }
 

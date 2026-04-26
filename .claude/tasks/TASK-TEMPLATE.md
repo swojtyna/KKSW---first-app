@@ -26,6 +26,17 @@
 - Depends on: [TASK-XXX lub brak]
 - Blocks: [TASK-XXX lub brak]
 
+## Guides do wczytania przed startem
+
+<!-- Zostaw tylko te które dotyczą tego taska. Pełna lista: .claude/guides/README.md -->
+
+- [ ] `.claude/guides/architecture/GUIDE.md` — projektowanie feature, warstwy, data flow
+- [ ] `.claude/guides/feature-structure/GUIDE.md` — gdzie kładzie się pliki, Common/, feature-first layout
+- [ ] `.claude/guides/dependency-injection/GUIDE.md` — rejestracja serwisów, @LazyInjected, DIContainer
+- [ ] `.claude/guides/navigation/GUIDE.md` — sheets, alerty, push, deep links
+- [ ] `.claude/guides/xcodegen/GUIDE.md` — zmiany w project.yml
+- [ ] `.claude/guides/xcodebuild-mcp/GUIDE.md` — build, testy, simulator
+
 ## Uwagi
 
 [Znane pułapki, decyzje do podjęcia, linki]
