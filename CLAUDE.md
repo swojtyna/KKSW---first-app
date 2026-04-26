@@ -124,7 +124,26 @@ Technology stack not yet documented. Will populate after codebase mapping or fir
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+**MARK + private methods:** Group private helpers in a `private extension` with the `// MARK:` above the extension — not above individual methods inside the type body.
+
+```swift
+// ✅
+// MARK: - Private Helpers
+
+private extension SessionStartViewModel {
+    func resolveBlocklist() -> Blocklist { ... }
+}
+
+// ❌  (MARK inside the type, methods scattered with individual `private`)
+final class SessionStartViewModel {
+    // MARK: - Private Helpers
+    private func resolveBlocklist() -> Blocklist { ... }
+}
+```
+
+Same rule in test files — private test helpers go in a `private extension` at the bottom.
+
+Details and examples: `CONVENTIONS.md`
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
