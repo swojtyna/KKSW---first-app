@@ -286,6 +286,7 @@ Szczegóły, nazewnictwo kluczy, pluralizacja → `.claude/guides/localization/G
 - Dependency Injection: `.claude/guides/dependency-injection/GUIDE.md`
 - Nawigacja: `.claude/guides/navigation/GUIDE.md`
 - Lokalizacja (xcstrings, reguły warstwowe, pluralizacja): `.claude/guides/localization/GUIDE.md`
+- **Testowanie** (Swift Testing vs XCTest, wzorce mocków, parameterized testy): `.claude/guides/testing/GUIDE.md`
 - Swift concurrency — wywołaj skill `swift-concurrency:swift-concurrency` przy pracy z async/await, aktorami, Sendable.
 - SwiftUI patterns — wywołaj skill `swiftui-expert:swiftui-expert-skill` przy projektowaniu widoków.
 

@@ -8,7 +8,6 @@
 - **TASK-004**: Kalendarz na harmonogramie — HorizonCalendar (medium)
 - **TASK-006**: Large titles — weryfikacja wzorca iOS (low)
 - **TASK-007**: Prośba o uprawnienia powiadomień — fix w onboardingu (high)
-- **TASK-008**: Usprawnienie testów — Swift Testing Agent Skill (medium)
 
 ## In Progress
 
@@ -18,10 +17,11 @@
 
 - **TASK-002**: Wydzielenie nawigacji do `+Destination.swift` — 6 extension plików, 309 testów zielonych
 - **TASK-005**: Tłumaczenia — lokalizacja aplikacji en/pl/es, 90+ kluczy, xcstrings, pluralizacja
+- **TASK-008**: Swift Testing skill + konwersja 2 plików + guide testowania, 305 testów zielonych
 
 ---
 
 ## Statystyki
 
 - Łącznie: 8
-- Ukończone: 2
+- Ukończone: 3

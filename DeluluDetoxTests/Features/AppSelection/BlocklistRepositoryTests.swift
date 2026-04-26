@@ -65,7 +65,6 @@ final class BlocklistRepositoryTests: XCTestCase {
 
     func testPersistenceAcrossRepoInstances() async throws {
         let repoA = makeRepo()
-        let marker = repoA.blocklistPublisher.value(timeout: 1.0)
         try await repoA.update(with: FamilyActivitySelection())
 
         // New instance reading the same file.
@@ -73,9 +72,7 @@ final class BlocklistRepositoryTests: XCTestCase {
         let secondInit = repoB.blocklistPublisher.value(timeout: 1.0)
         XCTAssertNotNil(secondInit)
         XCTAssertEqual(secondInit?.id, (try? JSONDecoder().decode(Blocklist.self, from: Data(contentsOf: fileURL)))?.id)
-        // Ensure the fresh read did not revert to an ad-hoc empty().
-        XCTAssertEqual(FileManager.default.fileExists(atPath: fileURL.path), true)
-        _ = marker // suppress unused warning in case value(timeout:) returns nil on cold channel
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
     }
 
     func testReconcileBumpsUpdatedAtAndEmits() async throws {
