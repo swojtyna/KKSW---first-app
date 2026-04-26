@@ -38,6 +38,10 @@ final class AppRootViewModel: @unchecked Sendable {
     @LazyInjected private var observeSchedule: ObserveScheduleUseCase
     @ObservationIgnored
     @LazyInjected private var reconcileScheduleNotifications: ReconcileScheduleNotificationsUseCase
+    @ObservationIgnored
+    @LazyInjected private var getNotificationAuthStatus: GetNotificationAuthStatusUseCase
+    @ObservationIgnored
+    @LazyInjected private var observeNotificationsOnboardingCompletion: ObserveNotificationsOnboardingCompletionUseCase
 
     @ObservationIgnored
     private var cancellables: Set<AnyCancellable> = []
@@ -77,7 +81,21 @@ final class AppRootViewModel: @unchecked Sendable {
     init() {
         observeStatus()
             .sink { [weak self] status in
-                self?.destination = Self.map(status)
+                guard let self else { return }
+                switch status {
+                case .approved:
+                    Task { @MainActor [weak self] in
+                        await self?.resolveApprovedDestination()
+                    }
+                default:
+                    self.destination = Self.map(status)
+                }
+            }
+            .store(in: &cancellables)
+
+        observeNotificationsOnboardingCompletion()
+            .sink { [weak self] in
+                self?.destination = .home
             }
             .store(in: &cancellables)
 
@@ -191,6 +209,11 @@ final class AppRootViewModel: @unchecked Sendable {
         registerDarwinObserver(name: Self.darwinSessionFinalizedName)
         registerDarwinObserver(name: Self.darwinScheduleStartedName)
         registerDarwinObserver(name: Self.darwinScheduleEndedName)
+    }
+
+    private func resolveApprovedDestination() async {
+        let notifStatus = await getNotificationAuthStatus()
+        destination = notifStatus == .notDetermined ? .notificationsOnboarding : .home
     }
 
     private func registerDarwinObserver(name: String) {

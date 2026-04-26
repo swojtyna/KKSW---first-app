@@ -18,6 +18,8 @@ final class AppRootViewModelTests {
     let mockSelfHealSchedules: MockSelfHealSchedulesUseCase
     let mockObserveSchedule: MockObserveScheduleUseCase
     let mockReconcileScheduleNotifications: MockReconcileScheduleNotificationsUseCase
+    let mockGetNotificationAuthStatus: MockGetNotificationAuthStatusUseCase
+    let mockObserveNotificationsOnboardingCompletion: MockObserveNotificationsOnboardingCompletionUseCase
 
     init() {
         DIContainer.shared.reset()
@@ -31,6 +33,8 @@ final class AppRootViewModelTests {
         mockSelfHealSchedules = MockSelfHealSchedulesUseCase()
         mockObserveSchedule = MockObserveScheduleUseCase()
         mockReconcileScheduleNotifications = MockReconcileScheduleNotificationsUseCase()
+        mockGetNotificationAuthStatus = MockGetNotificationAuthStatusUseCase()
+        mockObserveNotificationsOnboardingCompletion = MockObserveNotificationsOnboardingCompletionUseCase()
         DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
             mockObserve
         }
@@ -47,6 +51,12 @@ final class AppRootViewModelTests {
         DIContainer.shared.register(SelfHealSchedulesUseCase.self, scope: .unique) { [mockSelfHealSchedules] _ in mockSelfHealSchedules }
         DIContainer.shared.register(ObserveScheduleUseCase.self, scope: .unique) { [mockObserveSchedule] _ in mockObserveSchedule }
         DIContainer.shared.register(ReconcileScheduleNotificationsUseCase.self, scope: .unique) { [mockReconcileScheduleNotifications] _ in mockReconcileScheduleNotifications }
+        DIContainer.shared.register(GetNotificationAuthStatusUseCase.self, scope: .unique) { [mockGetNotificationAuthStatus] _ in
+            mockGetNotificationAuthStatus
+        }
+        DIContainer.shared.register(ObserveNotificationsOnboardingCompletionUseCase.self, scope: .unique) { [mockObserveNotificationsOnboardingCompletion] _ in
+            mockObserveNotificationsOnboardingCompletion
+        }
     }
 
     // MARK: - Destination routing
@@ -59,26 +69,26 @@ final class AppRootViewModelTests {
     }
 
     @Test("initial destination for approved is home")
-    func initialDestinationForApproved() async {
+    func initialDestinationForApproved() async throws {
         mockObserve = MockObserveScreenTimeAuthStatusUseCase(initialStatus: .approved)
         DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
             mockObserve
         }
 
         let vm = AppRootViewModel()
-        await Task.yield()
+        try await Task.sleep(nanoseconds: 50_000_000)
 
         #expect(vm.destination == .home)
     }
 
     @Test("emission of approved routes to home")
-    func emissionOfApprovedRoutesToHome() async {
+    func emissionOfApprovedRoutesToHome() async throws {
         let vm = AppRootViewModel()
         await Task.yield()
         #expect(vm.destination == .onboarding)
 
         mockObserve.subject.send(.approved)
-        await Task.yield()
+        try await Task.sleep(nanoseconds: 50_000_000)
 
         #expect(vm.destination == .home)
     }
@@ -105,11 +115,11 @@ final class AppRootViewModelTests {
     }
 
     @Test("multiple emissions update destination correctly")
-    func multipleEmissionsUpdateDestination() async {
+    func multipleEmissionsUpdateDestination() async throws {
         let vm = AppRootViewModel()
 
         mockObserve.subject.send(.approved)
-        await Task.yield()
+        try await Task.sleep(nanoseconds: 50_000_000)
         #expect(vm.destination == .home)
 
         mockObserve.subject.send(.denied)
@@ -144,7 +154,7 @@ final class AppRootViewModelTests {
             mockObserve
         }
         let vm = AppRootViewModel()
-        await Task.yield()
+        try await Task.sleep(nanoseconds: 50_000_000)
         #expect(vm.destination == .home)
 
         vm.refreshStatus()
@@ -227,6 +237,54 @@ final class AppRootViewModelTests {
         #expect(mockRefresh.callCount > afterStartRefresh, "scheduleEnded should trigger refreshStatus")
         #expect(mockSelfHealSchedules.callCount > afterStartSelfHeal, "scheduleEnded should cascade into selfHealSchedules")
         _ = vm
+    }
+
+    // MARK: - TASK-007 Notifications onboarding
+
+    @Test("approved + notifications not determined routes to notificationsOnboarding")
+    func approvedWithNotificationsNotDetermined_routesToNotificationsOnboarding() async throws {
+        mockGetNotificationAuthStatus.stubStatus = .notDetermined
+        mockObserve = MockObserveScreenTimeAuthStatusUseCase(initialStatus: .approved)
+        DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
+            mockObserve
+        }
+
+        let vm = AppRootViewModel()
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(vm.destination == .notificationsOnboarding)
+    }
+
+    @Test("approved + notifications authorized routes to home")
+    func approvedWithNotificationsAuthorized_routesToHome() async throws {
+        mockGetNotificationAuthStatus.stubStatus = .authorized
+        mockObserve = MockObserveScreenTimeAuthStatusUseCase(initialStatus: .approved)
+        DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
+            mockObserve
+        }
+
+        let vm = AppRootViewModel()
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(vm.destination == .home)
+    }
+
+    @Test("notifications onboarding completion publisher transitions to home")
+    func notificationsOnboardingCompletionPublisher_routesToHome() async throws {
+        mockGetNotificationAuthStatus.stubStatus = .notDetermined
+        mockObserve = MockObserveScreenTimeAuthStatusUseCase(initialStatus: .approved)
+        DIContainer.shared.register(ObserveScreenTimeAuthStatusUseCase.self, scope: .unique) { [mockObserve] _ in
+            mockObserve
+        }
+
+        let vm = AppRootViewModel()
+        try await Task.sleep(nanoseconds: 50_000_000)
+        #expect(vm.destination == .notificationsOnboarding)
+
+        mockObserveNotificationsOnboardingCompletion.subject.send()
+        await Task.yield()
+
+        #expect(vm.destination == .home)
     }
 }
 

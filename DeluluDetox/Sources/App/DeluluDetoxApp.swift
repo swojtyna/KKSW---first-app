@@ -39,20 +39,6 @@ struct DeluluDetoxApp: App {
             await MainActor.run { model?.ingestShieldDeepLink(url) }
         }
         UNUserNotificationCenter.current().delegate = self.notificationDelegate
-
-        // SHL-03 regression hotfix: the shield extension posts a local notification
-        // on primary-button tap, and iOS silently drops it when authorization is
-        // .notDetermined. The D-13 lazy prompt (SchedulePermissionPromptUseCase)
-        // only fires after the first `.completed` session — too late for users
-        // who hit a shield before completing any session. Restoring the launch
-        // prompt here until onboarding gains a dedicated notification-auth step.
-        Task.detached {
-            let center = UNUserNotificationCenter.current()
-            let settings = await center.notificationSettings()
-            if settings.authorizationStatus == .notDetermined {
-                _ = try? await center.requestAuthorization(options: [.alert, .badge])
-            }
-        }
     }
 
     var body: some Scene {

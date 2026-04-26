@@ -9,6 +9,7 @@ struct AppRootView: View {
     // VMs rezolwują UC przez @LazyInjected → DIContainer.shared → Injection files bootstrapped
     // in DeluluDetoxApp.init().
     @State private var onboardingModel = OnboardingViewModel()
+    @State private var notificationsOnboardingModel = OnboardingNotificationsViewModel()
     @State private var denialModel = DenialViewModel()
     @State private var homeModel = HomeViewModel()
 
@@ -17,6 +18,8 @@ struct AppRootView: View {
             switch model.destination {
             case .onboarding:
                 OnboardingView(model: onboardingModel)
+            case .notificationsOnboarding:
+                OnboardingNotificationsView(model: notificationsOnboardingModel)
             case .denial:
                 DenialView(model: denialModel)
             case .home:

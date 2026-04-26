@@ -8,6 +8,15 @@ enum OnboardingInjection {
         container.register(ScreenTimeAuthRepository.self, scope: .application) { _ in
             ScreenTimeAuthRepositoryImpl()
         }
+        container.register(NotificationsOnboardingRepository.self, scope: .application) { _ in
+            NotificationsOnboardingRepositoryImpl()
+        }
+        container.register(CompleteNotificationsOnboardingUseCase.self, scope: .unique) { c in
+            CompleteNotificationsOnboardingUseCaseImpl(repository: c.resolve())
+        }
+        container.register(ObserveNotificationsOnboardingCompletionUseCase.self, scope: .unique) { c in
+            ObserveNotificationsOnboardingCompletionUseCaseImpl(repository: c.resolve())
+        }
         container.register(RequestScreenTimeAuthUseCase.self, scope: .unique) { c in
             RequestScreenTimeAuthUseCaseImpl(repository: c.resolve())
         }

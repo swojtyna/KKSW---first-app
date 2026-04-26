@@ -1192,6 +1192,116 @@
         }
       }
     },
+    "notificationsOnboardingButtonAllow" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Notifications"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir notificaciones"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na powiadomienia"
+          }
+        }
+      }
+    },
+    "notificationsOnboardingButtonSkip" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahora no"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie teraz"
+          }
+        }
+      }
+    },
+    "notificationsOnboardingDesc" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We'll remind you when a focus session ends. No spam, no nonsense."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te recordaremos cuándo termina una sesión de enfoque. Sin spam."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przypomnimy Ci kiedy sesja skupienia się kończy. Zero spamu."
+          }
+        }
+      }
+    },
+    "notificationsOnboardingHelperText" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can always change this in Settings."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siempre puedes cambiarlo en Ajustes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawsze możesz to zmienić w Ustawieniach."
+          }
+        }
+      }
+    },
+    "notificationsOnboardingTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stay on top of your sessions."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantente al tanto de tus sesiones."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bądź na bieżąco ze swoimi sesjami."
+          }
+        }
+      }
+    },
     "onboardingButtonScreenTime" : {
       "localizations" : {
         "en" : {

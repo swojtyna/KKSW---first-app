@@ -14,6 +14,8 @@
 | [navigation](navigation/GUIDE.md) | Adding sheets, alerts, push navigation, or deep links | Medium |
 | [xcodegen](xcodegen/GUIDE.md) | Modifying project structure | Medium |
 | [xcodebuild-mcp](xcodebuild-mcp/GUIDE.md) | Building and testing | Medium |
+| [localization](localization/GUIDE.md) | Adding strings visible to the user, String Catalogs | Medium |
+| [testing](testing/GUIDE.md) | Writing new tests, choosing Swift Testing vs XCTest | Medium |
 | [create-new-guide](create-new-guide/GUIDE.md) | Creating / refactoring guides | Simple |
 
 ---

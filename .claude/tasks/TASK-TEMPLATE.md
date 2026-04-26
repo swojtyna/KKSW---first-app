@@ -26,20 +26,40 @@
 - Depends on: [TASK-XXX lub brak]
 - Blocks: [TASK-XXX lub brak]
 
-## Guides do wczytania przed startem
+---
 
-<!-- Zostaw tylko te które dotyczą tego taska. Pełna lista: .claude/guides/README.md -->
+## ⛔ STOP — zanim zaczniesz cokolwiek
 
-- [ ] `.claude/guides/architecture/GUIDE.md` — projektowanie feature, warstwy, data flow
-- [ ] `.claude/guides/feature-structure/GUIDE.md` — gdzie kładzie się pliki, Common/, feature-first layout
-- [ ] `.claude/guides/dependency-injection/GUIDE.md` — rejestracja serwisów, @LazyInjected, DIContainer
-- [ ] `.claude/guides/navigation/GUIDE.md` — sheets, alerty, push, deep links
-- [ ] `.claude/guides/xcodegen/GUIDE.md` — zmiany w project.yml
-- [ ] `.claude/guides/xcodebuild-mcp/GUIDE.md` — build, testy, simulator
+### Krok 1: Wczytaj WORKFLOW.md (zawsze obowiązkowy)
+
+→ `.claude/tasks/WORKFLOW.md`
+
+### Krok 2: Mini-detekcja guides
+
+Przeczytaj Opis i Kryteria akceptacji powyżej.
+Otwórz `.claude/guides/README.md` — dla każdego guide sprawdź kolumnę "Read When".
+Wczytaj wszystkie które pasują do tego taska. Wczytaj za dużo, nie za mało.
+
+### Krok 3: Zaznacz które wczytujesz
+
+- [ ] *(uzupełnij na podstawie README.md)*
+
+---
 
 ## Uwagi
 
 [Znane pułapki, decyzje do podjęcia, linki]
+
+---
+
+## Workflow zamknięcia
+
+Po skończeniu implementacji i testach:
+
+- [ ] `/review` — code review
+- [ ] Poczekaj na akceptację użytkownika
+- [ ] Przenieś task do `done/`
+- [ ] Zaktualizuj `STATUS.md`
 
 ---
 

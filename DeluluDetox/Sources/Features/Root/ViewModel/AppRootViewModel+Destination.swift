@@ -6,6 +6,7 @@ extension AppRootViewModel {
     @CasePathable
     enum Destination: Equatable {
         case onboarding
+        case notificationsOnboarding
         case denial
         case home
     }
