@@ -9,13 +9,6 @@ import os
 @Observable
 final class AppRootViewModel: @unchecked Sendable {
 
-    @CasePathable
-    enum Destination: Equatable {
-        case onboarding
-        case denial
-        case home
-    }
-
     var destination: Destination?
 
     @ObservationIgnored
@@ -221,11 +214,4 @@ final class AppRootViewModel: @unchecked Sendable {
         logger.info("darwin observer registered: \(name, privacy: .public)")
     }
 
-    private static func map(_ status: AuthorizationStatus) -> Destination {
-        switch status {
-        case .approved: return .home
-        case .denied: return .denial
-        default: return .onboarding
-        }
-    }
 }

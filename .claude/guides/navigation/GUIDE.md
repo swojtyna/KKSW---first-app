@@ -10,6 +10,8 @@ last_updated: 2026-04-18
 
 Navigation is **state-driven** using [pointfreeco/swift-navigation](https://github.com/pointfreeco/swift-navigation). The ViewModel owns a `Destination` enum; the View reacts to it. No coordinators, no imperative `.present` calls.
 
+Nawigacja jest fizycznie wydzielona do osobnego pliku `ViewModel+Destination.swift` — patrz sekcja **Konwencja `+Destination.swift`** poniżej.
+
 ---
 
 ## Why state-driven
@@ -293,6 +295,49 @@ Y/N decision (destructive option)?
 
 ---
 
+## Konwencja `+Destination.swift`
+
+Każdy ViewModel z nawigacją ma **dwa pliki**:
+
+```
+ViewModel/
+├── HomeViewModel.swift              ← biznes: UseCases, stan, var destination
+└── HomeViewModel+Destination.swift  ← nawigacja: enum Destination, metody goToX()
+```
+
+**Co idzie do `+Destination.swift`:**
+- `@CasePathable enum Destination` z całą zawartością i Equatable
+- Typy pomocnicze enum (np. `PickerSession`)
+- Metody nawigacyjne które **tylko** ustawiają `destination` (bez wywołań UseCase)
+
+**Co zostaje w głównym pliku:**
+- `var destination: Destination?` — stored property, musi być w main (ograniczenie Swift)
+- Wszystkie metody które wywołują UseCases (nawet jeśli przy okazji ustawiają `destination`)
+- Prywatne helpery routing używające `private` memberów klasy (np. `handleActive`, `handleHistory`)
+
+**Dlaczego `var destination` w main:**
+Swift `private` jest file-scoped — extension w osobnym pliku nie widzi `private` memberów (np. `logger`, `activeSessionId`). Metody ustawiające `destination` + używające `private` memberów zostają w main.
+
+```swift
+// HomeViewModel+Destination.swift
+extension HomeViewModel {
+    @CasePathable
+    enum Destination: Equatable {
+        case sessionStart(SessionStartViewModel)
+        case countdown(CountdownViewModel)
+        case errorAlert(String)
+        // ...
+        static func == (lhs: Destination, rhs: Destination) -> Bool { ... }
+    }
+
+    func startSessionTapped() {
+        destination = .sessionStart(SessionStartViewModel())
+    }
+}
+```
+
+---
+
 ## Common pitfalls
 
 - **Multiple optional flags per screen** — collapse into one `Destination?` enum.
@@ -321,4 +366,4 @@ Y/N decision (destructive option)?
 
 ---
 
-**Last Updated**: 2026-04-18
+**Last Updated**: 2026-04-26

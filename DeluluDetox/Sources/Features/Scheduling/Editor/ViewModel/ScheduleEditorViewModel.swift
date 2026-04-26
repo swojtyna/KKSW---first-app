@@ -14,12 +14,6 @@ import os
 @Observable
 final class ScheduleEditorViewModel: @unchecked Sendable {
 
-    @CasePathable
-    enum Destination: Equatable {
-        /// Sarcastic Polish error toast — CONTEXT §D-14.
-        case errorAlert(String)
-    }
-
     var destination: Destination?
 
     // MARK: Draft fields
@@ -169,7 +163,4 @@ final class ScheduleEditorViewModel: @unchecked Sendable {
         }
     }
 
-    func clearDestination() {
-        destination = nil
-    }
 }

@@ -8,11 +8,6 @@ import os
 @Observable
 final class CountdownViewModel: @unchecked Sendable {
 
-    @CasePathable
-    enum Destination: Equatable {
-        case confirmEarlyEnd(SessionRecord)
-    }
-
     let session: SessionRecord
     private(set) var remainingSeconds: Int
     private(set) var progress: Double     // 1.0 at start, 0.0 at end
@@ -58,10 +53,6 @@ final class CountdownViewModel: @unchecked Sendable {
 
     // MARK: - Intents
 
-    func earlyEndTapped() {
-        destination = .confirmEarlyEnd(session)
-    }
-
     func confirmEarlyEnd() async {
         do {
             try await endSession(outcome: .cancelledByUser, actualEndAt: dateProvider())
@@ -71,10 +62,6 @@ final class CountdownViewModel: @unchecked Sendable {
             logger.error("early-end failed: \(String(describing: error), privacy: .public)")
             // Keep destination so user can retry.
         }
-    }
-
-    func dismissConfirm() {
-        destination = nil
     }
 
     func onDisappear() {

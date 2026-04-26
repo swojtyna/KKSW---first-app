@@ -19,22 +19,6 @@ import os
 @Observable
 final class ScheduleListViewModel: @unchecked Sendable {
 
-    @CasePathable
-    enum Destination: Equatable {
-        case scheduleEditor(ScheduleEditorViewModel)
-        case errorAlert(String)
-
-        // ScheduleEditorViewModel is a reference type with no Equatable
-        // conformance — use identity equality, same pattern as HomeViewModel.
-        static func == (lhs: Destination, rhs: Destination) -> Bool {
-            switch (lhs, rhs) {
-            case (.scheduleEditor(let a), .scheduleEditor(let b)): return a === b
-            case (.errorAlert(let a), .errorAlert(let b)): return a == b
-            default: return false
-            }
-        }
-    }
-
     var destination: Destination?
     private(set) var schedules: [Schedule] = []
 
@@ -63,14 +47,6 @@ final class ScheduleListViewModel: @unchecked Sendable {
 
     // MARK: - Intents
 
-    func createTapped() {
-        destination = .scheduleEditor(ScheduleEditorViewModel(existing: nil))
-    }
-
-    func editTapped(_ schedule: Schedule) {
-        destination = .scheduleEditor(ScheduleEditorViewModel(existing: schedule))
-    }
-
     func toggleSchedule(scheduleId: UUID, enabled: Bool) async {
         do {
             try await toggleScheduleUC(scheduleId: scheduleId, enabled: enabled)
@@ -83,7 +59,4 @@ final class ScheduleListViewModel: @unchecked Sendable {
         }
     }
 
-    func clearDestination() {
-        destination = nil
-    }
 }
