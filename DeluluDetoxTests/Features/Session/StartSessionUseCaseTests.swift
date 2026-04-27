@@ -37,7 +37,7 @@ struct StartSessionUseCaseTests {
             observeBlocklist: mockObserveBlocklist,
             scheduleEndNotification: mockScheduleNotification
         )
-        let returned = try await uc(blocklistId: blocklistId, duration: duration, now: now)
+        let returned = try await uc.execute(blocklistId: blocklistId, duration: duration, now: now)
 
         #expect(returned == expected)
         #expect(mockRepo.startSessionCallCount == 1)
@@ -75,7 +75,7 @@ struct StartSessionUseCaseTests {
             scheduleEndNotification: mockScheduleNotification
         )
         do {
-            _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
+            _ = try await uc.execute(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
             Issue.record("expected throw")
         } catch {
             #expect(mockRepo.startSessionCallCount == 1)
@@ -115,7 +115,7 @@ struct StartSessionUseCaseTests {
             scheduleEndNotification: mockScheduleNotification
         )
         do {
-            _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
+            _ = try await uc.execute(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
             Issue.record("expected throw")
         } catch {
             #expect(mockShield.applyShieldCallCount == 1)
@@ -153,7 +153,7 @@ struct StartSessionUseCaseTests {
             observeBlocklist: mockObserveBlocklist,
             scheduleEndNotification: mockScheduleNotification
         )
-        _ = try await uc(blocklistId: customId, duration: SessionDuration.preset(30)!, now: now)
+        _ = try await uc.execute(blocklistId: customId, duration: SessionDuration.preset(30)!, now: now)
         #expect(mockShield.applyShieldLastBlocklistId == customId)
     }
 
@@ -186,7 +186,7 @@ struct StartSessionUseCaseTests {
             observeBlocklist: mockObserveBlocklist,
             scheduleEndNotification: mockScheduleNotification
         )
-        _ = try await uc(blocklistId: blocklistId, duration: SessionDuration.preset(30)!, now: now)
+        _ = try await uc.execute(blocklistId: blocklistId, duration: SessionDuration.preset(30)!, now: now)
 
         #expect(mockScheduleNotification.calls.count == 1)
         #expect(mockScheduleNotification.calls.first?.sessionId == expected.id)
@@ -220,7 +220,7 @@ struct StartSessionUseCaseTests {
             scheduleEndNotification: mockScheduleNotification
         )
         do {
-            _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
+            _ = try await uc.execute(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
             Issue.record("expected throw")
         } catch {
             #expect(mockScheduleNotification.calls.isEmpty, "must not schedule notification on rollback path")
@@ -253,7 +253,7 @@ struct StartSessionUseCaseTests {
             scheduleEndNotification: mockScheduleNotification
         )
         do {
-            _ = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
+            _ = try await uc.execute(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
             Issue.record("expected throw")
         } catch {
             #expect(mockScheduleNotification.calls.isEmpty, "must not schedule notification on rollback path")
@@ -286,7 +286,7 @@ struct StartSessionUseCaseTests {
             observeBlocklist: mockObserveBlocklist,
             scheduleEndNotification: mockScheduleNotification
         )
-        let returned = try await uc(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
+        let returned = try await uc.execute(blocklistId: UUID(), duration: SessionDuration.preset(30)!, now: now)
 
         #expect(returned == expected)
         #expect(mockRepo.finalizeActiveSessionCallCount == 0)

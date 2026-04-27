@@ -3,5 +3,5 @@ import Foundation
 
 final class MockCompleteNotificationsOnboardingUseCase: CompleteNotificationsOnboardingUseCase, @unchecked Sendable {
     private(set) var callCount = 0
-    func callAsFunction() { callCount += 1 }
+    func execute() { callCount += 1 }
 }

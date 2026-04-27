@@ -71,7 +71,7 @@ final class SessionStartViewModel: @unchecked Sendable {
     )
 
     init() {
-        observeBlocklist()
+        observeBlocklist.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] blocklist in
                 guard let self else { return }
@@ -81,7 +81,7 @@ final class SessionStartViewModel: @unchecked Sendable {
             }
             .store(in: &cancellables)
 
-        observeActive()
+        observeActive.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] active in
                 guard let self else { return }
@@ -124,7 +124,7 @@ final class SessionStartViewModel: @unchecked Sendable {
         defer { isStarting = false }
 
         do {
-            let record = try await startSession(
+            let record = try await startSession.execute(
                 blocklistId: blocklistId,
                 duration: duration,
                 now: now

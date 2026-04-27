@@ -13,7 +13,7 @@ struct CancelSessionEndNotificationUseCaseTests {
         let sut = CancelSessionEndNotificationUseCaseImpl(repository: repo)
         let sessionId = UUID()
 
-        await sut(sessionId: sessionId)
+        await sut.execute(sessionId: sessionId)
 
         #expect(repo.removedIdentifierSets == [["session.end.\(sessionId.uuidString)"]])
     }
@@ -24,7 +24,7 @@ struct CancelSessionEndNotificationUseCaseTests {
         repo.stubPending = []
         let sut = CancelSessionEndNotificationUseCaseImpl(repository: repo)
 
-        await sut(sessionId: UUID())
+        await sut.execute(sessionId: UUID())
 
         #expect(repo.removedIdentifierSets.count == 1)
     }

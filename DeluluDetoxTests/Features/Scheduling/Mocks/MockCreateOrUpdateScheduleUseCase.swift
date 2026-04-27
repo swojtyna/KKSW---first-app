@@ -8,7 +8,7 @@ final class MockCreateOrUpdateScheduleUseCase: CreateOrUpdateScheduleUseCase, @u
     private(set) var lastInputSchedule: Schedule?
     var createOrUpdateError: Error?
 
-    func callAsFunction(_ schedule: Schedule) async throws {
+    func execute(_ schedule: Schedule) async throws {
         callCount += 1
         lastInputSchedule = schedule
         if let createOrUpdateError { throw createOrUpdateError }

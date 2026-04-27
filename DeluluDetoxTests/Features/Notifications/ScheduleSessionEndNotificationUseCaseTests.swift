@@ -23,7 +23,7 @@ struct ScheduleSessionEndNotificationUseCaseTests {
         let sessionId = UUID()
         let plannedEndAt = Date().addingTimeInterval(1800)
 
-        await sut(sessionId: sessionId, plannedEndAt: plannedEndAt, durationMinutes: 30)
+        await sut.execute(sessionId: sessionId, plannedEndAt: plannedEndAt, durationMinutes: 30)
 
         #expect(repo.addedRequests.count == 1)
         let req = try #require(repo.addedRequests.first)
@@ -45,14 +45,14 @@ struct ScheduleSessionEndNotificationUseCaseTests {
     @Test("skips add when not authorized")
     func skipsAdd_whenNotAuthorized() async {
         repo.stubAuthorizationStatus = .denied
-        await sut(sessionId: UUID(), plannedEndAt: Date(), durationMinutes: 30)
+        await sut.execute(sessionId: UUID(), plannedEndAt: Date(), durationMinutes: 30)
         #expect(repo.addedRequests.isEmpty)
     }
 
     @Test("skips add when not determined")
     func skipsAdd_whenNotDetermined() async {
         repo.stubAuthorizationStatus = .notDetermined
-        await sut(sessionId: UUID(), plannedEndAt: Date(), durationMinutes: 30)
+        await sut.execute(sessionId: UUID(), plannedEndAt: Date(), durationMinutes: 30)
         #expect(repo.addedRequests.isEmpty)
     }
 
@@ -60,7 +60,7 @@ struct ScheduleSessionEndNotificationUseCaseTests {
     func captionInterpolation_usesDurationMinutes() async throws {
         repo.stubAuthorizationStatus = .authorized
         let sessionId = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
-        await sut(sessionId: sessionId, plannedEndAt: Date(), durationMinutes: 45)
+        await sut.execute(sessionId: sessionId, plannedEndAt: Date(), durationMinutes: 45)
         let body = try #require(repo.addedRequests.first?.content.body)
         #expect(!body.contains("%d"), "caption must be formatted, not raw template")
     }
@@ -71,9 +71,9 @@ struct ScheduleSessionEndNotificationUseCaseTests {
         let sessionA = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
         let sessionB = UUID(uuidString: "99999999-9999-9999-9999-999999999999")!
 
-        await sut(sessionId: sessionA, plannedEndAt: Date(), durationMinutes: 30)
-        await sut(sessionId: sessionB, plannedEndAt: Date(), durationMinutes: 30)
-        await sut(sessionId: sessionA, plannedEndAt: Date(), durationMinutes: 30)
+        await sut.execute(sessionId: sessionA, plannedEndAt: Date(), durationMinutes: 30)
+        await sut.execute(sessionId: sessionB, plannedEndAt: Date(), durationMinutes: 30)
+        await sut.execute(sessionId: sessionA, plannedEndAt: Date(), durationMinutes: 30)
 
         #expect(repo.addedRequests.count == 3)
         #expect(
@@ -86,7 +86,7 @@ struct ScheduleSessionEndNotificationUseCaseTests {
     func userInfo_carriesSessionIdAsOpaqueString() async throws {
         repo.stubAuthorizationStatus = .authorized
         let sessionId = UUID()
-        await sut(sessionId: sessionId, plannedEndAt: Date(), durationMinutes: 30)
+        await sut.execute(sessionId: sessionId, plannedEndAt: Date(), durationMinutes: 30)
         let userInfo = try #require(repo.addedRequests.first?.content.userInfo)
         #expect(userInfo["kind"] as? String == "session-end")
         #expect(userInfo["sessionId"] as? String == sessionId.uuidString)

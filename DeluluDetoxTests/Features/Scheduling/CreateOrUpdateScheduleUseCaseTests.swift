@@ -12,7 +12,7 @@ struct CreateOrUpdateScheduleUseCaseTests {
         let uc = CreateOrUpdateScheduleUseCaseImpl(repository: repo, sync: sync)
         let schedule = makeSchedule()
 
-        try await uc(schedule)
+        try await uc.execute(schedule)
 
         #expect(repo.upsertCallCount == 1)
         #expect(repo.lastUpserted?.id == schedule.id)
@@ -27,11 +27,11 @@ struct CreateOrUpdateScheduleUseCaseTests {
 
         let id = UUID()
         let first = makeSchedule(id: id, endHour: 17)
-        try await uc(first)
+        try await uc.execute(first)
 
         var second = first
         second.endHour = 18
-        try await uc(second)
+        try await uc.execute(second)
 
         #expect(repo.upsertCallCount == 2)
         #expect(repo.lastUpserted?.id == id)
@@ -46,7 +46,7 @@ struct CreateOrUpdateScheduleUseCaseTests {
         let uc = CreateOrUpdateScheduleUseCaseImpl(repository: repo, sync: sync)
         let schedule = makeSchedule()
 
-        try await uc(schedule)
+        try await uc.execute(schedule)
 
         #expect(sync.callCount == 1)
         #expect(sync.lastInputSchedule?.id == schedule.id)

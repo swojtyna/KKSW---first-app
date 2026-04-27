@@ -3,13 +3,13 @@ import UserNotifications
 import os
 
 /// D-13 lazy permission prompt. Called from
-/// `FinalizeSessionFromMarkerUseCaseImpl.callAsFunction` IMMEDIATELY after
+/// `FinalizeSessionFromMarkerUseCaseImpl.execute` IMMEDIATELY after
 /// `endSession(outcome: .completed, ...)` succeeds and BEFORE the function
 /// returns — this is the "first `.completed`" trigger point per CONTEXT §D-13.
 /// No-op when the status is anything other than `.notDetermined` — iOS allows
 /// one dialog per install, so subsequent completions are safe invocations.
 protocol SchedulePermissionPromptUseCase: Sendable {
-    func callAsFunction() async
+    func execute() async
 }
 
 final class SchedulePermissionPromptUseCaseImpl: SchedulePermissionPromptUseCase, @unchecked Sendable {
@@ -24,7 +24,7 @@ final class SchedulePermissionPromptUseCaseImpl: SchedulePermissionPromptUseCase
         self.repository = repository
     }
 
-    func callAsFunction() async {
+    func execute() async {
         let status = await repository.authorizationStatus()
         guard status == .notDetermined else {
             Self.log.info("permission prompt skipped — status=\(String(describing: status), privacy: .public)")

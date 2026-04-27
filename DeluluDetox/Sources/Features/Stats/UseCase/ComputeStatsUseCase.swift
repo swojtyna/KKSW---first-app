@@ -4,7 +4,7 @@ import Foundation
 /// No I/O, no DI beyond `Calendar`. GAM-01 + GAM-02 correctness lives here.
 /// Semantics: CONTEXT §D-01..§D-08.
 protocol ComputeStatsUseCase: Sendable {
-    func callAsFunction(history: [SessionRecord], now: Date) -> Stats
+    func execute(history: [SessionRecord], now: Date) -> Stats
 }
 
 final class ComputeStatsUseCaseImpl: ComputeStatsUseCase {
@@ -14,7 +14,7 @@ final class ComputeStatsUseCaseImpl: ComputeStatsUseCase {
         self.calendar = calendar
     }
 
-    func callAsFunction(history: [SessionRecord], now: Date) -> Stats {
+    func execute(history: [SessionRecord], now: Date) -> Stats {
         // 1. Extract .completed completion dates. Records where outcome != .completed
         //    OR actualEndAt == nil (active / malformed) are ignored.
         let completedDates: [Date] = history.compactMap { record in

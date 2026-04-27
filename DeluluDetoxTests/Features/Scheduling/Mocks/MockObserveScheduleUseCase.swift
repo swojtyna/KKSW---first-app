@@ -10,7 +10,7 @@ final class MockObserveScheduleUseCase: ObserveScheduleUseCase, @unchecked Senda
     var publisher: AnyPublisher<[Schedule], Never> { subject.eraseToAnyPublisher() }
 
     private(set) var callCount = 0
-    func callAsFunction() -> AnyPublisher<[Schedule], Never> {
+    func execute() -> AnyPublisher<[Schedule], Never> {
         callCount += 1
         return publisher
     }

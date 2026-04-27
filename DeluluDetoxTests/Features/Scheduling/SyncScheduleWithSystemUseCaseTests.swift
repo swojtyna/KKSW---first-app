@@ -13,7 +13,7 @@ struct SyncScheduleWithSystemUseCaseTests {
         let s = makeSchedule(id: UUID(), enabled: true)
         repo.schedulesSubject.send([s])
 
-        try await uc(schedule: s)
+        try await uc.execute(schedule: s)
 
         #expect(monitoring.stopMonitoringCallCount == 1)
         #expect(monitoring.stoppedScheduleIds.last == s.id)
@@ -30,7 +30,7 @@ struct SyncScheduleWithSystemUseCaseTests {
         let s = makeSchedule(id: UUID(), enabled: false)
         repo.schedulesSubject.send([s])
 
-        try await uc(schedule: s)
+        try await uc.execute(schedule: s)
 
         #expect(monitoring.stopMonitoringCallCount == 1)
         #expect(monitoring.startMonitoringCallCount == 0)
@@ -50,8 +50,8 @@ struct SyncScheduleWithSystemUseCaseTests {
         monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
 
         do {
-            try await uc(schedule: new)
-            Issue.record("Expected uc(schedule:) to throw when startMonitoring throws")
+            try await uc.execute(schedule: new)
+            Issue.record("Expected uc.execute(schedule:) to throw when startMonitoring throws")
         } catch {
             // Expected — rethrows.
         }
@@ -73,7 +73,7 @@ struct SyncScheduleWithSystemUseCaseTests {
         struct BoomError: Error {}
         monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
 
-        _ = try? await uc(schedule: s)
+        _ = try? await uc.execute(schedule: s)
 
         #expect(monitoring.stopMonitoringCallCount == 1)
     }
@@ -87,7 +87,7 @@ struct SyncScheduleWithSystemUseCaseTests {
         let s = makeSchedule(id: UUID(), enabled: true)
         repo.schedulesSubject.send([s])
 
-        try await uc(schedule: s)
+        try await uc.execute(schedule: s)
 
         #expect(reconcile.receivedSchedules.count == 1)
         #expect(reconcile.receivedSchedules.last?.id == s.id)
@@ -101,7 +101,7 @@ struct SyncScheduleWithSystemUseCaseTests {
         let s = makeSchedule(id: UUID(), enabled: false)
         repo.schedulesSubject.send([s])
 
-        try await uc(schedule: s)
+        try await uc.execute(schedule: s)
 
         #expect(reconcile.receivedSchedules.count == 1)
         #expect(reconcile.receivedSchedules.last?.id == s.id)
@@ -119,7 +119,7 @@ struct SyncScheduleWithSystemUseCaseTests {
         monitoring.startMonitoringError = ScheduleActivityMonitoringError.startFailed(BoomError())
 
         do {
-            try await uc(schedule: s)
+            try await uc.execute(schedule: s)
             Issue.record("expected throw")
         } catch {}
 

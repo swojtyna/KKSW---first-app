@@ -50,7 +50,7 @@ final class BlockedViewModel: @unchecked Sendable {
     )
 
     init() {
-        observeBlocklist()
+        observeBlocklist.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] blocklist in
                 guard let self else { return }
@@ -64,7 +64,7 @@ final class BlockedViewModel: @unchecked Sendable {
     func deleteTapped(recordID: TokenRecord.ID) async {
         errorMessage = nil
         do {
-            try await removeRecord(recordID)
+            try await removeRecord.execute(recordID)
             logger.info("record removed id=\(recordID.uuidString, privacy: .public)")
         } catch {
             errorMessage = "Nie udało się usunąć."

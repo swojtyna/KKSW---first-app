@@ -15,7 +15,7 @@ struct ToggleScheduleUseCaseTests {
         let s = makeSchedule(id: UUID(), enabled: false)
         repo.schedulesSubject.send([s])
 
-        try await uc(scheduleId: s.id, enabled: true)
+        try await uc.execute(scheduleId: s.id, enabled: true)
 
         #expect(repo.upsertCallCount == 1)
         #expect(repo.lastUpserted?.id == s.id)
@@ -34,7 +34,7 @@ struct ToggleScheduleUseCaseTests {
         let s = makeSchedule(id: UUID(), enabled: true)
         repo.schedulesSubject.send([s])
 
-        try await uc(scheduleId: s.id, enabled: false)
+        try await uc.execute(scheduleId: s.id, enabled: false)
 
         #expect(repo.lastUpserted?.enabled == false)
         #expect(sync.lastInputSchedule?.enabled == false)
@@ -47,7 +47,7 @@ struct ToggleScheduleUseCaseTests {
         let uc = ToggleScheduleUseCaseImpl(repository: repo, sync: sync)
 
         do {
-            try await uc(scheduleId: UUID(), enabled: true)
+            try await uc.execute(scheduleId: UUID(), enabled: true)
             Issue.record("Expected ScheduleUseCaseError.scheduleNotFound")
         } catch let error as ScheduleUseCaseError {
             #expect(error == .scheduleNotFound)

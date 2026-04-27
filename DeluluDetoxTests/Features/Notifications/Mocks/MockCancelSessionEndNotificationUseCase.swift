@@ -4,7 +4,7 @@ import Foundation
 final class MockCancelSessionEndNotificationUseCase: CancelSessionEndNotificationUseCase, @unchecked Sendable {
     private(set) var cancelledSessionIds: [UUID] = []
 
-    func callAsFunction(sessionId: UUID) async {
+    func execute(sessionId: UUID) async {
         cancelledSessionIds.append(sessionId)
     }
 }

@@ -2,7 +2,7 @@ import Combine
 import FamilyControls
 
 protocol ObserveScreenTimeAuthStatusUseCase: Sendable {
-    func callAsFunction() -> AnyPublisher<AuthorizationStatus, Never>
+    func execute() -> AnyPublisher<AuthorizationStatus, Never>
 }
 
 final class ObserveScreenTimeAuthStatusUseCaseImpl: ObserveScreenTimeAuthStatusUseCase {
@@ -12,7 +12,7 @@ final class ObserveScreenTimeAuthStatusUseCaseImpl: ObserveScreenTimeAuthStatusU
         self.repository = repository
     }
 
-    func callAsFunction() -> AnyPublisher<AuthorizationStatus, Never> {
+    func execute() -> AnyPublisher<AuthorizationStatus, Never> {
         repository.statusPublisher
     }
 }

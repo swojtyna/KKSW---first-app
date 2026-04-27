@@ -59,7 +59,7 @@ final class SelfHealSchedulesUseCaseTests {
         repo.schedulesSubject.send([makeSchedule(id: scheduleId, enabled: true)])
         compute.stubbedResult = ScheduleWindow(state: .active(endsAt: now.addingTimeInterval(3600)), currentWeekday: 2)
 
-        let operations = try await sut(now: now)
+        let operations = try await sut.execute(now: now)
 
         #expect(operations == 1)
         #expect(shield.applyShieldCallCount == 1)
@@ -74,7 +74,7 @@ final class SelfHealSchedulesUseCaseTests {
         compute.stubbedResult = ScheduleWindow(state: .inactive, currentWeekday: 2)
         defaults.set(true, forKey: ComputeScheduleWindowUseCaseImpl.lastAppliedKey(scheduleId: scheduleId))
 
-        let operations = try await sut(now: now)
+        let operations = try await sut.execute(now: now)
 
         #expect(operations == 1)
         #expect(shield.applyShieldCallCount == 0)
@@ -88,7 +88,7 @@ final class SelfHealSchedulesUseCaseTests {
         compute.stubbedResult = ScheduleWindow(state: .active(endsAt: now.addingTimeInterval(3600)), currentWeekday: 2)
         defaults.set(true, forKey: ComputeScheduleWindowUseCaseImpl.lastAppliedKey(scheduleId: scheduleId))
 
-        let operations = try await sut(now: now)
+        let operations = try await sut.execute(now: now)
 
         #expect(operations == 0)
         #expect(shield.applyShieldCallCount == 0)
@@ -107,7 +107,7 @@ final class SelfHealSchedulesUseCaseTests {
         ])
         compute.stubbedResult = ScheduleWindow(state: .active(endsAt: now.addingTimeInterval(3600)), currentWeekday: 2)
 
-        let operations = try await sut(now: now)
+        let operations = try await sut.execute(now: now)
 
         #expect(operations == 2, "disabled schedule must not trigger shield ops")
         #expect(shield.applyShieldCallCount == 2)

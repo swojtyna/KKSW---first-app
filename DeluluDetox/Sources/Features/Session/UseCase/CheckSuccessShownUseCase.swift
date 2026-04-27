@@ -3,7 +3,7 @@ import Foundation
 /// Reads the per-session "success-shown" flag persisted by `MarkSuccessShownUseCase`.
 /// Wraps UserDefaults so VMs remain UI-only (CLAUDE.md "VM → tylko UseCase").
 protocol CheckSuccessShownUseCase: Sendable {
-    func callAsFunction(sessionId: UUID) -> Bool
+    func execute(sessionId: UUID) -> Bool
 }
 
 final class CheckSuccessShownUseCaseImpl: CheckSuccessShownUseCase, @unchecked Sendable {
@@ -12,7 +12,7 @@ final class CheckSuccessShownUseCaseImpl: CheckSuccessShownUseCase, @unchecked S
             ?? (UserDefaults(suiteName: MarkSuccessShownUseCaseImpl.userDefaultsSuiteName) ?? .standard)
     }
 
-    func callAsFunction(sessionId: UUID) -> Bool {
+    func execute(sessionId: UUID) -> Bool {
         defaults.bool(forKey: "\(MarkSuccessShownUseCaseImpl.keyPrefix)\(sessionId.uuidString)")
     }
 }

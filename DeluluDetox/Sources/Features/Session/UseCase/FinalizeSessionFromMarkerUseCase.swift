@@ -9,7 +9,7 @@ import os
 ///
 /// Returns `true` iff a finalize actually happened.
 protocol FinalizeSessionFromMarkerUseCase: Sendable {
-    func callAsFunction(now: Date) async throws -> Bool
+    func execute(now: Date) async throws -> Bool
 }
 
 final class FinalizeSessionFromMarkerUseCaseImpl: FinalizeSessionFromMarkerUseCase, @unchecked Sendable {
@@ -32,7 +32,7 @@ final class FinalizeSessionFromMarkerUseCaseImpl: FinalizeSessionFromMarkerUseCa
         self.schedulePermissionPrompt = schedulePermissionPrompt
     }
 
-    func callAsFunction(now: Date) async throws -> Bool {
+    func execute(now: Date) async throws -> Bool {
         guard let marker = try await repository.consumeFinalizeMarker() else {
             return false
         }
@@ -44,7 +44,7 @@ final class FinalizeSessionFromMarkerUseCaseImpl: FinalizeSessionFromMarkerUseCa
             return false
         }
 
-        try await endSession(outcome: .completed, actualEndAt: min(now, active.plannedEndAt))
+        try await endSession.execute(outcome: .completed, actualEndAt: min(now, active.plannedEndAt))
         Self.log.info("finalized via marker id=\(active.id.uuidString, privacy: .public)")
 
         // CONTEXT §D-13 — locked decision. Fires IN the session-finalization flow,
@@ -54,7 +54,7 @@ final class FinalizeSessionFromMarkerUseCaseImpl: FinalizeSessionFromMarkerUseCa
         // in the history publisher, so this prompt sequences naturally before the
         // success sheet appears. The UC is a no-op when status != .notDetermined,
         // so repeated completions after the first are safe.
-        await schedulePermissionPrompt()
+        await schedulePermissionPrompt.execute()
 
         return true
     }

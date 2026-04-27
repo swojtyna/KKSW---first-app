@@ -3,7 +3,7 @@
 final class MockRefreshScreenTimeAuthStatusUseCase: RefreshScreenTimeAuthStatusUseCase, @unchecked Sendable {
     var callCount = 0
 
-    func callAsFunction() {
+    func execute() {
         callCount += 1
     }
 }

@@ -12,7 +12,7 @@ import os
 ///
 /// Returns `true` iff a finalize actually happened.
 protocol SelfHealExpiredSessionUseCase: Sendable {
-    func callAsFunction(now: Date) async throws -> Bool
+    func execute(now: Date) async throws -> Bool
 }
 
 final class SelfHealExpiredSessionUseCaseImpl: SelfHealExpiredSessionUseCase, @unchecked Sendable {
@@ -29,14 +29,14 @@ final class SelfHealExpiredSessionUseCaseImpl: SelfHealExpiredSessionUseCase, @u
         self.endSession = endSession
     }
 
-    func callAsFunction(now: Date) async throws -> Bool {
+    func execute(now: Date) async throws -> Bool {
         let active = await currentActive()
         guard let active, active.plannedEndAt < now else {
             return false
         }
         Self.log.info("self-heal firing: active.plannedEndAt < now for id=\(active.id.uuidString, privacy: .public)")
         // Cap actualEndAt at plannedEndAt — don't report wall-clock-now as the session's end.
-        try await endSession(outcome: .completed, actualEndAt: active.plannedEndAt)
+        try await endSession.execute(outcome: .completed, actualEndAt: active.plannedEndAt)
         return true
     }
 

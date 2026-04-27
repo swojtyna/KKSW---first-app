@@ -79,7 +79,7 @@ final class AppRootViewModel: @unchecked Sendable {
     private static let darwinScheduleEndedName = "com.kksw.DeluluDetox.scheduleEnded"
 
     init() {
-        observeStatus()
+        observeStatus.execute()
             .sink { [weak self] status in
                 guard let self else { return }
                 switch status {
@@ -93,7 +93,7 @@ final class AppRootViewModel: @unchecked Sendable {
             }
             .store(in: &cancellables)
 
-        observeNotificationsOnboardingCompletion()
+        observeNotificationsOnboardingCompletion.execute()
             .sink { [weak self] in
                 self?.destination = .home
             }
@@ -116,7 +116,7 @@ final class AppRootViewModel: @unchecked Sendable {
     /// 5) Detect revocation (Phase 03 §D-11).
     /// Steps 2-5 are fire-and-forget — errors are logged but never cancel navigation.
     func refreshStatus() {
-        refreshStatusUseCase()
+        refreshStatusUseCase.execute()
         // Capture UC references eagerly on @MainActor so @LazyInjected resolves
         // while DIContainer is still populated (before any async Task yields).
         let reconcile = reconcileBlocklist
@@ -133,28 +133,28 @@ final class AppRootViewModel: @unchecked Sendable {
 
             // Phase 02 — blocklist reconcile.
             do {
-                try await reconcile()
+                try await reconcile.execute()
             } catch {
                 log.error("reconcile failed: \(String(describing: error), privacy: .public)")
             }
 
             // Phase 03 — marker consumption (DAM-written finalize marker).
             do {
-                _ = try await finalize(now: now)
+                _ = try await finalize.execute(now: now)
             } catch {
                 log.error("finalizeFromMarker failed: \(String(describing: error), privacy: .public)")
             }
 
             // Phase 03 — self-heal if DAM callback regressed (CONTEXT §D-02).
             do {
-                _ = try await selfHeal(now: now)
+                _ = try await selfHeal.execute(now: now)
             } catch {
                 log.error("selfHealExpiredSession failed: \(String(describing: error), privacy: .public)")
             }
 
             // Phase 03 — revocation detection (CONTEXT §D-11).
             do {
-                _ = try await revocation(now: now)
+                _ = try await revocation.execute(now: now)
             } catch {
                 log.error("detectRevocation failed: \(String(describing: error), privacy: .public)")
             }
@@ -163,14 +163,14 @@ final class AppRootViewModel: @unchecked Sendable {
             // (RESEARCH §Pitfall 8: events must be ingested before the
             // reconciliation pass decides apply/clear).
             do {
-                _ = try await consumeScheduleMarker()
+                _ = try await consumeScheduleMarker.execute()
             } catch {
                 log.error("consumeScheduleMarker failed: \(String(describing: error), privacy: .public)")
             }
 
             // Phase 05 — schedule self-heal (CONTEXT §D-18).
             do {
-                _ = try await selfHealSchedules(now: now)
+                _ = try await selfHealSchedules.execute(now: now)
             } catch {
                 log.error("selfHealSchedules failed: \(String(describing: error), privacy: .public)")
             }
@@ -182,7 +182,7 @@ final class AppRootViewModel: @unchecked Sendable {
             // stale). Idempotent; safe to call every foreground.
             let schedules = await Self.firstSchedulesSnapshot(observeSchedule)
             for schedule in schedules {
-                await reconcileScheduleNotifications(schedule: schedule)
+                await reconcileScheduleNotifications.execute(schedule: schedule)
             }
         }
     }
@@ -192,7 +192,7 @@ final class AppRootViewModel: @unchecked Sendable {
     private static func firstSchedulesSnapshot(_ observe: ObserveScheduleUseCase) async -> [Schedule] {
         await withCheckedContinuation { (continuation: CheckedContinuation<[Schedule], Never>) in
             var cancellable: AnyCancellable?
-            cancellable = observe()
+            cancellable = observe.execute()
                 .first()
                 .sink { value in
                     continuation.resume(returning: value)
@@ -212,7 +212,7 @@ final class AppRootViewModel: @unchecked Sendable {
     }
 
     private func resolveApprovedDestination() async {
-        let notifStatus = await getNotificationAuthStatus()
+        let notifStatus = await getNotificationAuthStatus.execute()
         destination = notifStatus == .notDetermined ? .notificationsOnboarding : .home
     }
 

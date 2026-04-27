@@ -43,7 +43,7 @@ final class SelfHealSchedulesUseCaseImpl: SelfHealSchedulesUseCase, @unchecked S
     }
 
     @discardableResult
-    func callAsFunction(now: Date) async throws -> Int {
+    func execute(now: Date) async throws -> Int {
         let schedules = await currentSchedules()
         let enabled = schedules.filter { $0.enabled }
         guard !enabled.isEmpty else { return 0 }
@@ -53,7 +53,7 @@ final class SelfHealSchedulesUseCaseImpl: SelfHealSchedulesUseCase, @unchecked S
 
         var operations = 0
         for schedule in enabled {
-            let window = compute(schedule: schedule, now: now, calendar: calendar)
+            let window = compute.execute(schedule: schedule, now: now, calendar: calendar)
             let shouldBeActive: Bool = {
                 if case .active = window.state { return true }
                 return false
@@ -98,7 +98,7 @@ final class SelfHealSchedulesUseCaseImpl: SelfHealSchedulesUseCase, @unchecked S
     private func currentBlocklist() async -> Blocklist {
         await withCheckedContinuation { (continuation: CheckedContinuation<Blocklist, Never>) in
             var cancellable: AnyCancellable?
-            cancellable = observeBlocklist().first().sink { blocklist in
+            cancellable = observeBlocklist.execute().first().sink { blocklist in
                 continuation.resume(returning: blocklist)
                 cancellable?.cancel()
             }

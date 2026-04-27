@@ -17,7 +17,7 @@ import os
 /// `@preconcurrency import FamilyControls` keeps the compiler quiet while we
 /// enforce the hop at the call site.
 protocol DetectRevocationUseCase: Sendable {
-    func callAsFunction(now: Date) async throws -> Bool
+    func execute(now: Date) async throws -> Bool
 }
 
 final class DetectRevocationUseCaseImpl: DetectRevocationUseCase, @unchecked Sendable {
@@ -51,7 +51,7 @@ final class DetectRevocationUseCaseImpl: DetectRevocationUseCase, @unchecked Sen
         self.authorizationStatusProvider = authorizationStatusProvider
     }
 
-    func callAsFunction(now: Date) async throws -> Bool {
+    func execute(now: Date) async throws -> Bool {
         let active = await currentActive()
         guard active != nil else { return false }
 
@@ -59,7 +59,7 @@ final class DetectRevocationUseCaseImpl: DetectRevocationUseCase, @unchecked Sen
         guard status != .approved else { return false }
 
         Self.log.info("revocation detected status=\(String(describing: status), privacy: .public) — finalizing session")
-        try await endSession(outcome: .brokenByRevoke, actualEndAt: now)
+        try await endSession.execute(outcome: .brokenByRevoke, actualEndAt: now)
         return true
     }
 

@@ -12,7 +12,7 @@ import os
 /// stopActivityMonitoring + repo.finalizeActiveSession(.cancelledByUser). The
 /// original error rethrows after rollback so callers can surface a UI-visible failure.
 protocol StartSessionUseCase: Sendable {
-    func callAsFunction(
+    func execute(
         blocklistId: UUID,
         duration: SessionDuration,
         now: Date
@@ -45,7 +45,7 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
         self.scheduleEndNotification = scheduleEndNotification
     }
 
-    func callAsFunction(
+    func execute(
         blocklistId: UUID,
         duration: SessionDuration,
         now: Date
@@ -82,7 +82,7 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
         // Never scheduled before success, so rollback paths leave no ghost
         // (RESEARCH Pitfall 5). Notification is convenience; session is critical.
         let durationMinutes = max(1, record.plannedDurationSeconds / 60)
-        await scheduleEndNotification(
+        await scheduleEndNotification.execute(
             sessionId: record.id,
             plannedEndAt: record.plannedEndAt,
             durationMinutes: durationMinutes
@@ -97,7 +97,7 @@ final class StartSessionUseCaseImpl: StartSessionUseCase, @unchecked Sendable {
     private func currentBlocklistSnapshot() async -> Blocklist {
         await withCheckedContinuation { continuation in
             var cancellable: AnyCancellable?
-            cancellable = observeBlocklist()
+            cancellable = observeBlocklist.execute()
                 .first()
                 .sink { value in
                     continuation.resume(returning: value)

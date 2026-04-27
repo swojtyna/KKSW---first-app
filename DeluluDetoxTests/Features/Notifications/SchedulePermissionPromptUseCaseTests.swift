@@ -13,7 +13,7 @@ struct SchedulePermissionPromptUseCaseTests {
         repo.stubAuthorizationStatus = .notDetermined
         let sut = SchedulePermissionPromptUseCaseImpl(repository: repo)
 
-        await sut()
+        await sut.execute()
 
         #expect(repo.requestAuthorizationCallCount == 1)
         let opts = repo.requestedAuthorizationOptions.first ?? []
@@ -26,7 +26,7 @@ struct SchedulePermissionPromptUseCaseTests {
         let repo = MockLocalNotificationRepository()
         repo.stubAuthorizationStatus = .authorized
         let sut = SchedulePermissionPromptUseCaseImpl(repository: repo)
-        await sut()
+        await sut.execute()
         #expect(repo.requestAuthorizationCallCount == 0)
     }
 
@@ -35,7 +35,7 @@ struct SchedulePermissionPromptUseCaseTests {
         let repo = MockLocalNotificationRepository()
         repo.stubAuthorizationStatus = .denied
         let sut = SchedulePermissionPromptUseCaseImpl(repository: repo)
-        await sut()
+        await sut.execute()
         #expect(repo.requestAuthorizationCallCount == 0)
     }
 
@@ -44,7 +44,7 @@ struct SchedulePermissionPromptUseCaseTests {
         let repo = MockLocalNotificationRepository()
         repo.stubAuthorizationStatus = .notDetermined
         let sut = SchedulePermissionPromptUseCaseImpl(repository: repo)
-        await sut()
+        await sut.execute()
         let opts = repo.requestedAuthorizationOptions.first ?? []
         #expect(!opts.contains(.badge), "no badge UX in MVP per RESEARCH A7")
     }

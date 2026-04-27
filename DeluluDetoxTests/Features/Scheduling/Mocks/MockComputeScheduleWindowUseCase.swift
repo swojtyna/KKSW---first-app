@@ -15,7 +15,7 @@ final class MockComputeScheduleWindowUseCase: ComputeScheduleWindowUseCase, @unc
     private(set) var lastInputSchedule: Schedule?
     private(set) var lastInputNow: Date?
 
-    func callAsFunction(schedule: Schedule, now: Date, calendar: Calendar) -> ScheduleWindow {
+    func execute(schedule: Schedule, now: Date, calendar: Calendar) -> ScheduleWindow {
         callCount += 1
         lastInputSchedule = schedule
         lastInputNow = now

@@ -13,7 +13,7 @@ final class MockStartSessionUseCase: StartSessionUseCase, @unchecked Sendable {
     /// Lets callers gate the call to exercise re-entry guards (P05).
     var beforeReturn: (@Sendable () async -> Void)?
 
-    func callAsFunction(blocklistId: UUID, duration: SessionDuration, now: Date) async throws -> SessionRecord {
+    func execute(blocklistId: UUID, duration: SessionDuration, now: Date) async throws -> SessionRecord {
         callCount += 1
         lastBlocklistId = blocklistId
         lastDuration = duration

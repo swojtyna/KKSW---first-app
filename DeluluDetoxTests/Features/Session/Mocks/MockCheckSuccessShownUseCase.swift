@@ -7,7 +7,7 @@ final class MockCheckSuccessShownUseCase: CheckSuccessShownUseCase, @unchecked S
     /// Test-configured: ids that return true when queried. Default: empty (everything returns false).
     var stubbedShownIds: Set<UUID> = []
 
-    func callAsFunction(sessionId: UUID) -> Bool {
+    func execute(sessionId: UUID) -> Bool {
         callCount += 1
         lastSessionId = sessionId
         return stubbedShownIds.contains(sessionId)

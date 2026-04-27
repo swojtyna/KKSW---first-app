@@ -1,5 +1,5 @@
 protocol ReconcileBlocklistUseCase: Sendable {
-    func callAsFunction() async throws
+    func execute() async throws
 }
 
 final class ReconcileBlocklistUseCaseImpl: ReconcileBlocklistUseCase {
@@ -9,7 +9,7 @@ final class ReconcileBlocklistUseCaseImpl: ReconcileBlocklistUseCase {
         self.repository = repository
     }
 
-    func callAsFunction() async throws {
+    func execute() async throws {
         try await repository.reconcile()
     }
 }

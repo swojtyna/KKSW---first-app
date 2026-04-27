@@ -120,11 +120,11 @@ struct OnboardingView: View {
 
 ## UseCase (Domain)
 
-Każdy UseCase reprezentuje **jedną operację biznesową**. Wywoływalny jak funkcja przez `callAsFunction`.
+Każdy UseCase reprezentuje **jedną operację biznesową**. Jedna publiczna metoda `execute(...)` — bez przeciążeń, bez `callAsFunction`.
 
 ```swift
 protocol RequestScreenTimeAuthUseCase: Sendable {
-    func callAsFunction() async throws -> ScreenTimeAuthStatus
+    func execute() async throws -> ScreenTimeAuthStatus
 }
 
 final class RequestScreenTimeAuthUseCaseImpl: RequestScreenTimeAuthUseCase {
@@ -134,7 +134,7 @@ final class RequestScreenTimeAuthUseCaseImpl: RequestScreenTimeAuthUseCase {
         self.repository = repository
     }
 
-    func callAsFunction() async throws -> ScreenTimeAuthStatus {
+    func execute() async throws -> ScreenTimeAuthStatus {
         try await repository.requestAuthorization()
         return await repository.status
     }

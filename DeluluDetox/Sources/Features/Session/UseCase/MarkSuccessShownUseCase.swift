@@ -10,7 +10,7 @@ import Foundation
 /// CLAUDE.md "VM → tylko UseCase" — ViewModels must not touch UserDefaults
 /// directly. Mark + Check are the two UCs that wrap that read/write pair.
 protocol MarkSuccessShownUseCase: Sendable {
-    func callAsFunction(sessionId: UUID)
+    func execute(sessionId: UUID)
 }
 
 final class MarkSuccessShownUseCaseImpl: MarkSuccessShownUseCase, @unchecked Sendable {
@@ -24,7 +24,7 @@ final class MarkSuccessShownUseCaseImpl: MarkSuccessShownUseCase, @unchecked Sen
         Self.defaultsOverride ?? (UserDefaults(suiteName: Self.userDefaultsSuiteName) ?? .standard)
     }
 
-    func callAsFunction(sessionId: UUID) {
+    func execute(sessionId: UUID) {
         defaults.set(true, forKey: "\(Self.keyPrefix)\(sessionId.uuidString)")
     }
 }

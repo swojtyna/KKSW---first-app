@@ -1,10 +1,10 @@
 import Foundation
 
 protocol CompleteNotificationsOnboardingUseCase: Sendable {
-    func callAsFunction()
+    func execute()
 }
 
 struct CompleteNotificationsOnboardingUseCaseImpl: CompleteNotificationsOnboardingUseCase {
     let repository: NotificationsOnboardingRepository
-    func callAsFunction() { repository.markCompleted() }
+    func execute() { repository.markCompleted() }
 }

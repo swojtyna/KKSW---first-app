@@ -7,7 +7,7 @@ import Foundation
 final class MockGetBrokenStreakCopyUseCase: GetBrokenStreakCopyUseCase, @unchecked Sendable {
     var stub: (Int) -> String = { longest in "Straciłeś \(longest)-dniową serię. Test." }
 
-    func callAsFunction(longestStreak: Int) -> String {
+    func execute(longestStreak: Int) -> String {
         stub(longestStreak)
     }
 }

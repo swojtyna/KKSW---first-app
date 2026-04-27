@@ -10,7 +10,7 @@ final class MockObserveBlocklistUseCase: ObserveBlocklistUseCase, @unchecked Sen
         self.subject = CurrentValueSubject(initial)
     }
 
-    func callAsFunction() -> AnyPublisher<Blocklist, Never> {
+    func execute() -> AnyPublisher<Blocklist, Never> {
         callCount += 1
         return subject.eraseToAnyPublisher()
     }

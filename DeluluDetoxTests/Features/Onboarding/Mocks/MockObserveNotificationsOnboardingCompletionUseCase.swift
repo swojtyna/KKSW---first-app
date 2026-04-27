@@ -4,5 +4,5 @@ import Foundation
 
 final class MockObserveNotificationsOnboardingCompletionUseCase: ObserveNotificationsOnboardingCompletionUseCase, @unchecked Sendable {
     let subject = PassthroughSubject<Void, Never>()
-    func callAsFunction() -> AnyPublisher<Void, Never> { subject.eraseToAnyPublisher() }
+    func execute() -> AnyPublisher<Void, Never> { subject.eraseToAnyPublisher() }
 }

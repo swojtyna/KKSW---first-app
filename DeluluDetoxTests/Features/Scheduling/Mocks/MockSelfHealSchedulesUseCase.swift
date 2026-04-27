@@ -18,7 +18,7 @@ final class MockSelfHealSchedulesUseCase: SelfHealSchedulesUseCase, @unchecked S
     var callOrderTag: String = "selfHealSchedules"
 
     @discardableResult
-    func callAsFunction(now: Date) async throws -> Int {
+    func execute(now: Date) async throws -> Int {
         callCount += 1
         lastInputNow = now
         callOrderLog?.add(callOrderTag)

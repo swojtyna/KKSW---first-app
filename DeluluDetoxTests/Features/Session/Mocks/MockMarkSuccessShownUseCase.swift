@@ -6,7 +6,7 @@ final class MockMarkSuccessShownUseCase: MarkSuccessShownUseCase, @unchecked Sen
     private(set) var lastSessionId: UUID?
     private(set) var allMarked: Set<UUID> = []
 
-    func callAsFunction(sessionId: UUID) {
+    func execute(sessionId: UUID) {
         callCount += 1
         lastSessionId = sessionId
         allMarked.insert(sessionId)

@@ -55,7 +55,7 @@ final class ScreenTimeAuthRepositoryImpl: ScreenTimeAuthRepository {
 // Features/Onboarding/Common/UseCase/RequestScreenTimeAuthUseCase.swift
 
 protocol RequestScreenTimeAuthUseCase: Sendable {
-    func callAsFunction() async throws -> ScreenTimeAuthStatus
+    func execute() async throws -> ScreenTimeAuthStatus
 }
 
 final class RequestScreenTimeAuthUseCaseImpl: RequestScreenTimeAuthUseCase {
@@ -65,7 +65,7 @@ final class RequestScreenTimeAuthUseCaseImpl: RequestScreenTimeAuthUseCase {
         self.repository = repository
     }
 
-    func callAsFunction() async throws -> ScreenTimeAuthStatus {
+    func execute() async throws -> ScreenTimeAuthStatus {
         try await repository.requestAuthorization()
         return await repository.status
     }
@@ -160,7 +160,7 @@ final class ScreenTimeAuthRepositoryImpl: ScreenTimeAuthRepository, @unchecked S
 ```swift
 // Features/Onboarding/UseCase/ObserveScreenTimeAuthStatusUseCase.swift
 protocol ObserveScreenTimeAuthStatusUseCase: Sendable {
-    func callAsFunction() -> AnyPublisher<AuthorizationStatus, Never>
+    func execute() -> AnyPublisher<AuthorizationStatus, Never>
 }
 
 final class ObserveScreenTimeAuthStatusUseCaseImpl: ObserveScreenTimeAuthStatusUseCase {
@@ -170,7 +170,7 @@ final class ObserveScreenTimeAuthStatusUseCaseImpl: ObserveScreenTimeAuthStatusU
         self.repository = repository
     }
 
-    func callAsFunction() -> AnyPublisher<AuthorizationStatus, Never> {
+    func execute() -> AnyPublisher<AuthorizationStatus, Never> {
         repository.statusPublisher
     }
 }
@@ -179,7 +179,7 @@ final class ObserveScreenTimeAuthStatusUseCaseImpl: ObserveScreenTimeAuthStatusU
 ```swift
 // Features/Onboarding/UseCase/RefreshScreenTimeAuthStatusUseCase.swift
 protocol RefreshScreenTimeAuthStatusUseCase: Sendable {
-    func callAsFunction()
+    func execute()
 }
 
 final class RefreshScreenTimeAuthStatusUseCaseImpl: RefreshScreenTimeAuthStatusUseCase {
@@ -189,7 +189,7 @@ final class RefreshScreenTimeAuthStatusUseCaseImpl: RefreshScreenTimeAuthStatusU
         self.repository = repository
     }
 
-    func callAsFunction() {
+    func execute() {
         repository.refreshStatus()
     }
 }

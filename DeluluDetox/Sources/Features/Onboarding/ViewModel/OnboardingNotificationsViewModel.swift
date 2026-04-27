@@ -14,12 +14,12 @@ final class OnboardingNotificationsViewModel: @unchecked Sendable {
 
     func allowTapped() async {
         isRequesting = true
-        await schedulePermissionPrompt()
+        await schedulePermissionPrompt.execute()
         isRequesting = false
-        completeOnboarding()
+        completeOnboarding.execute()
     }
 
     func skipTapped() {
-        completeOnboarding()
+        completeOnboarding.execute()
     }
 }

@@ -7,7 +7,7 @@ final class MockEndSessionUseCase: EndSessionUseCase, @unchecked Sendable {
     private(set) var lastActualEndAt: Date?
     var stubbedError: Error?
 
-    func callAsFunction(outcome: SessionOutcome, actualEndAt: Date) async throws {
+    func execute(outcome: SessionOutcome, actualEndAt: Date) async throws {
         callCount += 1
         lastOutcome = outcome
         lastActualEndAt = actualEndAt

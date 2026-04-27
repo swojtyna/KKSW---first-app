@@ -5,7 +5,7 @@ import Foundation
 /// Resolves the shame string shown on the Home card when a streak breaks
 /// (CONTEXT §D-10).
 protocol GetBrokenStreakCopyUseCase: Sendable {
-    func callAsFunction(longestStreak: Int) -> String
+    func execute(longestStreak: Int) -> String
 }
 
 final class GetBrokenStreakCopyUseCaseImpl: GetBrokenStreakCopyUseCase {
@@ -15,7 +15,7 @@ final class GetBrokenStreakCopyUseCaseImpl: GetBrokenStreakCopyUseCase {
         self.captions = captions
     }
 
-    func callAsFunction(longestStreak: Int) -> String {
+    func execute(longestStreak: Int) -> String {
         captions.brokenStreakCopy(longestStreak: longestStreak, hash: longestStreak)
     }
 }

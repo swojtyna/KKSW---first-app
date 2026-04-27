@@ -51,17 +51,17 @@ final class HomeViewModel: @unchecked Sendable {
     private var activeSessionId: UUID?
 
     init() {
-        observeBlocklist()
+        observeBlocklist.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] next in self?.snapshot = next }
             .store(in: &cancellables)
 
-        observeActive()
+        observeActive.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] active in self?.handleActive(active) }
             .store(in: &cancellables)
 
-        observeHistory()
+        observeHistory.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] history in self?.handleHistory(history) }
             .store(in: &cancellables)
@@ -73,7 +73,7 @@ final class HomeViewModel: @unchecked Sendable {
     /// Commits the (possibly unchanged) selection via UpdateBlocklistUseCase.
     func pickerDismissed(committed selection: FamilyActivitySelection) async {
         do {
-            try await updateBlocklist(selection)
+            try await updateBlocklist.execute(selection)
             logger.info(
                 "blocklist updated tokens=\(selection.applicationTokens.count + selection.categoryTokens.count + selection.webDomainTokens.count, privacy: .public)"
             )
@@ -90,7 +90,7 @@ final class HomeViewModel: @unchecked Sendable {
     /// write uses a single code path.
     func clearBlocklistTapped() async {
         do {
-            try await updateBlocklist(FamilyActivitySelection())
+            try await updateBlocklist.execute(FamilyActivitySelection())
             logger.info("blocklist cleared")
         } catch {
             logger.error("clear failed: \(String(describing: error), privacy: .public)")
@@ -159,7 +159,7 @@ final class HomeViewModel: @unchecked Sendable {
     private func currentActiveSession() async -> SessionRecord? {
         await withCheckedContinuation { continuation in
             var cancellable: AnyCancellable?
-            cancellable = observeActive()
+            cancellable = observeActive.execute()
                 .first()
                 .sink { value in
                     continuation.resume(returning: value)
@@ -202,13 +202,13 @@ final class HomeViewModel: @unchecked Sendable {
         if activeSessionId != nil { return }
 
         // Already shown for this id — skip (UC boundary, not direct UserDefaults).
-        if checkSuccessShown(sessionId: mostRecentCompleted.id) { return }
+        if checkSuccessShown.execute(sessionId: mostRecentCompleted.id) { return }
 
         // Only display if no other destination is currently active (don't override picker/alert).
         guard destination == nil else { return }
 
         // Mark shown FIRST so quick publisher re-emissions don't double-show the sheet.
-        markSuccessShown(sessionId: mostRecentCompleted.id)
+        markSuccessShown.execute(sessionId: mostRecentCompleted.id)
         destination = .sessionSuccess(SessionSuccessViewModel(session: mostRecentCompleted))
     }
 }

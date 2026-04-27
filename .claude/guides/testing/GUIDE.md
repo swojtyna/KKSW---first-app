@@ -145,7 +145,7 @@ final class MockStartSessionUseCase: StartSessionUseCase, @unchecked Sendable {
     var stubbedResult: SessionRecord?
     var stubbedError: Error?
 
-    func callAsFunction(blocklistId: UUID, ...) async throws -> SessionRecord {
+    func execute(blocklistId: UUID, ...) async throws -> SessionRecord {
         callCount += 1
         lastBlocklistId = blocklistId
         if let stubbedError { throw stubbedError }

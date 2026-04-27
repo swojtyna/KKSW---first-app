@@ -29,7 +29,7 @@ struct FinalizeSessionFromMarkerUseCaseTests {
             schedulePermissionPrompt: mockPrompt
         )
         let now = plannedEnd.addingTimeInterval(5)
-        let finalized = try await uc(now: now)
+        let finalized = try await uc.execute(now: now)
 
         #expect(finalized)
         #expect(mockRepo.consumeFinalizeMarkerCallCount == 1)
@@ -58,7 +58,7 @@ struct FinalizeSessionFromMarkerUseCaseTests {
             endSession: mockEnd,
             schedulePermissionPrompt: mockPrompt
         )
-        let finalized = try await uc(now: Date())
+        let finalized = try await uc.execute(now: Date())
 
         #expect(!finalized)
         #expect(mockRepo.consumeFinalizeMarkerCallCount == 1)
@@ -76,7 +76,7 @@ struct FinalizeSessionFromMarkerUseCaseTests {
             endSession: mockEnd,
             schedulePermissionPrompt: mockPrompt
         )
-        let finalized = try await uc(now: Date())
+        let finalized = try await uc.execute(now: Date())
 
         #expect(!finalized)
         #expect(mockRepo.consumeFinalizeMarkerCallCount == 1)
@@ -105,7 +105,7 @@ struct FinalizeSessionFromMarkerUseCaseTests {
             endSession: mockEnd,
             schedulePermissionPrompt: mockPrompt
         )
-        let didFinalize = try await uc(now: plannedEnd)
+        let didFinalize = try await uc.execute(now: plannedEnd)
 
         #expect(didFinalize)
         #expect(mockEnd.callCount == 1)
@@ -133,7 +133,7 @@ struct FinalizeSessionFromMarkerUseCaseTests {
             endSession: mockEnd,
             schedulePermissionPrompt: mockPrompt
         )
-        _ = try await uc(now: Date())
+        _ = try await uc.execute(now: Date())
 
         #expect(mockPrompt.callCount == 0, "stale marker must not reach the prompt hook")
     }
@@ -149,7 +149,7 @@ struct FinalizeSessionFromMarkerUseCaseTests {
             endSession: mockEnd,
             schedulePermissionPrompt: mockPrompt
         )
-        _ = try await uc(now: Date())
+        _ = try await uc.execute(now: Date())
 
         #expect(mockPrompt.callCount == 0, "no marker → no finalize → no prompt")
     }
@@ -175,7 +175,7 @@ struct FinalizeSessionFromMarkerUseCaseTests {
             schedulePermissionPrompt: mockPrompt
         )
         do {
-            _ = try await uc(now: Date())
+            _ = try await uc.execute(now: Date())
             Issue.record("expected throw from endSession")
         } catch {
             #expect(mockPrompt.callCount == 0,

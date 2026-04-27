@@ -19,7 +19,7 @@ final class ConsumeScheduleEventMarkerUseCaseImpl: ConsumeScheduleEventMarkerUse
     }
 
     @discardableResult
-    func callAsFunction() async throws -> Int {
+    func execute() async throws -> Int {
         let markers = try await repository.consumeEventMarkers()
         for marker in markers {
             let event = ScheduleEvent(

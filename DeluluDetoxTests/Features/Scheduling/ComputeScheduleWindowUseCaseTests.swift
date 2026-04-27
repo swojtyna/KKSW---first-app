@@ -46,7 +46,7 @@ struct ComputeScheduleWindowUseCaseTests {
     func singleDayActiveMidWindow() {
         let uc = ComputeScheduleWindowUseCaseImpl()
         let now = date(2026, 4, 22, 12, 0) // Wednesday
-        let window = uc(schedule: monFriSchedule(), now: now, calendar: calendar)
+        let window = uc.execute(schedule: monFriSchedule(), now: now, calendar: calendar)
         #expect(window.state == .active(endsAt: date(2026, 4, 22, 17, 0)))
         #expect(window.currentWeekday == 4) // Calendar.weekday: Sun=1 → Wed=4
     }
@@ -55,7 +55,7 @@ struct ComputeScheduleWindowUseCaseTests {
     func singleDayUpcomingToday() {
         let uc = ComputeScheduleWindowUseCaseImpl()
         let now = date(2026, 4, 22, 7, 0) // Wednesday before 9:00
-        let window = uc(schedule: monFriSchedule(), now: now, calendar: calendar)
+        let window = uc.execute(schedule: monFriSchedule(), now: now, calendar: calendar)
         #expect(window.state == .upcomingToday(startsAt: date(2026, 4, 22, 9, 0)))
         #expect(window.currentWeekday == 4)
     }
@@ -81,7 +81,7 @@ struct ComputeScheduleWindowUseCaseTests {
     func crossMidnightActive(_ tc: CrossMidnightCase) {
         let uc = ComputeScheduleWindowUseCaseImpl()
         let now = date(2026, 4, tc.nowDay, tc.nowHour, tc.nowMinute)
-        let window = uc(schedule: dailySchedule(startHour: 22, endHour: 6), now: now, calendar: calendar)
+        let window = uc.execute(schedule: dailySchedule(startHour: 22, endHour: 6), now: now, calendar: calendar)
         #expect(window.state == .active(endsAt: date(2026, 4, tc.expectedEndDay, 6, 0)))
     }
 
@@ -91,7 +91,7 @@ struct ComputeScheduleWindowUseCaseTests {
     func weekdayExclusionReturnsNotToday() {
         let uc = ComputeScheduleWindowUseCaseImpl()
         let now = date(2026, 4, 25, 10, 0) // Saturday (weekday=7)
-        let window = uc(schedule: monFriSchedule(), now: now, calendar: calendar)
+        let window = uc.execute(schedule: monFriSchedule(), now: now, calendar: calendar)
         guard case let .notToday(nextDate) = window.state else {
             Issue.record("Expected .notToday, got \(window.state)")
             return
@@ -105,7 +105,7 @@ struct ComputeScheduleWindowUseCaseTests {
     func disabledScheduleReturnsInactive() {
         let uc = ComputeScheduleWindowUseCaseImpl()
         let now = date(2026, 4, 22, 12, 0)
-        let window = uc(schedule: monFriSchedule(enabled: false), now: now, calendar: calendar)
+        let window = uc.execute(schedule: monFriSchedule(enabled: false), now: now, calendar: calendar)
         #expect(window.state == .inactive)
         #expect(window.currentWeekday == 0)
     }

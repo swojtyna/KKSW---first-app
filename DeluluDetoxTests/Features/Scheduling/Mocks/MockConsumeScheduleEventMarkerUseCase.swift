@@ -14,7 +14,7 @@ final class MockConsumeScheduleEventMarkerUseCase: ConsumeScheduleEventMarkerUse
     var callOrderLog: NSMutableArray?
     var callOrderTag: String = "consumeScheduleMarker"
 
-    func callAsFunction() async throws -> Int {
+    func execute() async throws -> Int {
         callCount += 1
         callOrderLog?.add(callOrderTag)
         if let consumeError { throw consumeError }

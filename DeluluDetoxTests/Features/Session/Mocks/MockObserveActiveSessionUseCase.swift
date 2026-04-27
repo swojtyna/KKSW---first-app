@@ -5,7 +5,7 @@ final class MockObserveActiveSessionUseCase: ObserveActiveSessionUseCase, @unche
     let subject = CurrentValueSubject<SessionRecord?, Never>(nil)
     private(set) var callCount = 0
 
-    func callAsFunction() -> AnyPublisher<SessionRecord?, Never> {
+    func execute() -> AnyPublisher<SessionRecord?, Never> {
         callCount += 1
         return subject.eraseToAnyPublisher()
     }

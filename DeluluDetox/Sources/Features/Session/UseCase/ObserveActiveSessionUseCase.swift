@@ -1,7 +1,7 @@
 import Combine
 
 protocol ObserveActiveSessionUseCase: Sendable {
-    func callAsFunction() -> AnyPublisher<SessionRecord?, Never>
+    func execute() -> AnyPublisher<SessionRecord?, Never>
 }
 
 final class ObserveActiveSessionUseCaseImpl: ObserveActiveSessionUseCase {
@@ -11,7 +11,7 @@ final class ObserveActiveSessionUseCaseImpl: ObserveActiveSessionUseCase {
         self.repository = repository
     }
 
-    func callAsFunction() -> AnyPublisher<SessionRecord?, Never> {
+    func execute() -> AnyPublisher<SessionRecord?, Never> {
         repository.activeSessionPublisher
     }
 }

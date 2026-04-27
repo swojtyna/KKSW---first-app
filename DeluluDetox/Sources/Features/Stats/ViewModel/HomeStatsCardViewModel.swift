@@ -19,7 +19,7 @@ final class HomeStatsCardViewModel: @unchecked Sendable {
     /// render the regular card (violet flame + current streak).
     var brokenStreakCopy: String? {
         guard stats.currentStreak == 0, stats.longestStreak >= 3 else { return nil }
-        return getBrokenStreakCopy(longestStreak: stats.longestStreak)
+        return getBrokenStreakCopy.execute(longestStreak: stats.longestStreak)
     }
 
     @ObservationIgnored @LazyInjected private var observeStats: ObserveStatsUseCase
@@ -29,7 +29,7 @@ final class HomeStatsCardViewModel: @unchecked Sendable {
     private var cancellables: Set<AnyCancellable> = []
 
     init() {
-        observeStats()
+        observeStats.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newStats in self?.stats = newStats }
             .store(in: &cancellables)

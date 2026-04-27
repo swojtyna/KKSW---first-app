@@ -5,7 +5,7 @@ final class MockObserveSessionHistoryUseCase: ObserveSessionHistoryUseCase, @unc
     let subject = CurrentValueSubject<[SessionRecord], Never>([])
     private(set) var callCount = 0
 
-    func callAsFunction() -> AnyPublisher<[SessionRecord], Never> {
+    func execute() -> AnyPublisher<[SessionRecord], Never> {
         callCount += 1
         return subject.eraseToAnyPublisher()
     }

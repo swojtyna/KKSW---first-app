@@ -11,7 +11,7 @@ final class MockObserveScreenTimeAuthStatusUseCase: ObserveScreenTimeAuthStatusU
         self.subject = CurrentValueSubject(initialStatus)
     }
 
-    func callAsFunction() -> AnyPublisher<AuthorizationStatus, Never> {
+    func execute() -> AnyPublisher<AuthorizationStatus, Never> {
         callCount += 1
         return subject.eraseToAnyPublisher()
     }

@@ -25,7 +25,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
         let id = UUID()
         let sch = makeSchedule(id: id, daysOfWeek: [2, 3, 4, 5, 6], startHour: 9, startMinute: 0, endHour: 17)
 
-        await sut(schedule: sch)
+        await sut.execute(schedule: sch)
 
         #expect(repo.addedRequests.count == 5)
         let ids = repo.addedRequests.map(\.identifier).sorted()
@@ -44,7 +44,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
         repo.stubAuthorizationStatus = .authorized
         let sch = makeSchedule(daysOfWeek: [2])
 
-        await sut(schedule: sch)
+        await sut.execute(schedule: sch)
 
         let req = try #require(repo.addedRequests.first)
         let trigger = try #require(req.trigger as? UNCalendarNotificationTrigger)
@@ -63,7 +63,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
             UNNotificationRequest(identifier: "schedule.start.OTHER.3", content: content, trigger: nil)
         ]
 
-        await sut(schedule: makeSchedule(id: id, daysOfWeek: [2, 3]))
+        await sut.execute(schedule: makeSchedule(id: id, daysOfWeek: [2, 3]))
 
         #expect(repo.removedPrefixes.contains("schedule.start.\(id.uuidString)."))
         #expect(repo.stubPending.contains(where: { $0.identifier == "schedule.start.OTHER.3" }))
@@ -74,7 +74,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
         repo.stubAuthorizationStatus = .authorized
         let id = UUID()
 
-        await sut(schedule: makeSchedule(id: id, daysOfWeek: [2, 3, 4], enabled: false))
+        await sut.execute(schedule: makeSchedule(id: id, daysOfWeek: [2, 3, 4], enabled: false))
 
         #expect(repo.addedRequests.isEmpty)
         #expect(repo.removedPrefixes == ["schedule.start.\(id.uuidString)."])
@@ -85,7 +85,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
         repo.stubAuthorizationStatus = .denied
         let id = UUID()
 
-        await sut(schedule: makeSchedule(id: id, daysOfWeek: [2, 3]))
+        await sut.execute(schedule: makeSchedule(id: id, daysOfWeek: [2, 3]))
 
         #expect(repo.addedRequests.isEmpty)
         #expect(repo.removedPrefixes == ["schedule.start.\(id.uuidString)."])
@@ -98,7 +98,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
         let sch = makeSchedule(id: id, daysOfWeek: [2, 3], startHour: 22, startMinute: 0, endHour: 6, endMinute: 0)
         #expect(sch.crossesMidnight, "fixture sanity")
 
-        await sut(schedule: sch)
+        await sut.execute(schedule: sch)
 
         #expect(repo.addedRequests.count == 2, "two weekdays x one segment (evening only)")
         for req in repo.addedRequests {
@@ -114,7 +114,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
         repo.stubAuthorizationStatus = .authorized
         let sch = makeSchedule(daysOfWeek: [6], startHour: 9, startMinute: 0, endHour: 17)
 
-        await sut(schedule: sch)
+        await sut.execute(schedule: sch)
 
         #expect(repo.addedRequests.count == 1)
         let trigger = try #require(repo.addedRequests.first?.trigger as? UNCalendarNotificationTrigger)
@@ -126,7 +126,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
     func caption_usesCaptionLibrary() async throws {
         repo.stubAuthorizationStatus = .authorized
 
-        await sut(schedule: makeSchedule(daysOfWeek: [2]))
+        await sut.execute(schedule: makeSchedule(daysOfWeek: [2]))
 
         let body = try #require(repo.addedRequests.first?.content.body)
         #expect(!body.contains("%d"), "body must be a formatted caption, not raw template")
@@ -138,7 +138,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
         repo.stubAuthorizationStatus = .authorized
         let id = UUID()
 
-        await sut(schedule: makeSchedule(id: id, daysOfWeek: [2]))
+        await sut.execute(schedule: makeSchedule(id: id, daysOfWeek: [2]))
 
         let userInfo = try #require(repo.addedRequests.first?.content.userInfo)
         #expect(userInfo["kind"] as? String == "schedule-start")
@@ -150,7 +150,7 @@ struct ReconcileScheduleNotificationsUseCaseTests {
         repo.stubAuthorizationStatus = .authorized
         let id = UUID()
 
-        await sut(schedule: makeSchedule(id: id, daysOfWeek: [], enabled: true))
+        await sut.execute(schedule: makeSchedule(id: id, daysOfWeek: [], enabled: true))
 
         #expect(repo.addedRequests.isEmpty)
         #expect(repo.removedPrefixes == ["schedule.start.\(id.uuidString)."])

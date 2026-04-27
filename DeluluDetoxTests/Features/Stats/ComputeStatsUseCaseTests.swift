@@ -28,12 +28,12 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.cancelled(on: day(2026, 4, 16), calendar: calendar),
             SessionRecordFixtures.brokenByRevoke(on: day(2026, 4, 15), calendar: calendar),
         ]
-        #expect(makeSut()(history: history, now: now).totalCount == 3)
+        #expect(makeSut().execute(history: history, now: now).totalCount == 3)
     }
 
     @Test("totalCount is zero for empty history")
     func totalCountEmptyHistory() {
-        #expect(makeSut()(history: [], now: day(2026, 4, 20)).totalCount == 0)
+        #expect(makeSut().execute(history: [], now: day(2026, 4, 20)).totalCount == 0)
     }
 
     // MARK: - currentStreak (parameterized)
@@ -71,7 +71,7 @@ struct ComputeStatsUseCaseTests {
         let history = tc.completedAprilDays.map {
             SessionRecordFixtures.completed(on: day(2026, 4, $0), calendar: calendar)
         }
-        let stats = makeSut()(history: history, now: day(2026, 4, tc.nowAprilDay))
+        let stats = makeSut().execute(history: history, now: day(2026, 4, tc.nowAprilDay))
         #expect(stats.currentStreak == tc.expected)
     }
 
@@ -79,14 +79,14 @@ struct ComputeStatsUseCaseTests {
     func currentStreakIgnoresCancelled() {
         let now = day(2026, 4, 20)
         let history = [SessionRecordFixtures.cancelled(on: now, calendar: calendar)]
-        #expect(makeSut()(history: history, now: now).currentStreak == 0)
+        #expect(makeSut().execute(history: history, now: now).currentStreak == 0)
     }
 
     @Test("currentStreak ignores .brokenByRevoke outcome")
     func currentStreakIgnoresBrokenByRevoke() {
         let now = day(2026, 4, 20)
         let history = [SessionRecordFixtures.brokenByRevoke(on: now, calendar: calendar)]
-        #expect(makeSut()(history: history, now: now).currentStreak == 0)
+        #expect(makeSut().execute(history: history, now: now).currentStreak == 0)
     }
 
     // MARK: - longestStreak
@@ -107,20 +107,20 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.completed(on: day(2026, 4, 19), calendar: calendar),
             SessionRecordFixtures.completed(on: day(2026, 4, 20), calendar: calendar),
         ]
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.longestStreak == 6)
         #expect(stats.currentStreak == 6)
     }
 
     @Test("longestStreak is 1 for single day")
     func longestStreakSingleDay() {
-        let stats = makeSut()(history: [SessionRecordFixtures.completed(on: day(2026, 4, 10), calendar: calendar)], now: day(2026, 4, 20))
+        let stats = makeSut().execute(history: [SessionRecordFixtures.completed(on: day(2026, 4, 10), calendar: calendar)], now: day(2026, 4, 20))
         #expect(stats.longestStreak == 1)
     }
 
     @Test("longestStreak is 0 for empty history")
     func longestStreakEmptyHistory() {
-        #expect(makeSut()(history: [], now: day(2026, 4, 20)).longestStreak == 0)
+        #expect(makeSut().execute(history: [], now: day(2026, 4, 20)).longestStreak == 0)
     }
 
     // MARK: - last7DaysFlags
@@ -130,7 +130,7 @@ struct ComputeStatsUseCaseTests {
         // 2026-04-22 is Wednesday; Monday of that week = 2026-04-20
         let now = day(2026, 4, 22)
         let history = [SessionRecordFixtures.completed(on: day(2026, 4, 20), calendar: calendar)] // Monday
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.last7DaysFlags.count == 7)
         #expect(stats.last7DaysFlags[0]) // Monday = true
         for i in 1..<7 {
@@ -140,7 +140,7 @@ struct ComputeStatsUseCaseTests {
 
     @Test("todayWeekdayIndex identifies Wednesday (index 2 in 0=Mon scheme)")
     func todayWeekdayIndexForWednesday() {
-        let stats = makeSut()(history: [], now: day(2026, 4, 22))
+        let stats = makeSut().execute(history: [], now: day(2026, 4, 22))
         #expect(stats.todayWeekdayIndex == 2) // 0=Mon, 1=Tue, 2=Wed
     }
 
@@ -151,7 +151,7 @@ struct ComputeStatsUseCaseTests {
             let d = calendar.date(byAdding: .day, value: offset, to: day(2026, 4, 20))!
             return SessionRecordFixtures.completed(on: d, calendar: calendar)
         }
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.last7DaysFlags == Array(repeating: true, count: 7))
     }
 
@@ -165,7 +165,7 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.completed(on: day(2026, 3, 28), calendar: calendar),
             SessionRecordFixtures.completed(on: day(2026, 3, 27), calendar: calendar),
         ]
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.currentStreak == 3)
         #expect(stats.longestStreak == 3)
     }
@@ -178,7 +178,7 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.completed(on: day(2026, 10, 25), calendar: calendar),
             SessionRecordFixtures.completed(on: day(2026, 10, 24), calendar: calendar),
         ]
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.currentStreak == 3)
         #expect(stats.longestStreak == 3)
     }
@@ -194,7 +194,7 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.completed(on: noon, calendar: calendar),
             SessionRecordFixtures.completed(on: evening, calendar: calendar),
         ]
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.completedDaysSet.count == 1)
     }
 
@@ -205,7 +205,7 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.active(startedAt: day(2026, 4, 20)),
             SessionRecordFixtures.completed(on: day(2026, 4, 20), calendar: calendar),
         ]
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.totalCount == 1)
         #expect(stats.currentStreak == 1)
     }
@@ -219,7 +219,7 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.completed(on: morning, calendar: calendar),
             SessionRecordFixtures.completed(on: afternoon, calendar: calendar),
         ]
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.totalCount == 2)
         #expect(stats.currentStreak == 1)
         #expect(stats.longestStreak == 1)
@@ -232,7 +232,7 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.malformedCompletedWithoutEndDate(),
             SessionRecordFixtures.completed(on: day(2026, 4, 20), calendar: calendar),
         ]
-        let stats = makeSut()(history: history, now: now)
+        let stats = makeSut().execute(history: history, now: now)
         #expect(stats.totalCount == 1)
         #expect(stats.currentStreak == 1)
     }
@@ -245,8 +245,8 @@ struct ComputeStatsUseCaseTests {
             SessionRecordFixtures.completed(on: day(2026, 4, 20), calendar: calendar),
             SessionRecordFixtures.completed(on: day(2026, 4, 19), calendar: calendar),
         ]
-        let a = makeSut()(history: history, now: now)
-        let b = alternate(history: history, now: now)
+        let a = makeSut().execute(history: history, now: now)
+        let b = alternate.execute(history: history, now: now)
         #expect(a == b)
     }
 }

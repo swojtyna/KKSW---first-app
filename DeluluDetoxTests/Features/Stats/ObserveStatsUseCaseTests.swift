@@ -15,7 +15,7 @@ struct ObserveStatsUseCaseTests {
         let sut = ObserveStatsUseCaseImpl(observeHistory: history, compute: compute, clock: { fixedNow })
 
         var emissions: [Stats] = []
-        let cancellable = sut().sink { emissions.append($0) }
+        let cancellable = sut.execute().sink { emissions.append($0) }
         defer { cancellable.cancel() }
 
         #expect(emissions.count == 1)
@@ -43,7 +43,7 @@ struct ObserveStatsUseCaseTests {
         let fixedNow = Date(timeIntervalSince1970: 0)
         let sut = ObserveStatsUseCaseImpl(observeHistory: history, compute: compute, clock: { fixedNow })
 
-        let cancellable = sut().sink { _ in }
+        let cancellable = sut.execute().sink { _ in }
         defer { cancellable.cancel() }
 
         history.subject.send([])

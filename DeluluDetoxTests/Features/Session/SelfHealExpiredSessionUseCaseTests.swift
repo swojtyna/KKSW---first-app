@@ -16,7 +16,7 @@ struct SelfHealExpiredSessionUseCaseTests {
         mockRepo.activeSubject.send(makeActive(plannedEnd: plannedEnd))
 
         let uc = SelfHealExpiredSessionUseCaseImpl(repository: mockRepo, endSession: mockEnd)
-        let healed = try await uc(now: now)
+        let healed = try await uc.execute(now: now)
 
         #expect(healed)
         #expect(mockEnd.callCount == 1)
@@ -34,7 +34,7 @@ struct SelfHealExpiredSessionUseCaseTests {
         mockRepo.activeSubject.send(makeActive(plannedEnd: plannedEnd))
 
         let uc = SelfHealExpiredSessionUseCaseImpl(repository: mockRepo, endSession: mockEnd)
-        let healed = try await uc(now: now)
+        let healed = try await uc.execute(now: now)
 
         #expect(!healed)
         #expect(mockEnd.callCount == 0)
@@ -46,7 +46,7 @@ struct SelfHealExpiredSessionUseCaseTests {
         let mockEnd = MockEndSessionUseCase()
 
         let uc = SelfHealExpiredSessionUseCaseImpl(repository: mockRepo, endSession: mockEnd)
-        let healed = try await uc(now: Date())
+        let healed = try await uc.execute(now: Date())
 
         #expect(!healed)
         #expect(mockEnd.callCount == 0)

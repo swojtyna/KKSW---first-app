@@ -1,7 +1,7 @@
 @preconcurrency import FamilyControls
 
 protocol UpdateBlocklistUseCase: Sendable {
-    func callAsFunction(_ selection: FamilyActivitySelection) async throws
+    func execute(_ selection: FamilyActivitySelection) async throws
 }
 
 final class UpdateBlocklistUseCaseImpl: UpdateBlocklistUseCase {
@@ -11,7 +11,7 @@ final class UpdateBlocklistUseCaseImpl: UpdateBlocklistUseCase {
         self.repository = repository
     }
 
-    func callAsFunction(_ selection: FamilyActivitySelection) async throws {
+    func execute(_ selection: FamilyActivitySelection) async throws {
         try await repository.update(with: selection)
     }
 }

@@ -19,13 +19,13 @@ final class CreateOrUpdateScheduleUseCaseImpl: CreateOrUpdateScheduleUseCase, @u
         self.sync = sync
     }
 
-    func callAsFunction(_ schedule: Schedule) async throws {
+    func execute(_ schedule: Schedule) async throws {
         try await repository.upsert(schedule)
         Self.log.info(
             "schedule upserted id=\(schedule.id.uuidString, privacy: .public) enabled=\(schedule.enabled, privacy: .public)"
         )
         // Delegate to Sync UC. Plan 04 owns DAS rollback (CONTEXT §D-14);
         // Plan 02 merely composes the two calls in order.
-        try await sync(schedule: schedule)
+        try await sync.execute(schedule: schedule)
     }
 }

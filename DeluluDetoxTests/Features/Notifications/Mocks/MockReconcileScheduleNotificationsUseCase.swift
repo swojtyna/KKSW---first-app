@@ -6,7 +6,7 @@ import Foundation
 final class MockReconcileScheduleNotificationsUseCase: ReconcileScheduleNotificationsUseCase, @unchecked Sendable {
     private(set) var receivedSchedules: [Schedule] = []
 
-    func callAsFunction(schedule: Schedule) async {
+    func execute(schedule: Schedule) async {
         receivedSchedules.append(schedule)
     }
 }

@@ -99,7 +99,7 @@ final class ScheduleEditorViewModel: @unchecked Sendable {
         // Swift 6's `swift_task_isCurrentExecutorWithFlagsImpl` assertion
         // (observed on device: `dispatch_assert_queue_fail` after a Darwin
         // scheduleStarted cascade while the Editor was still alive post-save).
-        observeBlocklist()
+        observeBlocklist.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] blocklist in
                 guard let self else { return }
@@ -151,7 +151,7 @@ final class ScheduleEditorViewModel: @unchecked Sendable {
         )
 
         do {
-            try await createOrUpdate(schedule)
+            try await createOrUpdate.execute(schedule)
             logger.info(
                 "schedule saved id=\(schedule.id.uuidString, privacy: .public) enabled=\(schedule.enabled, privacy: .public)"
             )

@@ -4,7 +4,7 @@ final class MockRequestScreenTimeAuthUseCase: RequestScreenTimeAuthUseCase, @unc
     var stubbedError: Error?
     var callCount = 0
 
-    func callAsFunction() async throws {
+    func execute() async throws {
         callCount += 1
         if let error = stubbedError {
             throw error

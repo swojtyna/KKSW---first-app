@@ -38,7 +38,7 @@ final class StatsViewModel: @unchecked Sendable {
 
     init() {
         self.displayedMonth = calendar.startOfDay(for: Date())
-        observeStats()
+        observeStats.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] newStats in self?.stats = newStats }
             .store(in: &cancellables)

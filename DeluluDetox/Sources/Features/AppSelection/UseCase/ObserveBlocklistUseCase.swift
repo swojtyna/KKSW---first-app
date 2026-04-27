@@ -1,7 +1,7 @@
 import Combine
 
 protocol ObserveBlocklistUseCase: Sendable {
-    func callAsFunction() -> AnyPublisher<Blocklist, Never>
+    func execute() -> AnyPublisher<Blocklist, Never>
 }
 
 final class ObserveBlocklistUseCaseImpl: ObserveBlocklistUseCase {
@@ -11,7 +11,7 @@ final class ObserveBlocklistUseCaseImpl: ObserveBlocklistUseCase {
         self.repository = repository
     }
 
-    func callAsFunction() -> AnyPublisher<Blocklist, Never> {
+    func execute() -> AnyPublisher<Blocklist, Never> {
         repository.blocklistPublisher
     }
 }

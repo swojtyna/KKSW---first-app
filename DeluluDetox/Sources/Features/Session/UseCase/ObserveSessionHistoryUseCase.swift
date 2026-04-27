@@ -1,7 +1,7 @@
 import Combine
 
 protocol ObserveSessionHistoryUseCase: Sendable {
-    func callAsFunction() -> AnyPublisher<[SessionRecord], Never>
+    func execute() -> AnyPublisher<[SessionRecord], Never>
 }
 
 final class ObserveSessionHistoryUseCaseImpl: ObserveSessionHistoryUseCase {
@@ -11,7 +11,7 @@ final class ObserveSessionHistoryUseCaseImpl: ObserveSessionHistoryUseCase {
         self.repository = repository
     }
 
-    func callAsFunction() -> AnyPublisher<[SessionRecord], Never> {
+    func execute() -> AnyPublisher<[SessionRecord], Never> {
         repository.historyPublisher
     }
 }

@@ -16,7 +16,7 @@ import os
 ///   means the in-memory subject had no active record (already finalized or
 ///   never started). All other errors propagate.
 protocol EndSessionUseCase: Sendable {
-    func callAsFunction(outcome: SessionOutcome, actualEndAt: Date) async throws
+    func execute(outcome: SessionOutcome, actualEndAt: Date) async throws
 }
 
 final class EndSessionUseCaseImpl: EndSessionUseCase, @unchecked Sendable {
@@ -42,12 +42,12 @@ final class EndSessionUseCaseImpl: EndSessionUseCase, @unchecked Sendable {
         self.cancelEndNotification = cancelEndNotification
     }
 
-    func callAsFunction(outcome: SessionOutcome, actualEndAt: Date) async throws {
+    func execute(outcome: SessionOutcome, actualEndAt: Date) async throws {
         // Phase 6 §H2: read active id BEFORE finalize (finalize clears the subject).
         // Only cancel the pending NTF-01 when outcome is abort-like; iOS fires
         // the pending trigger naturally on `.completed`.
         if outcome != .completed, let activeId = await currentActiveId() {
-            await cancelEndNotification(sessionId: activeId)
+            await cancelEndNotification.execute(sessionId: activeId)
         }
 
         // Defense-in-depth: always clear shield + stop monitoring, even if there is

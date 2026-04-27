@@ -7,7 +7,7 @@ final class MockComputeStatsUseCase: ComputeStatsUseCase, @unchecked Sendable {
     var stubResult: Stats = .empty
     private(set) var callLog: [(history: [SessionRecord], now: Date)] = []
 
-    func callAsFunction(history: [SessionRecord], now: Date) -> Stats {
+    func execute(history: [SessionRecord], now: Date) -> Stats {
         callLog.append((history, now))
         return stubResult
     }

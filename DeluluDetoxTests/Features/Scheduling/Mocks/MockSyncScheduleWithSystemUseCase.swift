@@ -9,7 +9,7 @@ final class MockSyncScheduleWithSystemUseCase: SyncScheduleWithSystemUseCase, @u
     private(set) var lastInputSchedule: Schedule?
     var syncError: Error?
 
-    func callAsFunction(schedule: Schedule) async throws {
+    func execute(schedule: Schedule) async throws {
         callCount += 1
         lastInputSchedule = schedule
         if let syncError { throw syncError }

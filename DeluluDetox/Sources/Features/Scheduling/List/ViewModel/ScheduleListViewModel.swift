@@ -37,7 +37,7 @@ final class ScheduleListViewModel: @unchecked Sendable {
     )
 
     init() {
-        observeSchedule()
+        observeSchedule.execute()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] list in
                 self?.schedules = list
@@ -49,7 +49,7 @@ final class ScheduleListViewModel: @unchecked Sendable {
 
     func toggleSchedule(scheduleId: UUID, enabled: Bool) async {
         do {
-            try await toggleScheduleUC(scheduleId: scheduleId, enabled: enabled)
+            try await toggleScheduleUC.execute(scheduleId: scheduleId, enabled: enabled)
             logger.info(
                 "schedule toggled id=\(scheduleId.uuidString, privacy: .public) enabled=\(enabled, privacy: .public)"
             )

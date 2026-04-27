@@ -19,7 +19,7 @@ final class DenialViewModel: @unchecked Sendable {
         isRequesting = true
         error = nil
         do {
-            try await requestAuth()
+            try await requestAuth.execute()
             logger.info("Screen Time authorization granted on retry")
             // Event flow przez Combine publisher na repo.statusSubject — AppRootVM aktualizuje destination (D-11).
         } catch {

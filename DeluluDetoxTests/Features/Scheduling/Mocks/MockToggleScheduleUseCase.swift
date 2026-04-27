@@ -9,7 +9,7 @@ final class MockToggleScheduleUseCase: ToggleScheduleUseCase, @unchecked Sendabl
     private(set) var lastInputEnabled: Bool?
     var toggleError: Error?
 
-    func callAsFunction(scheduleId: UUID, enabled: Bool) async throws {
+    func execute(scheduleId: UUID, enabled: Bool) async throws {
         callCount += 1
         lastInputScheduleId = scheduleId
         lastInputEnabled = enabled

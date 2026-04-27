@@ -14,7 +14,7 @@ import os
 /// morning segment is a technical artifact of the DAS split — notifying the
 /// user at 00:00 is confusing and already implied by the evening banner.
 protocol ReconcileScheduleNotificationsUseCase: Sendable {
-    func callAsFunction(schedule: Schedule) async
+    func execute(schedule: Schedule) async
 }
 
 final class ReconcileScheduleNotificationsUseCaseImpl: ReconcileScheduleNotificationsUseCase, @unchecked Sendable {
@@ -31,7 +31,7 @@ final class ReconcileScheduleNotificationsUseCaseImpl: ReconcileScheduleNotifica
         self.captions = captions
     }
 
-    func callAsFunction(schedule: Schedule) async {
+    func execute(schedule: Schedule) async {
         let prefix = "schedule.start.\(schedule.id.uuidString)."
 
         // Step 1 — full replace: always remove any pending for this id.

@@ -11,7 +11,7 @@ final class ObserveScheduleUseCaseImpl: ObserveScheduleUseCase, @unchecked Senda
         self.repository = repository
     }
 
-    func callAsFunction() -> AnyPublisher<[Schedule], Never> {
+    func execute() -> AnyPublisher<[Schedule], Never> {
         repository.schedulesPublisher
     }
 }

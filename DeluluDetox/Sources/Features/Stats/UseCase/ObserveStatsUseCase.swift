@@ -9,7 +9,7 @@ import Foundation
 /// hard rule Repo ↛ Repo. The UseCase layer is the correct place to cross
 /// feature boundaries.
 protocol ObserveStatsUseCase: Sendable {
-    func callAsFunction() -> AnyPublisher<Stats, Never>
+    func execute() -> AnyPublisher<Stats, Never>
 }
 
 final class ObserveStatsUseCaseImpl: ObserveStatsUseCase, @unchecked Sendable {
@@ -27,10 +27,10 @@ final class ObserveStatsUseCaseImpl: ObserveStatsUseCase, @unchecked Sendable {
         self.clock = clock
     }
 
-    func callAsFunction() -> AnyPublisher<Stats, Never> {
-        observeHistory()
+    func execute() -> AnyPublisher<Stats, Never> {
+        observeHistory.execute()
             .map { [compute, clock] history in
-                compute(history: history, now: clock())
+                compute.execute(history: history, now: clock())
             }
             .eraseToAnyPublisher()
     }

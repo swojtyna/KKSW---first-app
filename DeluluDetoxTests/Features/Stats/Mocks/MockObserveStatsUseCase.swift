@@ -7,7 +7,7 @@ import Foundation
 final class MockObserveStatsUseCase: ObserveStatsUseCase, @unchecked Sendable {
     let subject = CurrentValueSubject<Stats, Never>(.empty)
 
-    func callAsFunction() -> AnyPublisher<Stats, Never> {
+    func execute() -> AnyPublisher<Stats, Never> {
         subject.eraseToAnyPublisher()
     }
 }

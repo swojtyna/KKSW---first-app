@@ -7,7 +7,7 @@ final class MockDetectRevocationUseCase: DetectRevocationUseCase, @unchecked Sen
     var stubbedError: Error?
     var stubbedResult: Bool = false
 
-    func callAsFunction(now: Date) async throws -> Bool {
+    func execute(now: Date) async throws -> Bool {
         callCount += 1
         lastNow = now
         if let stubbedError { throw stubbedError }

@@ -55,7 +55,7 @@ final class CountdownViewModel: @unchecked Sendable {
 
     func confirmEarlyEnd() async {
         do {
-            try await endSession(outcome: .cancelledByUser, actualEndAt: dateProvider())
+            try await endSession.execute(outcome: .cancelledByUser, actualEndAt: dateProvider())
             destination = nil
             logger.info("early-end confirmed session id=\(self.session.id.uuidString, privacy: .public)")
         } catch {

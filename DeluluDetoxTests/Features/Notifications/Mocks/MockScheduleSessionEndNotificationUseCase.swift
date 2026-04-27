@@ -9,7 +9,7 @@ final class MockScheduleSessionEndNotificationUseCase: ScheduleSessionEndNotific
     }
     private(set) var calls: [Call] = []
 
-    func callAsFunction(sessionId: UUID, plannedEndAt: Date, durationMinutes: Int) async {
+    func execute(sessionId: UUID, plannedEndAt: Date, durationMinutes: Int) async {
         calls.append(Call(sessionId: sessionId, plannedEndAt: plannedEndAt, durationMinutes: durationMinutes))
     }
 }

@@ -1,7 +1,7 @@
 import FamilyControls
 
 protocol RefreshScreenTimeAuthStatusUseCase: Sendable {
-    func callAsFunction()
+    func execute()
 }
 
 final class RefreshScreenTimeAuthStatusUseCaseImpl: RefreshScreenTimeAuthStatusUseCase {
@@ -11,7 +11,7 @@ final class RefreshScreenTimeAuthStatusUseCaseImpl: RefreshScreenTimeAuthStatusU
         self.repository = repository
     }
 
-    func callAsFunction() {
+    func execute() {
         repository.refreshStatus()
     }
 }

@@ -1,7 +1,7 @@
 import FamilyControls
 
 protocol RequestScreenTimeAuthUseCase: Sendable {
-    func callAsFunction() async throws
+    func execute() async throws
 }
 
 final class RequestScreenTimeAuthUseCaseImpl: RequestScreenTimeAuthUseCase {
@@ -11,7 +11,7 @@ final class RequestScreenTimeAuthUseCaseImpl: RequestScreenTimeAuthUseCase {
         self.repository = repository
     }
 
-    func callAsFunction() async throws {
+    func execute() async throws {
         try await repository.requestAuthorization()
     }
 }

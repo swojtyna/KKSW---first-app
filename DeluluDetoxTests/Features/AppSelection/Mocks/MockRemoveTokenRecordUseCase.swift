@@ -5,7 +5,7 @@ final class MockRemoveTokenRecordUseCase: RemoveTokenRecordUseCase, @unchecked S
     private(set) var callCount = 0
     private(set) var capturedRecordID: TokenRecord.ID?
 
-    func callAsFunction(_ recordID: TokenRecord.ID) async throws {
+    func execute(_ recordID: TokenRecord.ID) async throws {
         callCount += 1
         capturedRecordID = recordID
         if let stubbedError { throw stubbedError }

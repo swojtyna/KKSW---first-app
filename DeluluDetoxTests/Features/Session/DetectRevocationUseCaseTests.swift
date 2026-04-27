@@ -19,7 +19,7 @@ struct DetectRevocationUseCaseTests {
             authorizationStatusProvider: { .denied }
         )
         let now = Date(timeIntervalSince1970: 1_700_000_500)
-        let finalized = try await uc(now: now)
+        let finalized = try await uc.execute(now: now)
 
         #expect(finalized)
         #expect(mockEnd.callCount == 1)
@@ -38,7 +38,7 @@ struct DetectRevocationUseCaseTests {
             endSession: mockEnd,
             authorizationStatusProvider: { .approved }
         )
-        let finalized = try await uc(now: Date())
+        let finalized = try await uc.execute(now: Date())
 
         #expect(!finalized)
         #expect(mockEnd.callCount == 0)
@@ -54,7 +54,7 @@ struct DetectRevocationUseCaseTests {
             endSession: mockEnd,
             authorizationStatusProvider: { .denied }
         )
-        let finalized = try await uc(now: Date())
+        let finalized = try await uc.execute(now: Date())
 
         #expect(!finalized)
         #expect(mockEnd.callCount == 0)

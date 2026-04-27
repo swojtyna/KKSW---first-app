@@ -32,7 +32,7 @@ final class ComputeScheduleWindowUseCaseImpl: ComputeScheduleWindowUseCase, @unc
 
     init() {}
 
-    func callAsFunction(schedule: Schedule, now: Date, calendar: Calendar) -> ScheduleWindow {
+    func execute(schedule: Schedule, now: Date, calendar: Calendar) -> ScheduleWindow {
         guard schedule.enabled else {
             return ScheduleWindow(state: .inactive, currentWeekday: 0)
         }

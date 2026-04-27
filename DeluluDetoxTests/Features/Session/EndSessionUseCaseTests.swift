@@ -24,7 +24,7 @@ struct EndSessionUseCaseTests {
             cancelEndNotification: mockCancelNotification
         )
         let endDate = Date()
-        try await uc(outcome: .completed, actualEndAt: endDate)
+        try await uc.execute(outcome: .completed, actualEndAt: endDate)
 
         #expect(mockShield.clearShieldCallCount == 1)
         #expect(mockMonitoring.stopActivityMonitoringCallCount == 1)
@@ -47,7 +47,7 @@ struct EndSessionUseCaseTests {
             monitoring: mockMonitoring,
             cancelEndNotification: mockCancelNotification
         )
-        try await uc(outcome: .completed, actualEndAt: Date())
+        try await uc.execute(outcome: .completed, actualEndAt: Date())
 
         #expect(mockShield.clearShieldCallCount == 1)
         #expect(mockMonitoring.stopActivityMonitoringCallCount == 1)
@@ -70,7 +70,7 @@ struct EndSessionUseCaseTests {
             cancelEndNotification: mockCancelNotification
         )
         do {
-            try await uc(outcome: .completed, actualEndAt: Date())
+            try await uc.execute(outcome: .completed, actualEndAt: Date())
             Issue.record("expected throw")
         } catch {
             #expect(mockShield.clearShieldCallCount == 1)
@@ -96,7 +96,7 @@ struct EndSessionUseCaseTests {
             monitoring: mockMonitoring,
             cancelEndNotification: mockCancelNotification
         )
-        try await uc(outcome: .cancelledByUser, actualEndAt: Date())
+        try await uc.execute(outcome: .cancelledByUser, actualEndAt: Date())
 
         #expect(mockCancelNotification.cancelledSessionIds == [activeId])
     }
@@ -116,7 +116,7 @@ struct EndSessionUseCaseTests {
             monitoring: mockMonitoring,
             cancelEndNotification: mockCancelNotification
         )
-        try await uc(outcome: .brokenByRevoke, actualEndAt: Date())
+        try await uc.execute(outcome: .brokenByRevoke, actualEndAt: Date())
 
         #expect(mockCancelNotification.cancelledSessionIds == [activeId])
     }
@@ -135,7 +135,7 @@ struct EndSessionUseCaseTests {
             monitoring: mockMonitoring,
             cancelEndNotification: mockCancelNotification
         )
-        try await uc(outcome: .completed, actualEndAt: Date())
+        try await uc.execute(outcome: .completed, actualEndAt: Date())
 
         #expect(mockCancelNotification.cancelledSessionIds.isEmpty,
                 "iOS fires the pending session.end trigger naturally on .completed")
@@ -155,7 +155,7 @@ struct EndSessionUseCaseTests {
             monitoring: mockMonitoring,
             cancelEndNotification: mockCancelNotification
         )
-        try await uc(outcome: .cancelledByUser, actualEndAt: Date())
+        try await uc.execute(outcome: .cancelledByUser, actualEndAt: Date())
 
         #expect(mockCancelNotification.cancelledSessionIds.isEmpty,
                 "no active session → nothing to cancel even on abort outcome")

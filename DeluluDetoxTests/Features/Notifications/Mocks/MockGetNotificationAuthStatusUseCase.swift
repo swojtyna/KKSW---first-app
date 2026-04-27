@@ -5,7 +5,7 @@ import UserNotifications
 final class MockGetNotificationAuthStatusUseCase: GetNotificationAuthStatusUseCase, @unchecked Sendable {
     var stubStatus: UNAuthorizationStatus = .authorized
 
-    func callAsFunction() async -> UNAuthorizationStatus {
+    func execute() async -> UNAuthorizationStatus {
         stubStatus
     }
 }

@@ -2,13 +2,13 @@ import Foundation
 import UserNotifications
 
 protocol GetNotificationAuthStatusUseCase: Sendable {
-    func callAsFunction() async -> UNAuthorizationStatus
+    func execute() async -> UNAuthorizationStatus
 }
 
 struct GetNotificationAuthStatusUseCaseImpl: GetNotificationAuthStatusUseCase {
     let repository: LocalNotificationRepository
 
-    func callAsFunction() async -> UNAuthorizationStatus {
+    func execute() async -> UNAuthorizationStatus {
         await repository.authorizationStatus()
     }
 }

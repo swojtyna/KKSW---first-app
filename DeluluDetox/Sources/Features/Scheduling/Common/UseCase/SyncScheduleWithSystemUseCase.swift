@@ -44,7 +44,7 @@ final class SyncScheduleWithSystemUseCaseImpl: SyncScheduleWithSystemUseCase, @u
         self.reconcileNotifications = reconcileNotifications
     }
 
-    func callAsFunction(schedule: Schedule) async throws {
+    func execute(schedule: Schedule) async throws {
         // Snapshot prior state for rollback. Read BEFORE stopMonitoring so a
         // race between editor-save and DAM-fire can't corrupt the snapshot.
         let priorSnapshot = await currentSnapshot(for: schedule.id)
@@ -57,7 +57,7 @@ final class SyncScheduleWithSystemUseCaseImpl: SyncScheduleWithSystemUseCase, @u
             // Phase 6 §H3 — reconcile on disable too. The UC removes all pending
             // `schedule.start.{id}.*` so the user doesn't get a banner for a
             // schedule they just turned off.
-            await reconcileNotifications(schedule: schedule)
+            await reconcileNotifications.execute(schedule: schedule)
             Self.log.info("schedule disabled id=\(schedule.id.uuidString, privacy: .public)")
             return
         }
@@ -67,7 +67,7 @@ final class SyncScheduleWithSystemUseCaseImpl: SyncScheduleWithSystemUseCase, @u
             try await monitoring.startMonitoring(schedule: schedule)
             // Phase 6 §H3 — reconcile AFTER startMonitoring success so NTF-02
             // state mirrors DAS state. On throw we skip (see catch).
-            await reconcileNotifications(schedule: schedule)
+            await reconcileNotifications.execute(schedule: schedule)
             Self.log.info("schedule synced id=\(schedule.id.uuidString, privacy: .public) enabled=true")
         } catch {
             Self.log.error(

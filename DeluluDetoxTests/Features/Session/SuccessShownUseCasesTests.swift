@@ -26,14 +26,14 @@ final class SuccessShownUseCasesTests {
         let markUC = MarkSuccessShownUseCaseImpl()
         let checkUC = CheckSuccessShownUseCaseImpl()
 
-        #expect(!checkUC(sessionId: id))
-        markUC(sessionId: id)
-        #expect(checkUC(sessionId: id))
+        #expect(!checkUC.execute(sessionId: id))
+        markUC.execute(sessionId: id)
+        #expect(checkUC.execute(sessionId: id))
     }
 
     @Test("check success shown returns false for unmarked session")
     func checkSuccessShownReturnsFalseForUnmarkedSession() {
-        #expect(!CheckSuccessShownUseCaseImpl()(sessionId: UUID()))
+        #expect(!CheckSuccessShownUseCaseImpl().execute(sessionId: UUID()))
     }
 
     @Test("mark and check are independent per sessionId")
@@ -43,19 +43,19 @@ final class SuccessShownUseCasesTests {
         let markUC = MarkSuccessShownUseCaseImpl()
         let checkUC = CheckSuccessShownUseCaseImpl()
 
-        markUC(sessionId: a)
-        #expect(checkUC(sessionId: a))
-        #expect(!checkUC(sessionId: b))
+        markUC.execute(sessionId: a)
+        #expect(checkUC.execute(sessionId: a))
+        #expect(!checkUC.execute(sessionId: b))
     }
 
     @Test("mock mark captures calls without touching UserDefaults")
     func mockMarkSuccessShownCapturesCallsWithoutTouchingUserDefaults() {
         let mockMark = MockMarkSuccessShownUseCase()
         let id = UUID()
-        mockMark(sessionId: id)
+        mockMark.execute(sessionId: id)
         #expect(mockMark.callCount == 1)
         #expect(mockMark.lastSessionId == id)
         #expect(mockMark.allMarked.contains(id))
-        #expect(!CheckSuccessShownUseCaseImpl()(sessionId: id))
+        #expect(!CheckSuccessShownUseCaseImpl().execute(sessionId: id))
     }
 }

@@ -15,7 +15,7 @@ struct ConsumeScheduleEventMarkerUseCaseTests {
         let m3 = makeMarker(ms: 300, kind: .started)
         repo.stubbedConsumedMarkers = [m1, m2, m3]
 
-        let count = try await uc()
+        let count = try await uc.execute()
 
         #expect(count == 3)
         #expect(repo.appendedEvents.count == 3)
@@ -37,11 +37,11 @@ struct ConsumeScheduleEventMarkerUseCaseTests {
             makeMarker(ms: 300),
         ]
 
-        let first = try await uc()
+        let first = try await uc.execute()
         #expect(first == 3)
         #expect(repo.consumeEventMarkersCallCount == 1)
 
-        let second = try await uc()
+        let second = try await uc.execute()
         #expect(second == 0)
         #expect(repo.consumeEventMarkersCallCount == 2)
         #expect(repo.appendedEvents.count == 3)
@@ -52,7 +52,7 @@ struct ConsumeScheduleEventMarkerUseCaseTests {
         let repo = MockScheduleRepository()
         let uc = ConsumeScheduleEventMarkerUseCaseImpl(repository: repo)
 
-        let count = try await uc()
+        let count = try await uc.execute()
         #expect(count == 0)
         #expect(repo.appendedEvents.isEmpty)
         #expect(repo.appendEventCallCount == 0)
@@ -70,7 +70,7 @@ struct ConsumeScheduleEventMarkerUseCaseTests {
         ]
         repo.stubbedConsumedMarkers = sorted
 
-        _ = try await uc()
+        _ = try await uc.execute()
 
         let appendedTimestamps = repo.appendedEvents.map(\.timestamp)
         let expectedTimestamps = sorted.map(\.timestamp)

@@ -3,11 +3,11 @@ import UserNotifications
 import os
 
 /// NTF-01 schedule hook (CONTEXT §D-15).
-/// Called from `StartSessionUseCaseImpl.callAsFunction` AFTER step 3 succeeds
+/// Called from `StartSessionUseCaseImpl.execute` AFTER step 3 succeeds
 /// (monitoring.startActivityMonitoring). Best-effort — any UN error is logged
 /// and swallowed (notification is convenience; session is critical).
 protocol ScheduleSessionEndNotificationUseCase: Sendable {
-    func callAsFunction(sessionId: UUID, plannedEndAt: Date, durationMinutes: Int) async
+    func execute(sessionId: UUID, plannedEndAt: Date, durationMinutes: Int) async
 }
 
 final class ScheduleSessionEndNotificationUseCaseImpl: ScheduleSessionEndNotificationUseCase, @unchecked Sendable {
@@ -24,7 +24,7 @@ final class ScheduleSessionEndNotificationUseCaseImpl: ScheduleSessionEndNotific
         self.captions = captions
     }
 
-    func callAsFunction(sessionId: UUID, plannedEndAt: Date, durationMinutes: Int) async {
+    func execute(sessionId: UUID, plannedEndAt: Date, durationMinutes: Int) async {
         let status = await repository.authorizationStatus()
         guard status == .authorized else {
             Self.log.info("NTF-01 skipped — status=\(String(describing: status), privacy: .public)")

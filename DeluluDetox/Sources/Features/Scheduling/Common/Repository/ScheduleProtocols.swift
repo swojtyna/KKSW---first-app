@@ -60,19 +60,19 @@ enum ScheduleActivityMonitoringError: Error {
 }
 
 protocol ObserveScheduleUseCase: Sendable {
-    func callAsFunction() -> AnyPublisher<[Schedule], Never>
+    func execute() -> AnyPublisher<[Schedule], Never>
 }
 
 protocol CreateOrUpdateScheduleUseCase: Sendable {
-    func callAsFunction(_ schedule: Schedule) async throws
+    func execute(_ schedule: Schedule) async throws
 }
 
 protocol ToggleScheduleUseCase: Sendable {
-    func callAsFunction(scheduleId: UUID, enabled: Bool) async throws
+    func execute(scheduleId: UUID, enabled: Bool) async throws
 }
 
 protocol SyncScheduleWithSystemUseCase: Sendable {
-    func callAsFunction(schedule: Schedule) async throws
+    func execute(schedule: Schedule) async throws
 }
 
 protocol SelfHealSchedulesUseCase: Sendable {
@@ -81,11 +81,11 @@ protocol SelfHealSchedulesUseCase: Sendable {
     /// (apply/clear) actually performed — zero when every schedule's
     /// computed window matches its last-applied flag.
     @discardableResult
-    func callAsFunction(now: Date) async throws -> Int
+    func execute(now: Date) async throws -> Int
 }
 
 protocol ComputeScheduleWindowUseCase: Sendable {
-    func callAsFunction(schedule: Schedule, now: Date, calendar: Calendar) -> ScheduleWindow
+    func execute(schedule: Schedule, now: Date, calendar: Calendar) -> ScheduleWindow
 }
 
 /// Pure value emitted by `ComputeScheduleWindowUseCase`. Encodes "is this
@@ -114,5 +114,5 @@ enum ScheduleUseCaseError: Error {
 protocol ConsumeScheduleEventMarkerUseCase: Sendable {
     /// Count of markers consumed (appended to events.json + deleted).
     @discardableResult
-    func callAsFunction() async throws -> Int
+    func execute() async throws -> Int
 }

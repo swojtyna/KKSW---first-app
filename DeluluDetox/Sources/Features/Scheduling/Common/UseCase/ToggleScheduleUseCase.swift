@@ -25,7 +25,7 @@ final class ToggleScheduleUseCaseImpl: ToggleScheduleUseCase, @unchecked Sendabl
         self.sync = sync
     }
 
-    func callAsFunction(scheduleId: UUID, enabled: Bool) async throws {
+    func execute(scheduleId: UUID, enabled: Bool) async throws {
         let current = await findSchedule(scheduleId)
         guard let existing = current else {
             Self.log.error("toggle failed — schedule not found id=\(scheduleId.uuidString, privacy: .public)")
@@ -36,7 +36,7 @@ final class ToggleScheduleUseCaseImpl: ToggleScheduleUseCase, @unchecked Sendabl
         updated.enabled = enabled
 
         try await repository.upsert(updated)
-        try await sync(schedule: updated)
+        try await sync.execute(schedule: updated)
         Self.log.info(
             "schedule toggled id=\(scheduleId.uuidString, privacy: .public) enabled=\(enabled, privacy: .public)"
         )
